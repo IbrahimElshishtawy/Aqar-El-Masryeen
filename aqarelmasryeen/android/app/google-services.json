@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "55493381725",
+    "project_id": "aqar-146b6",
+    "storage_bucket": "aqar-146b6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:55493381725:android:514946b81ac7baf516c7b4",
+        "android_client_info": {
+          "package_name": "com.example.aqarelmasryeen"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCL-Y4qhkdOT80u7Ro1vaL9lA7idcUie3Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
