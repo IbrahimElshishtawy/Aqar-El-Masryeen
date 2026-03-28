@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/responsive/app_breakpoints.dart';
 import 'package:aqarelmasryeen/data/models/workspace_models.dart';
 import 'package:aqarelmasryeen/data/repositories/workspace_repository.dart';
 import 'package:aqarelmasryeen/modules/dashboard/widgets/workspace_ui.dart';
