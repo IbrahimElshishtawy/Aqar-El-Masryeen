@@ -1,9 +1,11 @@
 import 'package:aqarelmasryeen/core/theme/app_colors.dart';
 import 'package:aqarelmasryeen/modules/dashboard/controllers/dashboard_controller.dart';
 import 'package:aqarelmasryeen/modules/dashboard/widgets/finance_sections.dart';
-import 'package:aqarelmasryeen/modules/dashboard/widgets/management_sections.dart';
 import 'package:aqarelmasryeen/modules/dashboard/widgets/overview_section.dart';
+import 'package:aqarelmasryeen/modules/dashboard/widgets/properties_section.dart';
 import 'package:aqarelmasryeen/modules/dashboard/widgets/reports_notifications_sections.dart';
+import 'package:aqarelmasryeen/modules/dashboard/widgets/units_section.dart';
+import 'package:aqarelmasryeen/modules/dashboard/widgets/users_section.dart';
 import 'package:aqarelmasryeen/shared/layouts/app_shell.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
