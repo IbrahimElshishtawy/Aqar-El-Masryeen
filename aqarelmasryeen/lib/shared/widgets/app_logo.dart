@@ -1,5 +1,6 @@
 import 'package:aqarelmasryeen/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class AppLogo extends StatelessWidget {
   const AppLogo({super.key, this.showText = true});
@@ -39,7 +40,7 @@ class AppLogo extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'عقار المصريين',
+                'app_name'.tr,
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),

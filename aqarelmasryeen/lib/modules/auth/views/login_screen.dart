@@ -125,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
             if (controller.biometricAvailable.value) ...[
               const SizedBox(height: 14),
               AppButton(
-                label: 'enable_biometrics'.tr,
+                label: 'use_biometrics'.tr,
                 variant: AppButtonVariant.secondary,
                 onPressed: controller.unlockWithBiometrics,
                 icon: const Icon(Icons.fingerprint_rounded),

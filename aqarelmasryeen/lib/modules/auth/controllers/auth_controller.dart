@@ -56,9 +56,7 @@ class AuthController extends GetxController {
     update();
   }
 
-  void toggleMode() {
-    isRegisterMode.toggle();
-  }
+  void toggleMode() => isRegisterMode.toggle();
 
   Future<void> loginWithPassword() async {
     final rawPhone = phoneController.text.trim();
@@ -283,13 +281,12 @@ class AuthController extends GetxController {
     if (kIsWeb) {
       return false;
     }
-
     return Platform.isAndroid || Platform.isIOS;
   }
 
   void _showError(String message) {
     Get.snackbar(
-      'Aqar El Masryeen',
+      'app_name'.tr,
       message,
       snackPosition: SnackPosition.BOTTOM,
       margin: const EdgeInsets.all(16),
