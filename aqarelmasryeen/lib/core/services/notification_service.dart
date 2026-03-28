@@ -46,7 +46,7 @@ class NotificationService extends GetxService {
       ),
     );
 
-    await _localNotifications.initialize(settings);
+    await _localNotifications.initialize(settings: settings);
   }
 
   Future<void> _initializeFcm() async {
@@ -84,13 +84,15 @@ class NotificationService extends GetxService {
       ),
       iOS: DarwinNotificationDetails(),
       macOS: DarwinNotificationDetails(),
+      linux: LinuxNotificationDetails(),
+      windows: WindowsNotificationDetails(),
     );
 
     await _localNotifications.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title,
-      body,
-      details,
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: title,
+      body: body,
+      details: details,
     );
   }
 }

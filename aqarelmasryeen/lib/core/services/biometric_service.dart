@@ -15,10 +15,8 @@ class BiometricService {
 
     return _localAuthentication.authenticate(
       localizedReason: 'Unlock Aqar El Masryeen',
-      options: const AuthenticationOptions(
-        biometricOnly: false,
-        stickyAuth: true,
-      ),
+      biometricOnly: false,
+      persistAcrossBackgrounding: true,
     );
   }
 }

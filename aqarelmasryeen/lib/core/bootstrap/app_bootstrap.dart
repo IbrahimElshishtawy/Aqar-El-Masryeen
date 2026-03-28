@@ -1,11 +1,8 @@
-import 'dart:ui';
-
 import 'package:aqarelmasryeen/core/firebase/firebase_options.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/widgets.dart';
 
 class BootstrapState {
   const BootstrapState({
@@ -63,8 +60,8 @@ abstract final class AppBootstrap {
 
     try {
       await FirebaseAppCheck.instance.activate(
-        androidProvider: AndroidProvider.playIntegrity,
-        appleProvider: AppleProvider.appAttestWithDeviceCheckFallback,
+        providerAndroid: AndroidProvider.playIntegrity,
+        providerApple: AppleProvider.appAttestWithDeviceCheckFallback,
       );
     } catch (error) {
       debugPrint('Firebase App Check activation skipped: $error');
