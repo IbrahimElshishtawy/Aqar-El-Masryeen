@@ -7,6 +7,7 @@ import 'package:aqarelmasryeen/core/services/notification_service.dart';
 import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
 import 'package:aqarelmasryeen/core/services/session_service.dart';
 import 'package:aqarelmasryeen/data/repositories/auth_repository.dart';
+import 'package:aqarelmasryeen/data/repositories/workspace_repository.dart';
 import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
@@ -30,6 +31,14 @@ class InitialBinding extends Bindings {
     );
     Get.put(NotificationService(bootstrapState: Get.find()), permanent: true);
     Get.put(
+      WorkspaceRepository(
+        localCacheService: Get.find(),
+        sessionService: Get.find(),
+        notificationService: Get.find(),
+      ),
+      permanent: true,
+    );
+    Get.put(
       AppLockService(sessionService: Get.find(), authRepository: Get.find()),
       permanent: true,
     );
@@ -38,6 +47,7 @@ class InitialBinding extends Bindings {
       Get.find<LocalCacheService>().initialize();
       Get.find<LocaleService>().loadSavedLocale();
       Get.find<NotificationService>().initialize();
+      Get.find<WorkspaceRepository>().initialize();
       Get.find<AppLockService>().initialize();
     });
   }
