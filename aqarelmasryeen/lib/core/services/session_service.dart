@@ -1,11 +1,13 @@
 import 'package:aqarelmasryeen/core/constants/storage_keys.dart';
+import 'package:aqarelmasryeen/core/services/local_cache_service.dart';
 import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
 import 'package:aqarelmasryeen/data/models/cached_session.dart';
 
 class SessionService {
-  SessionService(this._secureStorageService);
+  SessionService(this._secureStorageService, this._localCacheService);
 
   final SecureStorageService _secureStorageService;
+  final LocalCacheService _localCacheService;
 
   bool _isLocked = false;
 
@@ -16,10 +18,10 @@ class SessionService {
   }
 
   Future<bool> isOnboardingSeen() =>
-      _secureStorageService.readBool(StorageKeys.onboardingSeen);
+      _localCacheService.readBool(StorageKeys.onboardingSeen);
 
   Future<void> markOnboardingSeen() =>
-      _secureStorageService.writeBool(StorageKeys.onboardingSeen, true);
+      _localCacheService.writeBool(StorageKeys.onboardingSeen, true);
 
   Future<void> cacheSession(CachedSession session) async {
     await _secureStorageService.write(StorageKeys.cachedUserId, session.userId);
@@ -74,6 +76,7 @@ class SessionService {
   Future<void> clearSession({bool keepOnboarding = true}) async {
     final onboardingSeen = keepOnboarding ? await isOnboardingSeen() : false;
     await _secureStorageService.deleteAll();
+    await _localCacheService.remove(StorageKeys.notificationToken);
     _isLocked = false;
     if (onboardingSeen) {
       await markOnboardingSeen();

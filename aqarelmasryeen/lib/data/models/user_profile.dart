@@ -67,6 +67,21 @@ class UserProfile {
     };
   }
 
+  Map<String, dynamic> toJsonMap() {
+    return {
+      'id': id,
+      'fullName': fullName,
+      'phone': phone,
+      'email': email,
+      'role': role.key,
+      'assignedProperties': assignedProperties,
+      'isActive': isActive,
+      'notes': notes,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
   factory UserProfile.fromMap(Map<String, dynamic> map) {
     return UserProfile(
       id: map['id'] as String? ?? '',
@@ -84,9 +99,36 @@ class UserProfile {
     );
   }
 
+  factory UserProfile.fromJsonMap(Map<String, dynamic> map) {
+    return UserProfile(
+      id: map['id'] as String? ?? '',
+      fullName: map['fullName'] as String? ?? '',
+      phone: map['phone'] as String? ?? '',
+      email: map['email'] as String?,
+      role: AppRole.fromKey(map['role'] as String?),
+      assignedProperties: List<String>.from(
+        map['assignedProperties'] as List<dynamic>? ?? const <dynamic>[],
+      ),
+      isActive: map['isActive'] as bool? ?? true,
+      notes: map['notes'] as String?,
+      createdAt: _jsonDateFromValue(map['createdAt']),
+      updatedAt: _jsonDateFromValue(map['updatedAt']),
+    );
+  }
+
   static DateTime _dateFromValue(dynamic value) {
     if (value is Timestamp) {
       return value.toDate();
+    }
+    if (value is DateTime) {
+      return value;
+    }
+    return DateTime.now();
+  }
+
+  static DateTime _jsonDateFromValue(dynamic value) {
+    if (value is String && value.isNotEmpty) {
+      return DateTime.tryParse(value) ?? DateTime.now();
     }
     if (value is DateTime) {
       return value;
