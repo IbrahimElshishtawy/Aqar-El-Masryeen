@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:aqarelmasryeen/core/bootstrap/app_bootstrap.dart';
 import 'package:aqarelmasryeen/core/localization/locale_service.dart';
 import 'package:aqarelmasryeen/core/services/app_lock_service.dart';
@@ -50,11 +52,8 @@ class InitialBinding extends Bindings {
     );
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Get.find<LocalCacheService>().initialize();
-      Get.find<LocaleService>().loadSavedLocale();
-      Get.find<NotificationService>().initialize();
-      Get.find<WorkspaceRepository>().initialize();
-      Get.find<AppLockService>().initialize();
+      unawaited(Get.find<LocalCacheService>().initialize());
+      unawaited(Get.find<LocaleService>().loadSavedLocale());
     });
   }
 }

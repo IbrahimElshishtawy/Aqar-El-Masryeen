@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:aqarelmasryeen/app/routes/app_routes.dart';
+import 'package:aqarelmasryeen/core/services/app_lock_service.dart';
+import 'package:aqarelmasryeen/core/services/notification_service.dart';
 import 'package:aqarelmasryeen/core/services/session_service.dart';
 import 'package:aqarelmasryeen/data/repositories/auth_repository.dart';
 import 'package:aqarelmasryeen/data/repositories/workspace_repository.dart';
@@ -33,6 +37,9 @@ class DashboardController extends GetxController {
   void onInit() {
     super.onInit();
     _applyRouteArguments(Get.arguments);
+    unawaited(Get.find<AppLockService>().initialize());
+    unawaited(Get.find<NotificationService>().initialize());
+    unawaited(workspace.initialize());
   }
 
   Future<void> refreshWorkspace() async {

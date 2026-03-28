@@ -1,36 +1,81 @@
+import 'dart:async';
+
 import 'package:aqarelmasryeen/app/routes/app_routes.dart';
 import 'package:aqarelmasryeen/core/services/session_service.dart';
 import 'package:aqarelmasryeen/data/repositories/auth_repository.dart';
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 class SplashController extends GetxController {
   final SessionService _sessionService = Get.find();
   final AuthRepository _authRepository = Get.find();
+  Timer? _routeTimer;
+  bool _hasNavigated = false;
 
   @override
   void onReady() {
     super.onReady();
-    Future<void>.delayed(const Duration(milliseconds: 1100), _routeNext);
+    _routeTimer = Timer(const Duration(milliseconds: 1100), () {
+      unawaited(_routeNextSafely());
+    });
   }
 
-  Future<void> _routeNext() async {
-    await _sessionService.initializeLockState();
+  @override
+  void onClose() {
+    _routeTimer?.cancel();
+    super.onClose();
+  }
 
-    final onboardingSeen = await _sessionService.isOnboardingSeen();
-    if (!onboardingSeen) {
-      Get.offAllNamed(AppRoutes.onboarding);
-      return;
-    }
+  Future<void> _routeNextSafely() async {
+    try {
+      await _sessionService.initializeLockState().timeout(
+        const Duration(seconds: 4),
+        onTimeout: () {
+          debugPrint(
+            'SplashController: initializeLockState timed out. Continuing.',
+          );
+        },
+      );
 
-    if (_authRepository.isAuthenticated) {
-      if (_sessionService.isLockedSync) {
-        Get.offAllNamed(AppRoutes.login, arguments: {'unlock': true});
+      final onboardingSeen = await _sessionService.isOnboardingSeen().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint(
+            'SplashController: onboarding check timed out. Falling back to onboarding.',
+          );
+          return false;
+        },
+      );
+
+      if (!onboardingSeen) {
+        _navigate(AppRoutes.onboarding);
         return;
       }
-      Get.offAllNamed(AppRoutes.dashboard);
+
+      if (_authRepository.isAuthenticated) {
+        if (_sessionService.isLockedSync) {
+          _navigate(AppRoutes.login, arguments: {'unlock': true});
+          return;
+        }
+
+        _navigate(AppRoutes.dashboard);
+        return;
+      }
+
+      _navigate(AppRoutes.login);
+    } catch (error, stackTrace) {
+      debugPrint('SplashController routing failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      _navigate(AppRoutes.login);
+    }
+  }
+
+  void _navigate(String route, {Object? arguments}) {
+    if (_hasNavigated || isClosed) {
       return;
     }
 
-    Get.offAllNamed(AppRoutes.login);
+    _hasNavigated = true;
+    Get.offAllNamed(route, arguments: arguments);
   }
 }
