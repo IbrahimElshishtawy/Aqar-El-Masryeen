@@ -54,7 +54,7 @@ class SectionScaffold extends StatelessWidget {
                   ],
                 ),
               ),
-              if (action != null) action!,
+              ...?(action == null ? null : [action!]),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),

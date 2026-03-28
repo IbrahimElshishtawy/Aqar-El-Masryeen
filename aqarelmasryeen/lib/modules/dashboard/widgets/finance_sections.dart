@@ -335,13 +335,16 @@ class _InlineMetric extends StatelessWidget {
 Future<void> _showContractDialog(BuildContext context) async {
   final workspace = Get.find<WorkspaceRepository>();
   var propertyId = workspace.properties.first.id;
-  final availableUnits = () => workspace.units
-      .where(
-        (unit) =>
-            unit.propertyId == propertyId &&
-            (unit.status == UnitStatus.available || unit.status == UnitStatus.reserved),
-      )
-      .toList();
+  List<UnitRecord> availableUnits() {
+    return workspace.units
+        .where(
+          (unit) =>
+              unit.propertyId == propertyId &&
+              (unit.status == UnitStatus.available ||
+                  unit.status == UnitStatus.reserved),
+        )
+        .toList();
+  }
   var unitId = availableUnits().isEmpty ? '' : availableUnits().first.id;
   final customerNameController = TextEditingController();
   final customerPhoneController = TextEditingController();
@@ -365,7 +368,7 @@ Future<void> _showContractDialog(BuildContext context) async {
               child: Column(
                 children: [
                   DropdownButtonFormField<String>(
-                    value: propertyId,
+                    initialValue: propertyId,
                     items: workspace.properties
                         .map(
                           (property) => DropdownMenuItem(
@@ -384,7 +387,7 @@ Future<void> _showContractDialog(BuildContext context) async {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: unitId.isEmpty ? null : unitId,
+                    initialValue: unitId.isEmpty ? null : unitId,
                     items: availableUnits()
                         .map(
                           (unit) => DropdownMenuItem(
@@ -484,7 +487,9 @@ Future<void> _showContractDialog(BuildContext context) async {
                           updatedAt: DateTime.now(),
                         ),
                       );
-                      Navigator.of(dialogContext).pop();
+                      if (dialogContext.mounted) {
+                        Navigator.of(dialogContext).pop();
+                      }
                     },
               child: Text('save'.tr),
             ),
@@ -528,7 +533,9 @@ Future<void> _showPaymentDialog(
               amount: double.tryParse(amountController.text.trim()) ?? 0,
               createdByUserId: workspace.users.first.id,
             );
-            Navigator.of(dialogContext).pop();
+            if (dialogContext.mounted) {
+              Navigator.of(dialogContext).pop();
+            }
           },
           child: Text('save'.tr),
         ),
@@ -559,7 +566,7 @@ Future<void> _showExpenseDialog(BuildContext context) async {
               child: Column(
                 children: [
                   DropdownButtonFormField<String>(
-                    value: propertyId,
+                    initialValue: propertyId,
                     items: workspace.properties
                         .map(
                           (property) => DropdownMenuItem(
@@ -573,7 +580,7 @@ Future<void> _showExpenseDialog(BuildContext context) async {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    value: userId,
+                    initialValue: userId,
                     items: workspace.users
                         .map(
                           (user) => DropdownMenuItem(
@@ -587,7 +594,7 @@ Future<void> _showExpenseDialog(BuildContext context) async {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<ExpenseCategory>(
-                    value: category,
+                    initialValue: category,
                     items: ExpenseCategory.values
                         .map(
                           (item) => DropdownMenuItem(
@@ -645,7 +652,9 @@ Future<void> _showExpenseDialog(BuildContext context) async {
                     notes: notesController.text.trim(),
                   ),
                 );
-                Navigator.of(dialogContext).pop();
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
               },
               child: Text('save'.tr),
             ),

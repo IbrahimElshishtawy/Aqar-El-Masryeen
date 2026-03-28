@@ -142,7 +142,7 @@ Future<void> _showPropertyDialog(
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<PropertyStatus>(
-                    value: status,
+                    initialValue: status,
                     items: PropertyStatus.values
                         .map(
                           (item) => DropdownMenuItem(
@@ -203,7 +203,9 @@ Future<void> _showPropertyDialog(
                     updatedAt: DateTime.now(),
                   ),
                 );
-                Navigator.of(dialogContext).pop();
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
               },
               child: Text('save'.tr),
             ),

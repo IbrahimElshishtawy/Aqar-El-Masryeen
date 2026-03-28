@@ -1051,7 +1051,7 @@ class WorkspaceRepository extends GetxService {
   }
 
   String _newId(String prefix) {
-    return '$prefix_${DateTime.now().microsecondsSinceEpoch}';
+    return '${prefix}_${DateTime.now().microsecondsSinceEpoch}';
   }
 }
 

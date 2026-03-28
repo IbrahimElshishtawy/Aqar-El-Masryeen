@@ -60,7 +60,7 @@ class _UnitsSectionState extends State<UnitsSection> {
                 SizedBox(
                   width: 220,
                   child: DropdownButtonFormField<UnitStatus?>(
-                    value: statusFilter,
+                    initialValue: statusFilter,
                     items: [
                       DropdownMenuItem<UnitStatus?>(
                         value: null,
@@ -183,7 +183,7 @@ Future<void> _showUnitDialog(BuildContext context, {UnitRecord? unit}) async {
               child: Column(
                 children: [
                   DropdownButtonFormField<String>(
-                    value: propertyId,
+                    initialValue: propertyId,
                     items: workspace.properties
                         .map(
                           (property) => DropdownMenuItem(
@@ -205,7 +205,7 @@ Future<void> _showUnitDialog(BuildContext context, {UnitRecord? unit}) async {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<UnitType>(
-                    value: type,
+                    initialValue: type,
                     items: UnitType.values
                         .map(
                           (item) => DropdownMenuItem(
@@ -231,7 +231,7 @@ Future<void> _showUnitDialog(BuildContext context, {UnitRecord? unit}) async {
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<UnitStatus>(
-                    value: status,
+                    initialValue: status,
                     items: UnitStatus.values
                         .map(
                           (item) => DropdownMenuItem(
@@ -276,7 +276,9 @@ Future<void> _showUnitDialog(BuildContext context, {UnitRecord? unit}) async {
                     updatedAt: DateTime.now(),
                   ),
                 );
-                Navigator.of(dialogContext).pop();
+                if (dialogContext.mounted) {
+                  Navigator.of(dialogContext).pop();
+                }
               },
               child: Text('save'.tr),
             ),

@@ -65,7 +65,7 @@ class _UsersSectionState extends State<UsersSection> {
                 SizedBox(
                   width: 220,
                   child: DropdownButtonFormField<AppRole?>(
-                    value: roleFilter,
+                    initialValue: roleFilter,
                     items: [
                       DropdownMenuItem<AppRole?>(
                         value: null,
@@ -212,7 +212,7 @@ class _UsersSectionState extends State<UsersSection> {
                     AppTextField(controller: emailController, label: 'email_optional'.tr),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<AppRole>(
-                      value: selectedRole,
+                      initialValue: selectedRole,
                       items: AppRole.values
                           .map(
                             (role) => DropdownMenuItem(
@@ -284,10 +284,9 @@ class _UsersSectionState extends State<UsersSection> {
                       updatedAt: DateTime.now(),
                     ),
                   );
-                  if (mounted) {
-                    setState(() {});
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
                   }
-                  Navigator.of(dialogContext).pop();
                 },
                 child: Text('save'.tr),
               ),

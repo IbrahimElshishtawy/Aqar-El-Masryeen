@@ -29,7 +29,13 @@ class InitialBinding extends Bindings {
       AuthRepository(bootstrapState: Get.find(), sessionService: Get.find()),
       permanent: true,
     );
-    Get.put(NotificationService(bootstrapState: Get.find()), permanent: true);
+    Get.put(
+      NotificationService(
+        bootstrapState: Get.find(),
+        localCacheService: Get.find(),
+      ),
+      permanent: true,
+    );
     Get.put(
       WorkspaceRepository(
         localCacheService: Get.find(),
