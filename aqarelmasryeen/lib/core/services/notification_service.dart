@@ -92,7 +92,7 @@ class NotificationService extends GetxService {
       id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       title: title,
       body: body,
-      details: details,
+      notificationDetails: details,
     );
   }
 }

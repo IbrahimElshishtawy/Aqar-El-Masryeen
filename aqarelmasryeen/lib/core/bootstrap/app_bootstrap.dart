@@ -60,8 +60,8 @@ abstract final class AppBootstrap {
 
     try {
       await FirebaseAppCheck.instance.activate(
-        providerAndroid: AndroidProvider.playIntegrity,
-        providerApple: AppleProvider.appAttestWithDeviceCheckFallback,
+        providerAndroid: const AndroidPlayIntegrityProvider(),
+        providerApple: const AppleAppAttestWithDeviceCheckFallbackProvider(),
       );
     } catch (error) {
       debugPrint('Firebase App Check activation skipped: $error');

@@ -1,6 +1,7 @@
 import 'package:aqarelmasryeen/app/routes/app_routes.dart';
 import 'package:aqarelmasryeen/core/services/session_service.dart';
 import 'package:aqarelmasryeen/data/repositories/auth_repository.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class DashboardController extends GetxController {
@@ -33,16 +34,16 @@ class DashboardController extends GetxController {
   ];
 
   final activities = const [
-    'دفعة جديدة تم تسجيلها لعقد A-204 بقيمة 180,000 جنيه',
-    'تمت إضافة مصروفات كهرباء لمشروع تلال التجمع',
-    'تم تعيين محاسب جديد على مشروع Palm View',
+    'New payment recorded for contract A-204 worth EGP 180,000.',
+    'Electrical expense batch added to Talal New Cairo project.',
+    'A new accountant has been assigned to Palm View.',
   ];
 
   final propertyCards = const [
     PropertyPreview(
       name: 'Palm View Residence',
       code: 'PVR-01',
-      location: 'القاهرة الجديدة',
+      location: 'New Cairo',
       unitCount: 48,
       soldUnits: 21,
       availableUnits: 19,
@@ -55,7 +56,7 @@ class DashboardController extends GetxController {
     PropertyPreview(
       name: 'Nile Crown Towers',
       code: 'NCT-04',
-      location: 'المعادي',
+      location: 'Maadi',
       unitCount: 32,
       soldUnits: 17,
       availableUnits: 10,
@@ -68,7 +69,7 @@ class DashboardController extends GetxController {
     PropertyPreview(
       name: 'East Gate Plaza',
       code: 'EGP-09',
-      location: 'العاصمة الإدارية',
+      location: 'New Administrative Capital',
       unitCount: 64,
       soldUnits: 41,
       availableUnits: 15,
