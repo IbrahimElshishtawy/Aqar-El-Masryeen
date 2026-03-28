@@ -18,14 +18,18 @@ class LocaleService extends GetxController {
       return;
     }
 
-    _currentLocale =
-        code == 'ar' ? const Locale('ar', 'EG') : const Locale('en', 'US');
+    _currentLocale = code == 'ar'
+        ? const Locale('ar', 'EG')
+        : const Locale('en', 'US');
     update();
   }
 
   Future<void> changeLocale(Locale locale) async {
     _currentLocale = locale;
-    await _secureStorageService.write(StorageKeys.localeCode, locale.languageCode);
+    await _secureStorageService.write(
+      StorageKeys.localeCode,
+      locale.languageCode,
+    );
     Get.updateLocale(locale);
     update();
   }

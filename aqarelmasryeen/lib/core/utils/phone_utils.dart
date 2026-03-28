@@ -1,6 +1,9 @@
 abstract final class PhoneUtils {
   static String normalize(String input) {
     final cleaned = input.replaceAll(RegExp(r'[^\d+]'), '');
+    if (cleaned.isEmpty) {
+      return '';
+    }
     if (cleaned.startsWith('+')) {
       return '+${cleaned.replaceAll(RegExp(r'[^\d]'), '')}';
     }

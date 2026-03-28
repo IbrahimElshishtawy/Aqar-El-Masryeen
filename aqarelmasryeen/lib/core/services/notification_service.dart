@@ -8,7 +8,7 @@ import 'package:get/get.dart';
 
 class NotificationService extends GetxService {
   NotificationService({required BootstrapState bootstrapState})
-      : _bootstrapState = bootstrapState;
+    : _bootstrapState = bootstrapState;
 
   final BootstrapState _bootstrapState;
   final FlutterLocalNotificationsPlugin _localNotifications =

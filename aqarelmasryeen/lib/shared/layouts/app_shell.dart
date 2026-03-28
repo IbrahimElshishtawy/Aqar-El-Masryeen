@@ -5,10 +5,7 @@ import 'package:aqarelmasryeen/shared/widgets/app_logo.dart';
 import 'package:flutter/material.dart';
 
 class ShellDestination {
-  const ShellDestination({
-    required this.label,
-    required this.icon,
-  });
+  const ShellDestination({required this.label, required this.icon});
 
   final String label;
   final IconData icon;
@@ -103,16 +100,13 @@ class AppShell extends StatelessWidget {
             Text(title),
             Text(
               subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
             ),
           ],
         ),
-        actions: [
-          ...actions,
-          const SizedBox(width: 8),
-        ],
+        actions: [...actions, const SizedBox(width: 8)],
       ),
       body: body,
       bottomNavigationBar: NavigationBar(
@@ -120,10 +114,7 @@ class AppShell extends StatelessWidget {
         onDestinationSelected: onDestinationSelected,
         destinations: [
           for (final item in destinations)
-            NavigationDestination(
-              icon: Icon(item.icon),
-              label: item.label,
-            ),
+            NavigationDestination(icon: Icon(item.icon), label: item.label),
         ],
       ),
     );
@@ -162,15 +153,15 @@ class _ShellTopBar extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -202,23 +193,21 @@ class _DesktopNavTile extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color:
-              selected ? Colors.white.withValues(alpha: 0.12) : Colors.transparent,
+          color: selected
+              ? Colors.white.withValues(alpha: 0.12)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(18),
         ),
         child: Row(
           children: [
-            Icon(
-              destination.icon,
-              color: Colors.white,
-            ),
+            Icon(destination.icon, color: Colors.white),
             const SizedBox(width: 12),
             Text(
               destination.label,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                  ),
+                color: Colors.white,
+                fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+              ),
             ),
           ],
         ),

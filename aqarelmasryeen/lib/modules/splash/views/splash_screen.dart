@@ -1,9 +1,10 @@
 import 'package:aqarelmasryeen/core/theme/app_colors.dart';
+import 'package:aqarelmasryeen/modules/splash/controllers/splash_controller.dart';
 import 'package:aqarelmasryeen/shared/widgets/app_logo.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class SplashScreen extends GetView {
+class SplashScreen extends GetView<SplashController> {
   const SplashScreen({super.key});
 
   @override
@@ -30,16 +31,16 @@ class SplashScreen extends GetView {
               Text(
                 'app_name'.tr,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 10),
               Text(
                 'premium_workspace'.tr,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: const Color(0xFFD8E3F4),
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyLarge?.copyWith(color: const Color(0xFFD8E3F4)),
               ),
               const SizedBox(height: 28),
               const SizedBox(

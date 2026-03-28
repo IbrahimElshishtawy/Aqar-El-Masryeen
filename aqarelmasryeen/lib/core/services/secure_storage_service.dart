@@ -10,7 +10,8 @@ class SecureStorageService {
 
   Future<String?> read(String key) => _storage.read(key: key);
 
-  Future<void> writeBool(String key, bool value) => write(key, value.toString());
+  Future<void> writeBool(String key, bool value) =>
+      write(key, value.toString());
 
   Future<bool> readBool(String key, {bool fallback = false}) async {
     final value = await read(key);

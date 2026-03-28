@@ -51,7 +51,9 @@ abstract final class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     final options = _currentPlatformOrNull();
     if (options == null) {
-      throw UnsupportedError('Firebase options are not configured for this platform.');
+      throw UnsupportedError(
+        'Firebase options are not configured for this platform.',
+      );
     }
     return options;
   }

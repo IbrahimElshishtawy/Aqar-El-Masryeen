@@ -15,8 +15,8 @@ class AuthRepository {
   AuthRepository({
     required BootstrapState bootstrapState,
     required SessionService sessionService,
-  })  : _bootstrapState = bootstrapState,
-        _sessionService = sessionService;
+  }) : _bootstrapState = bootstrapState,
+       _sessionService = sessionService;
 
   final BootstrapState _bootstrapState;
   final SessionService _sessionService;
@@ -24,7 +24,8 @@ class AuthRepository {
   FirebaseAuth get _auth => FirebaseAuth.instance;
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
 
-  bool get isAuthenticated => _bootstrapState.firebaseReady && _auth.currentUser != null;
+  bool get isAuthenticated =>
+      _bootstrapState.firebaseReady && _auth.currentUser != null;
 
   Future<bool> isPhoneRegistered(String phone) async {
     _ensureReady();

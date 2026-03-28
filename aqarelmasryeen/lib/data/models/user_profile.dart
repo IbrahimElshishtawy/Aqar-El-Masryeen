@@ -74,8 +74,9 @@ class UserProfile {
       phone: map['phone'] as String? ?? '',
       email: map['email'] as String?,
       role: AppRole.fromKey(map['role'] as String?),
-      assignedProperties:
-          List<String>.from(map['assignedProperties'] as List<dynamic>? ?? []),
+      assignedProperties: List<String>.from(
+        map['assignedProperties'] as List<dynamic>? ?? [],
+      ),
       isActive: map['isActive'] as bool? ?? true,
       notes: map['notes'] as String?,
       createdAt: _dateFromValue(map['createdAt']),

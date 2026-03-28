@@ -41,16 +41,17 @@ class OnboardingScreen extends StatelessWidget {
                     Text(
                       'welcome_title'.tr,
                       style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 18),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 620),
                       child: Text(
                         'welcome_subtitle'.tr,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(
                               color: const Color(0xFFDCE6F3),
                               height: 1.6,
                             ),

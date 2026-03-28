@@ -8,10 +8,9 @@ class SplashController extends GetxController {
   final AuthRepository _authRepository = Get.find();
 
   @override
-  Future<void> onReady() async {
+  void onReady() {
     super.onReady();
-    await Future<void>.delayed(const Duration(milliseconds: 1100));
-    await _routeNext();
+    Future<void>.delayed(const Duration(milliseconds: 1100), _routeNext);
   }
 
   Future<void> _routeNext() async {

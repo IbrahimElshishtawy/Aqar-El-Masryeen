@@ -23,18 +23,12 @@ class InitialBinding extends Bindings {
     Get.put(SessionService(Get.find()), permanent: true);
     Get.put(BiometricService(), permanent: true);
     Get.put(
-      AuthRepository(
-        bootstrapState: Get.find(),
-        sessionService: Get.find(),
-      ),
+      AuthRepository(bootstrapState: Get.find(), sessionService: Get.find()),
       permanent: true,
     );
     Get.put(NotificationService(bootstrapState: Get.find()), permanent: true);
     Get.put(
-      AppLockService(
-        sessionService: Get.find(),
-        authRepository: Get.find(),
-      ),
+      AppLockService(sessionService: Get.find(), authRepository: Get.find()),
       permanent: true,
     );
 

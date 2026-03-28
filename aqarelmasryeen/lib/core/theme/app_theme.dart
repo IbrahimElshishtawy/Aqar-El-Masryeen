@@ -97,7 +97,9 @@ abstract final class AppTheme {
       dividerColor: AppColors.border,
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.surfaceDark,
-        contentTextStyle: baseTextTheme.bodyMedium?.copyWith(color: Colors.white),
+        contentTextStyle: baseTextTheme.bodyMedium?.copyWith(
+          color: Colors.white,
+        ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         behavior: SnackBarBehavior.floating,
       ),

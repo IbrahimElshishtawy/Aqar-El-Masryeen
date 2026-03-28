@@ -28,11 +28,7 @@ class AuthShell extends StatelessWidget {
       body: DecoratedBox(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            colors: [
-              Color(0xFFF8F3EA),
-              Color(0xFFF1ECE2),
-              Color(0xFFECE4D6),
-            ],
+            colors: [Color(0xFFF8F3EA), Color(0xFFF1ECE2), Color(0xFFECE4D6)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -72,7 +68,10 @@ class AuthShell extends StatelessWidget {
                                   GetBuilder<LocaleService>(
                                     builder: (localeService) {
                                       final isArabic =
-                                          localeService.currentLocale.languageCode == 'ar';
+                                          localeService
+                                              .currentLocale
+                                              .languageCode ==
+                                          'ar';
                                       return TextButton(
                                         onPressed: () {
                                           localeService.changeLocale(
@@ -90,7 +89,8 @@ class AuthShell extends StatelessWidget {
                               const Spacer(),
                               Text(
                                 'premium_workspace'.tr,
-                                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                style: Theme.of(context).textTheme.displaySmall
+                                    ?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -98,9 +98,8 @@ class AuthShell extends StatelessWidget {
                               const SizedBox(height: 18),
                               Text(
                                 'trusted_devices'.tr,
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      color: const Color(0xFFD8E3F4),
-                                    ),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(color: const Color(0xFFD8E3F4)),
                               ),
                               const SizedBox(height: 24),
                               Wrap(
@@ -150,12 +149,17 @@ class AuthShell extends StatelessWidget {
                                       style: Theme.of(context)
                                           .textTheme
                                           .headlineMedium
-                                          ?.copyWith(fontWeight: FontWeight.w800),
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                          ),
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
                                       subtitle,
-                                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
                                             color: AppColors.textSecondary,
                                             height: 1.6,
                                           ),
@@ -202,9 +206,9 @@ class _FeatureChip extends StatelessWidget {
       child: Text(
         label,
         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-            ),
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }

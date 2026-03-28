@@ -33,7 +33,8 @@ abstract final class AppBootstrap {
         options: DefaultFirebaseOptions.currentPlatform,
       );
 
-      FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+      FlutterError.onError =
+          FirebaseCrashlytics.instance.recordFlutterFatalError;
       PlatformDispatcher.instance.onError = (error, stack) {
         FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
         return true;
@@ -41,7 +42,10 @@ abstract final class AppBootstrap {
 
       await _activateAppCheck();
 
-      return const BootstrapState(firebaseConfigured: true, firebaseReady: true);
+      return const BootstrapState(
+        firebaseConfigured: true,
+        firebaseReady: true,
+      );
     } catch (error) {
       debugPrint('Firebase bootstrap failed: $error');
       return BootstrapState(

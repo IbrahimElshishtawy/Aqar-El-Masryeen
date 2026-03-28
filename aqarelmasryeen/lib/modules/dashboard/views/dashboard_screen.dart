@@ -13,6 +13,11 @@ class DashboardScreen extends GetView<DashboardController> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final stackedPanels = screenWidth < 1100;
+    final compactActions = screenWidth < 860;
+    final propertyCardWidth = screenWidth < 560 ? screenWidth - 32 : 360.0;
+
     final destinations = [
       ShellDestination(label: 'dashboard'.tr, icon: Icons.grid_view_rounded),
       ShellDestination(label: 'workers'.tr, icon: Icons.groups_rounded),
@@ -20,8 +25,14 @@ class DashboardScreen extends GetView<DashboardController> {
       ShellDestination(label: 'units'.tr, icon: Icons.meeting_room_rounded),
       ShellDestination(label: 'sales'.tr, icon: Icons.sell_rounded),
       ShellDestination(label: 'expenses'.tr, icon: Icons.receipt_long_rounded),
-      ShellDestination(label: 'reports'.tr, icon: Icons.insert_chart_outlined_rounded),
-      ShellDestination(label: 'notifications'.tr, icon: Icons.notifications_active_rounded),
+      ShellDestination(
+        label: 'reports'.tr,
+        icon: Icons.insert_chart_outlined_rounded,
+      ),
+      ShellDestination(
+        label: 'notifications'.tr,
+        icon: Icons.notifications_active_rounded,
+      ),
     ];
 
     return Obx(
@@ -31,24 +42,54 @@ class DashboardScreen extends GetView<DashboardController> {
         onDestinationSelected: controller.selectSection,
         title: 'dashboard'.tr,
         subtitle: 'premium_workspace'.tr,
-        actions: [
-          SizedBox(
-            width: 148,
-            child: AppButton(
-              label: 'add_worker'.tr,
-              variant: AppButtonVariant.secondary,
-              onPressed: () => controller.selectSection(1),
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 148,
-            child: AppButton(
-              label: 'add_property'.tr,
-              onPressed: () => controller.selectSection(2),
-            ),
-          ),
-        ],
+        actions: compactActions
+            ? [
+                IconButton.filledTonal(
+                  onPressed: () => controller.selectSection(1),
+                  icon: const Icon(Icons.group_add_rounded),
+                  tooltip: 'add_worker'.tr,
+                ),
+                const SizedBox(width: 8),
+                IconButton.filled(
+                  onPressed: () => controller.selectSection(2),
+                  icon: const Icon(Icons.add_business_rounded),
+                  tooltip: 'add_property'.tr,
+                ),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    if (value == 'logout') {
+                      controller.logout();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(value: 'profile', child: Text('profile'.tr)),
+                    PopupMenuItem(
+                      value: 'settings',
+                      child: Text('settings'.tr),
+                    ),
+                    PopupMenuItem(value: 'logout', child: Text('logout'.tr)),
+                  ],
+                ),
+              ]
+            : [
+                SizedBox(
+                  width: 148,
+                  child: AppButton(
+                    label: 'add_worker'.tr,
+                    variant: AppButtonVariant.secondary,
+                    onPressed: () => controller.selectSection(1),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 148,
+                  child: AppButton(
+                    label: 'add_property'.tr,
+                    onPressed: () => controller.selectSection(2),
+                  ),
+                ),
+              ],
         profileMenu: _ProfileMenu(onLogout: controller.logout),
         body: SingleChildScrollView(
           padding: const EdgeInsets.only(bottom: 24),
@@ -73,92 +114,28 @@ class DashboardScreen extends GetView<DashboardController> {
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'latest_activity'.tr,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                          const SizedBox(height: 18),
-                          ...controller.activities.map(
-                            (activity) => Padding(
-                              padding: const EdgeInsets.only(bottom: 14),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                    margin: const EdgeInsets.only(top: 4),
-                                    width: 10,
-                                    height: 10,
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.accent,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      activity,
-                                      style: Theme.of(context).textTheme.bodyLarge,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+              if (stackedPanels) ...[
+                _ActivityCard(activities: controller.activities),
+                const SizedBox(height: AppSpacing.lg),
+                const _NotificationsCard(),
+              ] else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: _ActivityCard(activities: controller.activities),
                     ),
-                  ),
-                  const SizedBox(width: AppSpacing.lg),
-                  Expanded(
-                    flex: 2,
-                    child: AppCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'recent_notifications'.tr,
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
-                          const SizedBox(height: 18),
-                          const _NotificationTile(
-                            title: 'Installment due tomorrow',
-                            body: 'Unit B-17 • Palm View Residence',
-                          ),
-                          const SizedBox(height: 12),
-                          const _NotificationTile(
-                            title: 'New expense added',
-                            body: 'Labor category • EGP 74,000',
-                          ),
-                          const SizedBox(height: 12),
-                          const _NotificationTile(
-                            title: 'Collection risk detected',
-                            body: '4 overdue contracts in East Gate Plaza',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: AppSpacing.lg),
+                    const Expanded(flex: 2, child: _NotificationsCard()),
+                  ],
+                ),
               const SizedBox(height: AppSpacing.lg),
               Text(
                 'properties'.tr,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 18),
               Wrap(
@@ -167,7 +144,7 @@ class DashboardScreen extends GetView<DashboardController> {
                 children: [
                   for (final property in controller.propertyCards)
                     SizedBox(
-                      width: 360,
+                      width: propertyCardWidth,
                       child: _PropertyCard(property: property),
                     ),
                 ],
@@ -175,6 +152,92 @@ class DashboardScreen extends GetView<DashboardController> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ActivityCard extends StatelessWidget {
+  const _ActivityCard({required this.activities});
+
+  final List<String> activities;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'latest_activity'.tr,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 18),
+          ...activities.map(
+            (activity) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    width: 10,
+                    height: 10,
+                    decoration: const BoxDecoration(
+                      color: AppColors.accent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      activity,
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationsCard extends StatelessWidget {
+  const _NotificationsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'recent_notifications'.tr,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 18),
+          const _NotificationTile(
+            title: 'Installment due tomorrow',
+            body: 'Unit B-17 • Palm View Residence',
+          ),
+          const SizedBox(height: 12),
+          const _NotificationTile(
+            title: 'New expense added',
+            body: 'Labor category • EGP 74,000',
+          ),
+          const SizedBox(height: 12),
+          const _NotificationTile(
+            title: 'Collection risk detected',
+            body: '4 overdue contracts in East Gate Plaza',
+          ),
+        ],
       ),
     );
   }
@@ -205,9 +268,9 @@ class _ProfileMenu extends StatelessWidget {
             child: Text(
               'profile'.tr,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           PopupMenuButton<String>(
@@ -231,10 +294,7 @@ class _ProfileMenu extends StatelessWidget {
 }
 
 class _NotificationTile extends StatelessWidget {
-  const _NotificationTile({
-    required this.title,
-    required this.body,
-  });
+  const _NotificationTile({required this.title, required this.body});
 
   final String title;
   final String body;
@@ -264,16 +324,16 @@ class _NotificationTile extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   body,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.textSecondary,
-                      ),
+                    color: AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
@@ -304,30 +364,33 @@ class _PropertyCard extends StatelessWidget {
                     Text(
                       property.name,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       '${property.code} • ${property.location}',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                   ],
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.accentSoft,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
                   property.status,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
             ],
@@ -347,10 +410,16 @@ class _PropertyCard extends StatelessWidget {
             children: [
               _MetricItem(label: 'Units', value: '${property.unitCount}'),
               _MetricItem(label: 'Sold', value: '${property.soldUnits}'),
-              _MetricItem(label: 'Available', value: '${property.availableUnits}'),
+              _MetricItem(
+                label: 'Available',
+                value: '${property.availableUnits}',
+              ),
               _MetricItem(label: 'Sales', value: property.totalSales),
               _MetricItem(label: 'Expenses', value: property.totalExpenses),
-              _MetricItem(label: 'Receivables', value: property.remainingReceivables),
+              _MetricItem(
+                label: 'Receivables',
+                value: property.remainingReceivables,
+              ),
             ],
           ),
         ],
@@ -360,10 +429,7 @@ class _PropertyCard extends StatelessWidget {
 }
 
 class _MetricItem extends StatelessWidget {
-  const _MetricItem({
-    required this.label,
-    required this.value,
-  });
+  const _MetricItem({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -377,16 +443,16 @@ class _MetricItem extends StatelessWidget {
         children: [
           Text(
             label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 4),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
         ],
       ),

@@ -3,16 +3,10 @@ import 'package:get/get.dart';
 
 class AppTranslations extends Translations {
   static const fallbackLocale = Locale('en', 'US');
-  static const supportedLocales = [
-    Locale('ar', 'EG'),
-    Locale('en', 'US'),
-  ];
+  static const supportedLocales = [Locale('ar', 'EG'), Locale('en', 'US')];
 
   @override
-  Map<String, Map<String, String>> get keys => {
-        'ar_EG': _ar,
-        'en_US': _en,
-      };
+  Map<String, Map<String, String>> get keys => {'ar_EG': _ar, 'en_US': _en};
 
   static const _ar = {
     'app_name': 'عقار المصريين',
@@ -136,7 +130,8 @@ class AppTranslations extends Translations {
     'add_property': 'Add Property',
     'profile': 'Profile',
     'account_secure': 'Account Secured',
-    'firebase_setup_needed': 'Firebase configuration is required to enable verification and messaging.',
+    'firebase_setup_needed':
+        'Firebase configuration is required to enable verification and messaging.',
     'desktop_otp_note':
         'Phone OTP is practically supported on mobile first. Use a phone for initial registration, then sign in on desktop with phone + password.',
   };

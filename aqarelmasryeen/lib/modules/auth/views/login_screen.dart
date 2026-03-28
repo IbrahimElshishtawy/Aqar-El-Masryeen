@@ -41,9 +41,9 @@ class _LoginScreenState extends State<LoginScreen> {
             : Text(
                 'firebase_setup_needed'.tr,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.danger,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: AppColors.danger),
               ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,9 +135,9 @@ class _LoginScreenState extends State<LoginScreen> {
             Text(
               'desktop_otp_note'.tr,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                    height: 1.6,
-                  ),
+                color: AppColors.textSecondary,
+                height: 1.6,
+              ),
             ),
           ],
         ),
@@ -172,9 +172,9 @@ class _ModeButton extends StatelessWidget {
           child: Text(
             label,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: selected ? Colors.white : AppColors.textSecondary,
-                  fontWeight: FontWeight.w700,
-                ),
+              color: selected ? Colors.white : AppColors.textSecondary,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
       ),

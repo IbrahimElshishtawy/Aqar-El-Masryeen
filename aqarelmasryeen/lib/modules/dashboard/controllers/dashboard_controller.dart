@@ -12,9 +12,24 @@ class DashboardController extends GetxController {
   final metrics = const [
     DashboardMetric('total_properties', '12', '+2 this month', 'domain'),
     DashboardMetric('total_sales', 'EGP 26.4M', '+18% growth', 'payments'),
-    DashboardMetric('total_expenses', 'EGP 8.7M', '17 categories tracked', 'receipt_long'),
-    DashboardMetric('remaining_receivables', 'EGP 11.2M', '42 active contracts', 'account_balance_wallet'),
-    DashboardMetric('overdue_installments', '16', 'Needs follow-up today', 'notification_important'),
+    DashboardMetric(
+      'total_expenses',
+      'EGP 8.7M',
+      '17 categories tracked',
+      'receipt_long',
+    ),
+    DashboardMetric(
+      'remaining_receivables',
+      'EGP 11.2M',
+      '42 active contracts',
+      'account_balance_wallet',
+    ),
+    DashboardMetric(
+      'overdue_installments',
+      '16',
+      'Needs follow-up today',
+      'notification_important',
+    ),
   ];
 
   final activities = const [

@@ -8,8 +8,8 @@ class AppLockService extends GetxService with WidgetsBindingObserver {
   AppLockService({
     required SessionService sessionService,
     required AuthRepository authRepository,
-  })  : _sessionService = sessionService,
-        _authRepository = authRepository;
+  }) : _sessionService = sessionService,
+       _authRepository = authRepository;
 
   final SessionService _sessionService;
   final AuthRepository _authRepository;

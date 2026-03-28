@@ -38,7 +38,8 @@ class AuthController extends GetxController {
 
   bool get unlockMode => _unlockMode;
   bool get firebaseReady => _bootstrapState.firebaseReady;
-  String get pendingPhone => _verificationSession?.phone ?? PhoneUtils.normalize(phoneController.text);
+  String get pendingPhone =>
+      _verificationSession?.phone ?? PhoneUtils.normalize(phoneController.text);
 
   Future<void> configureEntry(dynamic arguments) async {
     _unlockMode = arguments is Map && arguments['unlock'] == true;
@@ -50,8 +51,8 @@ class AuthController extends GetxController {
 
     biometricAvailable.value =
         await _sessionService.isBiometricEnabled() &&
-            _authRepository.isAuthenticated &&
-            await _biometricService.isDeviceSupported();
+        _authRepository.isAuthenticated &&
+        await _biometricService.isDeviceSupported();
     update();
   }
 
@@ -72,6 +73,12 @@ class AuthController extends GetxController {
         phone: rawPhone,
         password: password,
       );
+      if (profile.fullName.trim() == profile.phone.trim()) {
+        nameController.text = '';
+        emailController.text = profile.email ?? '';
+        Get.toNamed(AppRoutes.profileCompletion);
+        return;
+      }
       await _cacheAndUnlock(profile);
       Get.offAllNamed(AppRoutes.dashboard);
     });

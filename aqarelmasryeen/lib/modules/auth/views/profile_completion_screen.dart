@@ -34,8 +34,8 @@ class ProfileCompletionScreen extends StatelessWidget {
                   Text(
                     '${'account_secure'.tr} • ${controller.pendingPhone}',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),

@@ -37,25 +37,21 @@ abstract final class AppPages {
       name: AppRoutes.otp,
       page: OtpVerificationScreen.new,
       binding: AuthBinding(),
-      middlewares: [GuestOnlyGuard()],
     ),
     GetPage(
       name: AppRoutes.passwordSetup,
       page: PasswordSetupScreen.new,
       binding: AuthBinding(),
-      middlewares: [GuestOnlyGuard()],
     ),
     GetPage(
       name: AppRoutes.profileCompletion,
       page: ProfileCompletionScreen.new,
       binding: AuthBinding(),
-      middlewares: [GuestOnlyGuard()],
     ),
     GetPage(
       name: AppRoutes.biometricPrompt,
       page: BiometricPromptScreen.new,
       binding: AuthBinding(),
-      middlewares: [GuestOnlyGuard()],
     ),
     GetPage(
       name: AppRoutes.dashboard,

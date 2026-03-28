@@ -34,7 +34,10 @@ class SessionService {
     final fullName = await _secureStorageService.read(StorageKeys.cachedName);
     final roleKey = await _secureStorageService.read(StorageKeys.cachedRole);
 
-    if (userId == null || phone == null || fullName == null || roleKey == null) {
+    if (userId == null ||
+        phone == null ||
+        fullName == null ||
+        roleKey == null) {
       return null;
     }
 
