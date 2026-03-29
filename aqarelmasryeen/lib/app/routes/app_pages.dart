@@ -6,6 +6,7 @@ import 'package:aqarelmasryeen/modules/auth/views/login_screen.dart';
 import 'package:aqarelmasryeen/modules/auth/views/otp_verification_screen.dart';
 import 'package:aqarelmasryeen/modules/auth/views/password_setup_screen.dart';
 import 'package:aqarelmasryeen/modules/auth/views/profile_completion_screen.dart';
+import 'package:aqarelmasryeen/modules/auth/views/registration_screen.dart';
 import 'package:aqarelmasryeen/modules/dashboard/bindings/dashboard_binding.dart';
 import 'package:aqarelmasryeen/modules/dashboard/views/dashboard_screen.dart';
 import 'package:aqarelmasryeen/modules/onboarding/views/onboarding_screen.dart';
@@ -30,6 +31,12 @@ abstract final class AppPages {
     GetPage(
       name: AppRoutes.login,
       page: LoginScreen.new,
+      binding: AuthBinding(),
+      middlewares: [GuestOnlyGuard()],
+    ),
+    GetPage(
+      name: AppRoutes.register,
+      page: RegistrationScreen.new,
       binding: AuthBinding(),
       middlewares: [GuestOnlyGuard()],
     ),

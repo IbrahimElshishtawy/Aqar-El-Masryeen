@@ -16,4 +16,9 @@ abstract final class StorageKeys {
       'pending_verification_is_registration';
   static const pendingVerificationResendToken =
       'pending_verification_resend_token';
+  static const pendingAuthFlow = 'pending_auth_flow';
+  static const savedAuthCredentials = 'saved_auth_credentials';
+  static const otpSendAttemptPrefix = 'otp_send_attempt_';
+  static const otpVerifyAttemptPrefix = 'otp_verify_attempt_';
+  static const passwordLoginAttemptPrefix = 'password_login_attempt_';
 }

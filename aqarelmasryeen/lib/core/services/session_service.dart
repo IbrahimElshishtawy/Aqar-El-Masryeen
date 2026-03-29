@@ -11,11 +11,14 @@ class SessionService {
   final LocalCacheService _localCacheService;
 
   bool _isLocked = false;
+  CachedSession? _cachedSession;
 
   bool get isLockedSync => _isLocked;
+  CachedSession? get cachedSessionSync => _cachedSession;
 
   Future<void> initializeLockState() async {
     _isLocked = await _secureStorageService.readBool(StorageKeys.sessionLocked);
+    await readCachedSession();
   }
 
   Future<bool> isOnboardingSeen() =>
@@ -25,6 +28,7 @@ class SessionService {
       _localCacheService.writeBool(StorageKeys.onboardingSeen, true);
 
   Future<void> cacheSession(CachedSession session) async {
+    _cachedSession = session;
     await _secureStorageService.write(StorageKeys.cachedUserId, session.userId);
     await _secureStorageService.write(StorageKeys.cachedPhone, session.phone);
     await _secureStorageService.write(StorageKeys.cachedName, session.fullName);
@@ -32,6 +36,10 @@ class SessionService {
   }
 
   Future<CachedSession?> readCachedSession() async {
+    if (_cachedSession != null) {
+      return _cachedSession;
+    }
+
     final userId = await _secureStorageService.read(StorageKeys.cachedUserId);
     final phone = await _secureStorageService.read(StorageKeys.cachedPhone);
     final fullName = await _secureStorageService.read(StorageKeys.cachedName);
@@ -44,12 +52,13 @@ class SessionService {
       return null;
     }
 
-    return CachedSession(
+    _cachedSession = CachedSession(
       userId: userId,
       phone: phone,
       fullName: fullName,
       roleKey: roleKey,
     );
+    return _cachedSession;
   }
 
   Future<void> cachePhoneVerificationSession(
@@ -145,6 +154,7 @@ class SessionService {
     await _secureStorageService.deleteAll();
     await _localCacheService.remove(StorageKeys.notificationToken);
     _isLocked = false;
+    _cachedSession = null;
     if (onboardingSeen) {
       await markOnboardingSeen();
     }

@@ -4,12 +4,13 @@ import 'dart:io';
 import 'package:aqarelmasryeen/app/routes/app_routes.dart';
 import 'package:aqarelmasryeen/core/bootstrap/app_bootstrap.dart';
 import 'package:aqarelmasryeen/core/firebase/dev_phone_auth_config.dart';
+import 'package:aqarelmasryeen/core/services/auth_service.dart';
 import 'package:aqarelmasryeen/core/services/biometric_service.dart';
 import 'package:aqarelmasryeen/core/services/session_service.dart';
+import 'package:aqarelmasryeen/core/utils/password_policy.dart';
 import 'package:aqarelmasryeen/core/utils/phone_utils.dart';
 import 'package:aqarelmasryeen/data/models/app_role.dart';
-import 'package:aqarelmasryeen/data/models/cached_session.dart';
-import 'package:aqarelmasryeen/data/models/phone_verification_session.dart';
+import 'package:aqarelmasryeen/data/models/pending_auth_challenge.dart';
 import 'package:aqarelmasryeen/data/models/user_profile.dart';
 import 'package:aqarelmasryeen/data/repositories/auth_repository.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class AuthController extends GetxController {
+  final AuthService _authService = Get.find();
   final AuthRepository _authRepository = Get.find();
   final SessionService _sessionService = Get.find();
   final BiometricService _biometricService = Get.find();
@@ -30,22 +32,36 @@ class AuthController extends GetxController {
   final emailController = TextEditingController();
 
   final isBusy = false.obs;
-  final isRegisterMode = false.obs;
   final obscurePassword = true.obs;
   final obscureConfirmPassword = true.obs;
-  final biometricAvailable = false.obs;
-  final verificationSession = Rxn<PhoneVerificationSession>();
+  final showPasswordField = true.obs;
+  final canUseDeviceCredential = false.obs;
+  final canUseBiometric = false.obs;
+  final hasStoredCredentials = false.obs;
+  final biometricLabel = 'Use Biometrics'.obs;
+  final pendingChallenge = Rxn<PendingAuthChallenge>();
+  final resendSecondsRemaining = 0.obs;
+  final otpDigits = List<String>.filled(6, '').obs;
+  final passwordPolicy = PasswordPolicy.evaluate('').obs;
+
+  final phoneError = RxnString();
+  final passwordError = RxnString();
+  final confirmPasswordError = RxnString();
+  final nameError = RxnString();
 
   bool _unlockMode = false;
-  bool _hasLoadedPendingVerification = false;
   int _phoneAuthAttemptId = 0;
   String? _lastAutoSubmittedVerificationId;
+  Timer? _resendTimer;
 
   bool get unlockMode => _unlockMode;
   bool get firebaseReady => _bootstrapState.firebaseReady;
+  bool get canVerifyOtp => otpDigits.every((digit) => digit.length == 1);
+  bool get canResendOtp => resendSecondsRemaining.value == 0 && !isBusy.value;
+  String get otpCode => otpDigits.join();
   String get pendingPhone =>
-      verificationSession.value?.phone ??
-      PhoneUtils.normalize(phoneController.text);
+      pendingChallenge.value?.phone ?? PhoneUtils.normalize(phoneController.text);
+  String get maskedPendingPhone => PhoneUtils.mask(pendingPhone);
 
   String? get debugPhoneAuthHint {
     if (!DevPhoneAuthConfig.isEnabled || !_supportsOtpOnCurrentPlatform) {
@@ -56,12 +72,12 @@ class AuthController extends GetxController {
   }
 
   String? get suggestedOtpCode {
-    final session = verificationSession.value;
-    if (session == null || !DevPhoneAuthConfig.canAutoSubmitOtp) {
+    final challenge = pendingChallenge.value;
+    if (challenge == null || !DevPhoneAuthConfig.canAutoSubmitOtp) {
       return null;
     }
 
-    if (!DevPhoneAuthConfig.matchesPhone(session.phone)) {
+    if (!DevPhoneAuthConfig.matchesPhone(challenge.phone)) {
       return null;
     }
 
@@ -71,423 +87,443 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    unawaited(_restorePendingVerificationSession());
+    passwordController.addListener(_updatePasswordPolicy);
+    phoneController.addListener(_clearPhoneError);
+    confirmPasswordController.addListener(_clearConfirmPasswordError);
+    nameController.addListener(_clearNameError);
+    unawaited(_restorePendingChallenge());
+    unawaited(_refreshLocalAuthState());
   }
 
   Future<void> configureEntry(dynamic arguments) async {
     _unlockMode = arguments is Map && arguments['unlock'] == true;
-    final cachedSession = await _sessionService.readCachedSession();
-    if (cachedSession != null && phoneController.text.isEmpty) {
-      phoneController.text = cachedSession.phone;
-      nameController.text = cachedSession.fullName;
+    await _restorePendingChallenge();
+    await _refreshLocalAuthState();
+
+    if (pendingChallenge.value != null) {
+      _syncResendTimer();
     }
 
-    await _restorePendingVerificationSession();
-
-    biometricAvailable.value =
-        await _sessionService.isBiometricEnabled() &&
-        _authRepository.isAuthenticated &&
-        await _biometricService.isDeviceSupported();
     update();
   }
 
-  void toggleMode() => isRegisterMode.toggle();
-
-  Future<void> loginWithPassword() async {
-    final rawPhone = phoneController.text.trim();
-    final password = passwordController.text;
-    if (rawPhone.isEmpty || password.isEmpty) {
-      _showError('Please enter your phone number and password.');
-      return;
-    }
-
-    await _runGuarded(() async {
-      final profile = await _authRepository.signInWithPhonePassword(
-        phone: rawPhone,
-        password: password,
-      );
-      await _clearPendingVerificationSession();
-
-      if (profile.fullName.trim() == profile.phone.trim()) {
-        nameController.text = '';
-        emailController.text = profile.email ?? '';
-        Get.toNamed(AppRoutes.profileCompletion);
-        return;
-      }
-      await _cacheAndUnlock(profile);
-      Get.offAllNamed(AppRoutes.dashboard);
-    });
-  }
-
-  Future<void> sendOtp() async {
-    final rawPhone = phoneController.text.trim();
-    if (rawPhone.isEmpty) {
-      _showError('Please enter your phone number first.');
-      return;
-    }
-
-    if (!_supportsOtpOnCurrentPlatform) {
-      _showError('desktop_otp_note'.tr);
-      return;
-    }
-
-    final normalizedPhone = PhoneUtils.normalize(rawPhone);
-    phoneController.text = normalizedPhone;
-
-    try {
-      if (isRegisterMode.value &&
-          await _authRepository.isPhoneRegistered(normalizedPhone)) {
-        _showError('An account already exists for this phone number.');
-        return;
-      }
-    } on FirebaseAuthException catch (error) {
-      _showError(error.message ?? 'Authentication failed.');
-      return;
-    } on StateError catch (error) {
-      _showError(error.message);
-      return;
-    } catch (error) {
-      _showError(error.toString());
-      return;
-    }
-
-    await _startPhoneVerificationFlow(
-      phone: normalizedPhone,
-      isRegistration: isRegisterMode.value,
-    );
-  }
-
-  Future<void> resendOtp() async {
-    final session =
-        verificationSession.value ?? await _restorePendingVerificationSession();
-    final phone = session?.phone ?? PhoneUtils.normalize(phoneController.text);
-    if (phone.isEmpty) {
-      _showError('Please enter your phone number first.');
-      return;
-    }
-
-    await _startPhoneVerificationFlow(
-      phone: phone,
-      isRegistration: session?.isRegistration ?? isRegisterMode.value,
-      forceResendingToken: session?.resendToken,
-    );
-  }
-
-  Future<void> maybeAutoSubmitTestOtp() async {
-    final session =
-        verificationSession.value ?? await _restorePendingVerificationSession();
-    if (session == null || !DevPhoneAuthConfig.canAutoSubmitOtp) {
-      return;
-    }
-
-    if (!DevPhoneAuthConfig.matchesPhone(session.phone)) {
-      return;
-    }
-
-    if (_lastAutoSubmittedVerificationId == session.verificationId ||
-        isBusy.value) {
-      return;
-    }
-
-    _lastAutoSubmittedVerificationId = session.verificationId;
-    await verifyOtp(DevPhoneAuthConfig.smsCode, isAutomaticTestCode: true);
-  }
-
-  Future<void> verifyOtp(
-    String code, {
-    bool isAutomaticTestCode = false,
-  }) async {
-    final session =
-        verificationSession.value ?? await _restorePendingVerificationSession();
-    if (session == null) {
+  Future<void> prepareOtpEntry() async {
+    final challenge = await _restorePendingChallenge();
+    if (challenge == null) {
       Get.offAllNamed(AppRoutes.login);
       return;
     }
 
-    final trimmedCode = code.trim();
-    if (trimmedCode.length < 6) {
-      if (!isAutomaticTestCode) {
-        _showError('The verification code must be 6 digits.');
-      }
+    _syncResendTimer();
+    final suggested = suggestedOtpCode;
+    if (suggested != null) {
+      fillOtpFromString(suggested);
+    }
+    await maybeAutoSubmitTestOtp();
+  }
+
+  Future<void> goToRegistration() async {
+    _clearOtp();
+    if (Get.currentRoute != AppRoutes.register) {
+      await Get.toNamed(AppRoutes.register);
+    }
+  }
+
+  Future<void> goToLogin() async {
+    _clearOtp();
+    if (Get.currentRoute != AppRoutes.login) {
+      await Get.offAllNamed(AppRoutes.login);
+    }
+  }
+
+  Future<void> startRegistration() async {
+    if (!_supportsOtpOnCurrentPlatform) {
+      _showError('Phone OTP registration is currently supported on Android and iOS only.');
       return;
     }
 
-    await _runGuarded(() async {
-      await _authRepository.verifyOtp(
-        verificationId: session.verificationId,
-        code: trimmedCode,
-      );
+    if (!_validateRegistrationInputs()) {
+      return;
+    }
 
-      await _handleVerifiedUser(
-        phone: session.phone,
-        isRegistration: session.isRegistration,
+    final rawPhone = phoneController.text.trim();
+    final attemptId = ++_phoneAuthAttemptId;
+    isBusy.value = true;
+
+    try {
+      await _authService.startRegistration(
+        fullName: nameController.text.trim(),
+        phone: rawPhone,
+        password: passwordController.text,
+        email: emailController.text.trim().isEmpty
+            ? null
+            : emailController.text.trim(),
+        onCodeSent: (challenge) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          await _handleCodeSent(challenge);
+        },
+        onCodeAutoRetrievalTimeout: (challenge) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          pendingChallenge.value = challenge;
+          _syncResendTimer();
+          isBusy.value = false;
+        },
+        onVerificationResolved: (profile) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          await _handleAuthenticatedProfile(profile, fromRegistration: true);
+        },
+        onVerificationFailed: (message) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          isBusy.value = false;
+          await _restorePendingChallenge();
+          _showError(message);
+        },
+      );
+    } on FirebaseAuthException catch (error) {
+      isBusy.value = false;
+      _showError(error.message ?? 'Authentication failed.');
+    } on StateError catch (error) {
+      isBusy.value = false;
+      _showError(error.message);
+    } catch (error) {
+      isBusy.value = false;
+      _showError(error.toString());
+    }
+  }
+
+  Future<void> sendLoginOtp() async {
+    if (!_supportsOtpOnCurrentPlatform) {
+      _showError('Phone OTP sign-in is currently supported on Android and iOS only.');
+      return;
+    }
+
+    if (!_validatePhoneInput()) {
+      return;
+    }
+
+    final attemptId = ++_phoneAuthAttemptId;
+    isBusy.value = true;
+
+    try {
+      await _authService.startOtpLogin(
+        phone: phoneController.text.trim(),
+        onCodeSent: (challenge) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          await _handleCodeSent(challenge);
+        },
+        onCodeAutoRetrievalTimeout: (challenge) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          pendingChallenge.value = challenge;
+          _syncResendTimer();
+          isBusy.value = false;
+        },
+        onVerificationResolved: (profile) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          await _handleAuthenticatedProfile(profile, fromRegistration: false);
+        },
+        onVerificationFailed: (message) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          isBusy.value = false;
+          await _restorePendingChallenge();
+          _showError(message);
+        },
+      );
+    } on FirebaseAuthException catch (error) {
+      isBusy.value = false;
+      _showError(error.message ?? 'Authentication failed.');
+    } on StateError catch (error) {
+      isBusy.value = false;
+      _showError(error.message);
+    } catch (error) {
+      isBusy.value = false;
+      _showError(error.toString());
+    }
+  }
+
+  Future<void> resendOtp() async {
+    if (isBusy.value) {
+      return;
+    }
+
+    final challenge = pendingChallenge.value ?? await _restorePendingChallenge();
+    if (challenge == null) {
+      _showError('Your verification session expired. Please request a new code.');
+      return;
+    }
+
+    final attemptId = ++_phoneAuthAttemptId;
+    isBusy.value = true;
+
+    try {
+      await _authService.resendOtp(
+        onCodeSent: (updated) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          await _handleCodeSent(updated, navigateToOtp: false);
+        },
+        onCodeAutoRetrievalTimeout: (updated) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          pendingChallenge.value = updated;
+          _syncResendTimer();
+          isBusy.value = false;
+        },
+        onVerificationResolved: (profile) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          await _handleAuthenticatedProfile(
+            profile,
+            fromRegistration: challenge.isRegistration,
+          );
+        },
+        onVerificationFailed: (message) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+          isBusy.value = false;
+          _showError(message);
+        },
+      );
+    } on FirebaseAuthException catch (error) {
+      isBusy.value = false;
+      _showError(error.message ?? 'Authentication failed.');
+    } on StateError catch (error) {
+      isBusy.value = false;
+      _showError(error.message);
+    } catch (error) {
+      isBusy.value = false;
+      _showError(error.toString());
+    }
+  }
+
+  Future<void> verifyOtp([String? rawCode]) async {
+    final candidate = (rawCode ?? otpCode).trim();
+    if (candidate.length != 6) {
+      _showError('Enter the full 6-digit code to continue.');
+      return;
+    }
+
+    await _runBusyTask(() async {
+      final challenge = pendingChallenge.value ?? await _restorePendingChallenge();
+      if (challenge == null) {
+        throw StateError('Your verification session expired. Please request a new code.');
+      }
+
+      final profile = await _authService.verifyOtp(candidate);
+      await _handleAuthenticatedProfile(
+        profile,
+        fromRegistration: challenge.isRegistration,
       );
     });
   }
 
-  Future<void> setupPassword() async {
-    final password = passwordController.text;
-    final confirm = confirmPasswordController.text;
-
-    if (password.length < 8) {
-      _showError('Password must be at least 8 characters.');
+  Future<void> loginWithPassword() async {
+    if (!_validatePasswordLoginInputs()) {
       return;
     }
 
-    if (password != confirm) {
-      _showError('The password confirmation does not match.');
-      return;
-    }
-
-    await _runGuarded(() async {
-      await _authRepository.linkPasswordCredential(
-        phone: pendingPhone,
-        password: password,
+    await _runBusyTask(() async {
+      await _authService.loginWithPassword(
+        phone: phoneController.text.trim(),
+        password: passwordController.text,
       );
-      Get.offNamed(AppRoutes.profileCompletion);
+      await _refreshLocalAuthState();
+      Get.offAllNamed(AppRoutes.dashboard);
+      _clearOtp();
+      _clearRegistrationErrors();
+      pendingChallenge.value = null;
     });
   }
 
-  Future<void> completeProfile() async {
-    final fullName = nameController.text.trim();
-    final email = emailController.text.trim();
-    if (fullName.isEmpty) {
-      _showError('Please enter your full name.');
-      return;
-    }
+  Future<void> loginWithDeviceCredential() async {
+    await _runBusyTask(() async {
+      await _authService.signInWithDeviceCredential();
+      Get.offAllNamed(AppRoutes.dashboard);
+    });
+  }
 
-    await _runGuarded(() async {
-      final existing = await _authRepository.getCurrentProfile();
-      final profile = _authRepository.buildUpdatedProfile(
-        existing: existing,
-        fullName: fullName,
-        phone: pendingPhone,
-        email: email.isEmpty ? null : email,
-        role: existing?.role ?? AppRole.owner,
-      );
-      await _authRepository.saveUserProfile(profile);
-      await _sessionService.setAppLockEnabled(true);
-      await _clearPendingVerificationSession();
+  Future<void> unlockWithBiometrics() async {
+    await loginWithBiometrics();
+  }
 
-      if (await _biometricService.isDeviceSupported()) {
-        Get.toNamed(AppRoutes.biometricPrompt);
-        return;
-      }
-
-      await _cacheAndUnlock(profile);
+  Future<void> loginWithBiometrics() async {
+    await _runBusyTask(() async {
+      await _authService.signInWithBiometrics();
       Get.offAllNamed(AppRoutes.dashboard);
     });
   }
 
   Future<void> enableBiometrics() async {
-    await _runGuarded(() async {
-      final success = await _biometricService.authenticate();
+    await _runBusyTask(() async {
+      final success = await _biometricService.authenticateWithBiometrics();
       if (!success) {
-        _showError('Biometric authentication is not available on this device.');
-        return;
+        throw StateError('Biometric verification was cancelled.');
       }
 
-      await _sessionService.setBiometricEnabled(true);
-      final profile = await _authRepository.getCurrentProfile();
-      if (profile != null) {
-        await _cacheAndUnlock(profile);
-      }
+      await _authService.setBiometricEnabled(true);
+      await _refreshLocalAuthState();
       Get.offAllNamed(AppRoutes.dashboard);
     });
   }
 
   Future<void> skipBiometrics() async {
-    await _sessionService.setBiometricEnabled(false);
-    final profile = await _authRepository.getCurrentProfile();
-    if (profile != null) {
-      await _cacheAndUnlock(profile);
-    }
+    await _authService.setBiometricEnabled(false);
+    await _refreshLocalAuthState();
     Get.offAllNamed(AppRoutes.dashboard);
-  }
-
-  Future<void> unlockWithBiometrics() async {
-    await _runGuarded(() async {
-      final success = await _biometricService.authenticate();
-      if (!success) {
-        _showError('Biometric verification failed.');
-        return;
-      }
-
-      await _sessionService.unlockApp();
-      Get.offAllNamed(AppRoutes.dashboard);
-    });
   }
 
   Future<void> logout() async {
     await _authRepository.signOut();
     await _sessionService.clearSession();
-    await _clearPendingVerificationSession();
+    await _authService.clearPendingChallenge();
     Get.offAllNamed(AppRoutes.login);
   }
 
-  Future<void> _startPhoneVerificationFlow({
-    required String phone,
-    required bool isRegistration,
-    int? forceResendingToken,
-  }) async {
-    final attemptId = ++_phoneAuthAttemptId;
-    isBusy.value = true;
+  void updateOtpDigit(int index, String value) {
+    if (index < 0 || index >= otpDigits.length) {
+      return;
+    }
+    otpDigits[index] = value;
+  }
 
-    try {
-      await _authRepository.startPhoneVerification(
-        phone: phone,
-        isRegistration: isRegistration,
-        forceResendingToken: forceResendingToken,
-        onCodeSent: (session) async {
-          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
-            return;
-          }
-
-          await _persistVerificationSession(session);
-          isBusy.value = false;
-
-          if (Get.currentRoute != AppRoutes.otp) {
-            unawaited(Get.toNamed(AppRoutes.otp));
-          }
-
-          if (DevPhoneAuthConfig.matchesPhone(session.phone)) {
-            unawaited(
-              Future<void>.delayed(
-                const Duration(milliseconds: 150),
-                maybeAutoSubmitTestOtp,
-              ),
-            );
-          }
-        },
-        onCodeAutoRetrievalTimeout: (session) async {
-          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
-            return;
-          }
-
-          final persisted = (verificationSession.value ?? session).copyWith(
-            verificationId: session.verificationId,
-          );
-          await _persistVerificationSession(persisted);
-          isBusy.value = false;
-        },
-        onVerificationCompleted: (_) async {
-          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
-            return;
-          }
-
-          isBusy.value = false;
-          await _handleVerifiedUser(
-            phone: phone,
-            isRegistration: isRegistration,
-          );
-        },
-        onVerificationFailed: (error) async {
-          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
-            return;
-          }
-
-          isBusy.value = false;
-          await _clearPendingVerificationSession();
-          _showError(error.message ?? 'Phone verification failed.');
-        },
-      );
-    } on FirebaseAuthException catch (error) {
-      isBusy.value = false;
-      _showError(error.message ?? 'Authentication failed.');
-    } on StateError catch (error) {
-      isBusy.value = false;
-      _showError(error.message);
-    } catch (error) {
-      isBusy.value = false;
-      _showError(error.toString());
+  void fillOtpFromString(String value) {
+    final trimmed = value.replaceAll(RegExp(r'\s'), '');
+    for (var index = 0; index < otpDigits.length; index++) {
+      otpDigits[index] = index < trimmed.length ? trimmed[index] : '';
     }
   }
 
-  Future<void> _handleVerifiedUser({
-    required String phone,
-    required bool isRegistration,
+  Future<void> maybeAutoSubmitTestOtp() async {
+    final challenge = pendingChallenge.value ?? await _restorePendingChallenge();
+    if (challenge == null || !DevPhoneAuthConfig.canAutoSubmitOtp) {
+      return;
+    }
+
+    if (!DevPhoneAuthConfig.matchesPhone(challenge.phone)) {
+      return;
+    }
+
+    if (_lastAutoSubmittedVerificationId == challenge.verificationId ||
+        isBusy.value) {
+      return;
+    }
+
+    _lastAutoSubmittedVerificationId = challenge.verificationId;
+    fillOtpFromString(DevPhoneAuthConfig.smsCode);
+    await verifyOtp(DevPhoneAuthConfig.smsCode);
+  }
+
+  Future<void> setupPassword() async {
+    await startRegistration();
+  }
+
+  Future<void> completeProfile() async {
+    if (!_validateRegistrationInputs(requirePassword: false)) {
+      return;
+    }
+
+    await _runBusyTask(() async {
+      final existing = await _authRepository.getCurrentProfile();
+      final profile = _authRepository.buildUpdatedProfile(
+        existing: existing,
+        fullName: nameController.text.trim(),
+        phone: pendingPhone,
+        email: emailController.text.trim().isEmpty
+            ? null
+            : emailController.text.trim(),
+        role: existing?.role ?? AppRole.owner,
+      );
+      await _authRepository.saveUserProfile(profile);
+      await _authService.finalizeTrustedSession(profile);
+      await _authService.clearPendingChallenge();
+      Get.offAllNamed(AppRoutes.dashboard);
+    });
+  }
+
+  Future<void> _handleCodeSent(
+    PendingAuthChallenge challenge, {
+    bool navigateToOtp = true,
   }) async {
-    final session =
-        verificationSession.value ??
-        PhoneVerificationSession(
-          phone: phone,
-          verificationId: '',
-          isRegistration: isRegistration,
-        );
-    await _persistVerificationSession(
-      session.copyWith(phone: phone, isRegistration: isRegistration),
-    );
+    pendingChallenge.value = challenge;
+    phoneController.text = challenge.phone;
+    _syncResendTimer();
+    _clearOtp();
+    isBusy.value = false;
 
-    if (isRegistration) {
-      Get.offNamed(AppRoutes.passwordSetup);
+    if (navigateToOtp && Get.currentRoute != AppRoutes.otp) {
+      await Get.toNamed(AppRoutes.otp);
+    }
+  }
+
+  Future<void> _handleAuthenticatedProfile(
+    UserProfile profile, {
+    required bool fromRegistration,
+  }) async {
+    _phoneAuthAttemptId++;
+    isBusy.value = false;
+    pendingChallenge.value = null;
+    _resendTimer?.cancel();
+    resendSecondsRemaining.value = 0;
+    _clearOtp();
+    await _refreshLocalAuthState();
+
+    final canPromptBiometrics =
+        fromRegistration &&
+        !unlockMode &&
+        !await _authService.isBiometricEnabled() &&
+        (await _biometricService.getAvailableBiometrics()).isNotEmpty;
+
+    if (canPromptBiometrics) {
+      Get.offNamed(AppRoutes.biometricPrompt);
       return;
     }
 
-    final profile = await _authRepository.ensureCurrentUserProfile(
-      phone: phone,
-      role: AppRole.owner,
-    );
-
-    if (profile.fullName.trim() == profile.phone.trim()) {
-      nameController.text = '';
-      emailController.text = profile.email ?? '';
-      Get.offNamed(AppRoutes.profileCompletion);
-      return;
-    }
-
-    await _clearPendingVerificationSession();
-    await _cacheAndUnlock(profile);
     Get.offAllNamed(AppRoutes.dashboard);
   }
 
-  Future<void> _persistVerificationSession(
-    PhoneVerificationSession session,
-  ) async {
-    verificationSession.value = session;
-    phoneController.text = session.phone;
-    await _sessionService.cachePhoneVerificationSession(session);
-  }
-
-  Future<PhoneVerificationSession?> _restorePendingVerificationSession() async {
-    if (_hasLoadedPendingVerification) {
-      return verificationSession.value;
+  Future<PendingAuthChallenge?> _restorePendingChallenge() async {
+    final challenge = await _authService.readPendingChallenge();
+    pendingChallenge.value = challenge;
+    if (challenge != null) {
+      phoneController.text = challenge.phone;
     }
+    return challenge;
+  }
 
-    final storedSession = await _sessionService.readPhoneVerificationSession();
-    if (storedSession != null) {
-      verificationSession.value = storedSession;
-      if (phoneController.text.isEmpty) {
-        phoneController.text = storedSession.phone;
-      }
+  Future<void> _refreshLocalAuthState() async {
+    final availability = await _authService.loadLocalAuthAvailability();
+    hasStoredCredentials.value = availability.hasStoredCredentials;
+    canUseDeviceCredential.value = availability.canUseDeviceCredential;
+    canUseBiometric.value = availability.canUseBiometric;
+    biometricLabel.value = availability.biometricLabel;
+    showPasswordField.value = unlockMode || !availability.canUseBiometric;
+
+    if ((phoneController.text.isEmpty || unlockMode) &&
+        availability.savedPhone != null) {
+      phoneController.text = availability.savedPhone!;
     }
-
-    _hasLoadedPendingVerification = true;
-    return verificationSession.value;
   }
 
-  Future<void> _clearPendingVerificationSession() async {
-    verificationSession.value = null;
-    _hasLoadedPendingVerification = true;
-    _lastAutoSubmittedVerificationId = null;
-    await _sessionService.clearPhoneVerificationSession();
-  }
-
-  bool _isCurrentPhoneAuthAttempt(int attemptId) =>
-      attemptId == _phoneAuthAttemptId && !isClosed;
-
-  Future<void> _cacheAndUnlock(UserProfile profile) async {
-    await _sessionService.cacheSession(
-      CachedSession(
-        userId: profile.id,
-        phone: profile.phone,
-        fullName: profile.fullName,
-        roleKey: profile.role.key,
-      ),
-    );
-    await _sessionService.unlockApp();
-  }
-
-  Future<void> _runGuarded(Future<void> Function() action) async {
+  Future<void> _runBusyTask(Future<void> Function() action) async {
     if (isBusy.value) {
       return;
     }
@@ -506,6 +542,105 @@ class AuthController extends GetxController {
     }
   }
 
+  bool _validateRegistrationInputs({bool requirePassword = true}) {
+    _clearRegistrationErrors();
+
+    final fullName = nameController.text.trim();
+    final normalizedPhone = PhoneUtils.normalize(phoneController.text.trim());
+    final password = passwordController.text;
+    final confirmPassword = confirmPasswordController.text;
+
+    if (fullName.length < 3) {
+      nameError.value = 'Enter your full name as it should appear on the account.';
+    }
+
+    if (!_isValidPhone(normalizedPhone)) {
+      phoneError.value = 'Enter a valid mobile number including the country code.';
+    } else {
+      phoneController.text = normalizedPhone;
+    }
+
+    if (requirePassword) {
+      final passwordValidation = PasswordPolicy.validate(password);
+      if (passwordValidation != null) {
+        passwordError.value = passwordValidation;
+      }
+
+      if (confirmPassword != password) {
+        confirmPasswordError.value = 'Password confirmation does not match.';
+      }
+    }
+
+    return nameError.value == null &&
+        phoneError.value == null &&
+        (!requirePassword ||
+            (passwordError.value == null && confirmPasswordError.value == null));
+  }
+
+  bool _validatePhoneInput() {
+    _clearPhoneError();
+    final normalizedPhone = PhoneUtils.normalize(phoneController.text.trim());
+    if (!_isValidPhone(normalizedPhone)) {
+      phoneError.value = 'Enter a valid mobile number including the country code.';
+      return false;
+    }
+
+    phoneController.text = normalizedPhone;
+    return true;
+  }
+
+  bool _validatePasswordLoginInputs() {
+    final phoneValid = _validatePhoneInput();
+    passwordError.value = null;
+
+    if (passwordController.text.isEmpty) {
+      passwordError.value = 'Enter your password to continue.';
+    }
+
+    return phoneValid && passwordError.value == null;
+  }
+
+  bool _isValidPhone(String normalizedPhone) {
+    final digits = normalizedPhone.replaceAll(RegExp(r'[^\d]'), '');
+    return normalizedPhone.startsWith('+') && digits.length >= 11;
+  }
+
+  void _updatePasswordPolicy() {
+    passwordPolicy.value = PasswordPolicy.evaluate(passwordController.text);
+    if (passwordError.value != null) {
+      passwordError.value = PasswordPolicy.validate(passwordController.text);
+    }
+  }
+
+  void _syncResendTimer() {
+    _resendTimer?.cancel();
+    final challenge = pendingChallenge.value;
+    if (challenge == null) {
+      resendSecondsRemaining.value = 0;
+      return;
+    }
+
+    void updateRemaining() {
+      final seconds = challenge.resendAvailableAt
+          .difference(DateTime.now())
+          .inSeconds;
+      resendSecondsRemaining.value = seconds > 0 ? seconds : 0;
+      if (seconds <= 0) {
+        _resendTimer?.cancel();
+      }
+    }
+
+    updateRemaining();
+    if (resendSecondsRemaining.value > 0) {
+      _resendTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        updateRemaining();
+      });
+    }
+  }
+
+  bool _isCurrentPhoneAuthAttempt(int attemptId) =>
+      attemptId == _phoneAuthAttemptId && !isClosed;
+
   bool get _supportsOtpOnCurrentPlatform {
     if (kIsWeb) {
       return false;
@@ -515,15 +650,41 @@ class AuthController extends GetxController {
 
   void _showError(String message) {
     Get.snackbar(
-      'app_name'.tr,
+      'Aqar El Masryeen',
       message,
       snackPosition: SnackPosition.BOTTOM,
       margin: const EdgeInsets.all(16),
     );
   }
 
+  void _clearOtp() {
+    for (var index = 0; index < otpDigits.length; index++) {
+      otpDigits[index] = '';
+    }
+  }
+
+  void _clearRegistrationErrors() {
+    phoneError.value = null;
+    passwordError.value = null;
+    confirmPasswordError.value = null;
+    nameError.value = null;
+  }
+
+  void _clearPhoneError() {
+    phoneError.value = null;
+  }
+
+  void _clearConfirmPasswordError() {
+    confirmPasswordError.value = null;
+  }
+
+  void _clearNameError() {
+    nameError.value = null;
+  }
+
   @override
   void onClose() {
+    _resendTimer?.cancel();
     phoneController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();

@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:aqarelmasryeen/app/routes/app_routes.dart';
+import 'package:aqarelmasryeen/core/services/auth_service.dart';
 import 'package:aqarelmasryeen/core/services/session_service.dart';
-import 'package:aqarelmasryeen/data/models/phone_verification_session.dart';
 import 'package:aqarelmasryeen/data/repositories/auth_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
@@ -10,6 +10,7 @@ import 'package:get/get.dart';
 class SplashController extends GetxController {
   final SessionService _sessionService = Get.find();
   final AuthRepository _authRepository = Get.find();
+  final AuthService _authService = Get.find();
   Timer? _routeTimer;
   bool _hasNavigated = false;
 
@@ -53,8 +54,8 @@ class SplashController extends GetxController {
         return;
       }
 
-      final pendingVerification = await _sessionService
-          .readPhoneVerificationSession()
+      final pendingVerification = await _authService
+          .readPendingChallenge()
           .timeout(
             const Duration(seconds: 2),
             onTimeout: () {
@@ -71,7 +72,7 @@ class SplashController extends GetxController {
         );
         if (route != null) {
           if (route == AppRoutes.dashboard) {
-            await _sessionService.clearPhoneVerificationSession();
+            await _authService.clearPendingChallenge();
           }
           _navigate(route);
           return;
@@ -106,15 +107,10 @@ class SplashController extends GetxController {
   }
 
   Future<String?> _resolvePendingVerificationRoute(
-    PhoneVerificationSession pendingVerification,
+    dynamic pendingVerification,
   ) async {
     if (!_authRepository.isAuthenticated) {
       return AppRoutes.otp;
-    }
-
-    if (pendingVerification.isRegistration &&
-        !_authRepository.hasPasswordProviderLinked) {
-      return AppRoutes.passwordSetup;
     }
 
     final profile = await _authRepository.getCurrentProfile().timeout(
@@ -127,10 +123,6 @@ class SplashController extends GetxController {
       },
     );
 
-    if (profile == null || profile.fullName.trim() == profile.phone.trim()) {
-      return AppRoutes.profileCompletion;
-    }
-
-    return AppRoutes.dashboard;
+    return profile == null ? AppRoutes.otp : AppRoutes.dashboard;
   }
 }

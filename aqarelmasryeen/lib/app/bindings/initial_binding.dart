@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:aqarelmasryeen/core/bootstrap/app_bootstrap.dart';
 import 'package:aqarelmasryeen/core/localization/locale_service.dart';
 import 'package:aqarelmasryeen/core/services/app_lock_service.dart';
+import 'package:aqarelmasryeen/core/services/auth_service.dart';
 import 'package:aqarelmasryeen/core/services/biometric_service.dart';
 import 'package:aqarelmasryeen/core/services/local_cache_service.dart';
 import 'package:aqarelmasryeen/core/services/notification_service.dart';
@@ -29,6 +30,15 @@ class InitialBinding extends Bindings {
     Get.put(BiometricService(), permanent: true);
     Get.put(
       AuthRepository(bootstrapState: Get.find(), sessionService: Get.find()),
+      permanent: true,
+    );
+    Get.put(
+      AuthService(
+        authRepository: Get.find(),
+        secureStorageService: Get.find(),
+        sessionService: Get.find(),
+        biometricService: Get.find(),
+      ),
       permanent: true,
     );
     Get.put(

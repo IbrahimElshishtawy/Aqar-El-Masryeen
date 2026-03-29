@@ -23,4 +23,15 @@ abstract final class PhoneUtils {
     final digits = normalize(phone).replaceAll(RegExp(r'[^\d]'), '');
     return 'auth_$digits@auth.aqarelmasryeen.app';
   }
+
+  static String mask(String phone) {
+    final normalized = normalize(phone);
+    if (normalized.length <= 6) {
+      return normalized;
+    }
+
+    final start = normalized.substring(0, 4);
+    final end = normalized.substring(normalized.length - 2);
+    return '$start ****** $end';
+  }
 }
