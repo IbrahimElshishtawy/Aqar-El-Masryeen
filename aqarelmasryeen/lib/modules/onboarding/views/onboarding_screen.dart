@@ -279,13 +279,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                   vertical: 10,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: currentSlide.accentColor.withOpacity(
-                                    0.08,
+                                  color: currentSlide.accentColor.withValues(
+                                    alpha: 0.08,
                                   ),
                                   borderRadius: BorderRadius.circular(18),
                                   border: Border.all(
-                                    color: currentSlide.accentColor.withOpacity(
-                                      0.14,
+                                    color: currentSlide.accentColor.withValues(
+                                      alpha: 0.14,
                                     ),
                                   ),
                                 ),
@@ -437,7 +437,7 @@ class _OnboardingSlide extends StatelessWidget {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: data.accentColor.withOpacity(0.08),
+                        color: data.accentColor.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: Text(
@@ -524,16 +524,18 @@ class _OnboardingHero extends StatelessWidget {
                 borderRadius: BorderRadius.circular(36),
                 gradient: LinearGradient(
                   colors: [
-                    data.accentColor.withOpacity(0.12),
+                    data.accentColor.withValues(alpha: 0.12),
                     const Color(0xFFFDFEFF),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                 ),
-                border: Border.all(color: data.accentColor.withOpacity(0.12)),
+                border: Border.all(
+                  color: data.accentColor.withValues(alpha: 0.12),
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: data.accentColor.withOpacity(0.08),
+                    color: data.accentColor.withValues(alpha: 0.08),
                     blurRadius: 30,
                     offset: const Offset(0, 18),
                   ),
@@ -556,7 +558,7 @@ class _OnboardingHero extends StatelessWidget {
             right: textDirection == TextDirection.ltr ? 28 : null,
             left: textDirection == TextDirection.rtl ? 28 : null,
             child: _DecorativeOrb(
-              color: data.accentColor.withOpacity(0.18),
+              color: data.accentColor.withValues(alpha: 0.18),
               size: 18,
             ),
           ),
@@ -575,7 +577,7 @@ class _OnboardingHero extends StatelessWidget {
             left: textDirection == TextDirection.ltr ? 32 : null,
             right: textDirection == TextDirection.rtl ? 32 : null,
             child: _DecorativeOrb(
-              color: data.accentColor.withOpacity(0.1),
+              color: data.accentColor.withValues(alpha: 0.1),
               size: 26,
             ),
           ),
@@ -597,7 +599,7 @@ class _OnboardingHero extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: data.accentColor.withOpacity(0.14),
+                        color: data.accentColor.withValues(alpha: 0.14),
                         width: 1.5,
                       ),
                     ),
@@ -607,7 +609,7 @@ class _OnboardingHero extends StatelessWidget {
                     height: phoneCardSize * 1.24,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: data.accentColor.withOpacity(0.06),
+                      color: data.accentColor.withValues(alpha: 0.06),
                     ),
                   ),
                   Container(
@@ -618,14 +620,14 @@ class _OnboardingHero extends StatelessWidget {
                       gradient: LinearGradient(
                         colors: [
                           data.accentColor,
-                          data.accentColor.withOpacity(0.84),
+                          data.accentColor.withValues(alpha: 0.84),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: data.accentColor.withOpacity(0.26),
+                          color: data.accentColor.withValues(alpha: 0.26),
                           blurRadius: 30,
                           offset: const Offset(0, 18),
                         ),
@@ -638,7 +640,7 @@ class _OnboardingHero extends StatelessWidget {
                           width: 44,
                           height: 5,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.35),
+                            color: Colors.white.withValues(alpha: 0.35),
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
@@ -654,7 +656,7 @@ class _OnboardingHero extends StatelessWidget {
                           height: 6,
                           margin: const EdgeInsets.only(bottom: 16),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.28),
+                            color: Colors.white.withValues(alpha: 0.28),
                             borderRadius: BorderRadius.circular(999),
                           ),
                         ),
@@ -689,7 +691,7 @@ class _FeatureChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF8FBFF),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accentColor.withOpacity(0.12)),
+        border: Border.all(color: accentColor.withValues(alpha: 0.12)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -698,7 +700,7 @@ class _FeatureChip extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.1),
+              color: accentColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, size: 18, color: accentColor),
@@ -739,10 +741,10 @@ class _FloatingPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: accentColor.withOpacity(0.1)),
+        border: Border.all(color: accentColor.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.08),
+            color: accentColor.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
@@ -755,7 +757,7 @@ class _FloatingPill extends StatelessWidget {
             width: 30,
             height: 30,
             decoration: BoxDecoration(
-              color: accentColor.withOpacity(0.12),
+              color: accentColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, size: 18, color: accentColor),
@@ -793,10 +795,10 @@ class _MetricCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: accentColor.withOpacity(0.1)),
+        border: Border.all(color: accentColor.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
-            color: accentColor.withOpacity(0.08),
+            color: accentColor.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 12),
           ),
@@ -868,7 +870,9 @@ class _PageIndicators extends StatelessWidget {
           height: 10,
           margin: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: isActive ? activeColor : activeColor.withOpacity(0.18),
+            color: isActive
+                ? activeColor
+                : activeColor.withValues(alpha: 0.18),
             borderRadius: BorderRadius.circular(999),
           ),
         );
