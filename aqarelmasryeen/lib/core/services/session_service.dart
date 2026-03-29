@@ -2,6 +2,7 @@ import 'package:aqarelmasryeen/core/constants/storage_keys.dart';
 import 'package:aqarelmasryeen/core/services/local_cache_service.dart';
 import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
 import 'package:aqarelmasryeen/data/models/cached_session.dart';
+import 'package:aqarelmasryeen/data/models/phone_verification_session.dart';
 
 class SessionService {
   SessionService(this._secureStorageService, this._localCacheService);
@@ -48,6 +49,72 @@ class SessionService {
       phone: phone,
       fullName: fullName,
       roleKey: roleKey,
+    );
+  }
+
+  Future<void> cachePhoneVerificationSession(
+    PhoneVerificationSession session,
+  ) async {
+    await _secureStorageService.write(
+      StorageKeys.pendingVerificationPhone,
+      session.phone,
+    );
+    await _secureStorageService.write(
+      StorageKeys.pendingVerificationId,
+      session.verificationId,
+    );
+    await _secureStorageService.writeBool(
+      StorageKeys.pendingVerificationIsRegistration,
+      session.isRegistration,
+    );
+
+    if (session.resendToken == null) {
+      await _secureStorageService.delete(
+        StorageKeys.pendingVerificationResendToken,
+      );
+      return;
+    }
+
+    await _secureStorageService.write(
+      StorageKeys.pendingVerificationResendToken,
+      session.resendToken.toString(),
+    );
+  }
+
+  Future<PhoneVerificationSession?> readPhoneVerificationSession() async {
+    final phone = await _secureStorageService.read(
+      StorageKeys.pendingVerificationPhone,
+    );
+    final verificationId = await _secureStorageService.read(
+      StorageKeys.pendingVerificationId,
+    );
+    final isRegistrationRaw = await _secureStorageService.read(
+      StorageKeys.pendingVerificationIsRegistration,
+    );
+    final resendTokenRaw = await _secureStorageService.read(
+      StorageKeys.pendingVerificationResendToken,
+    );
+
+    if (phone == null || verificationId == null || isRegistrationRaw == null) {
+      return null;
+    }
+
+    return PhoneVerificationSession(
+      phone: phone,
+      verificationId: verificationId,
+      isRegistration: isRegistrationRaw.toLowerCase() == 'true',
+      resendToken: int.tryParse(resendTokenRaw ?? ''),
+    );
+  }
+
+  Future<void> clearPhoneVerificationSession() async {
+    await _secureStorageService.delete(StorageKeys.pendingVerificationPhone);
+    await _secureStorageService.delete(StorageKeys.pendingVerificationId);
+    await _secureStorageService.delete(
+      StorageKeys.pendingVerificationIsRegistration,
+    );
+    await _secureStorageService.delete(
+      StorageKeys.pendingVerificationResendToken,
     );
   }
 

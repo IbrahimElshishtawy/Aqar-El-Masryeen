@@ -18,6 +18,19 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final TextEditingController pinController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    final suggestedCode = controller.suggestedOtpCode;
+    if (suggestedCode != null) {
+      pinController.text = suggestedCode;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.maybeAutoSubmitTestOtp();
+    });
+  }
+
+  @override
   void dispose() {
     pinController.dispose();
     super.dispose();
@@ -25,6 +38,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final suggestedCode = controller.suggestedOtpCode;
+    if (suggestedCode != null && pinController.text != suggestedCode) {
+      pinController.text = suggestedCode;
+    }
+
     return Obx(
       () => AuthShell(
         title: 'otp_title'.tr,
@@ -50,6 +68,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
               label: 'verify_code'.tr,
               isLoading: controller.isBusy.value,
               onPressed: () => controller.verifyOtp(pinController.text),
+            ),
+            const SizedBox(height: 14),
+            AppButton(
+              label: 'Send Code Again',
+              variant: AppButtonVariant.secondary,
+              isLoading: controller.isBusy.value,
+              onPressed: controller.resendOtp,
             ),
           ],
         ),

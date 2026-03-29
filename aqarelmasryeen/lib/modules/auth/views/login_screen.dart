@@ -89,6 +89,16 @@ class _LoginScreenState extends State<LoginScreen> {
               keyboardType: TextInputType.phone,
               prefixIcon: const Icon(Icons.phone_rounded),
             ),
+            if (controller.debugPhoneAuthHint != null) ...[
+              const SizedBox(height: 10),
+              Text(
+                controller.debugPhoneAuthHint!,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppColors.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+            ],
             const SizedBox(height: AppSpacing.md),
             AppTextField(
               controller: controller.passwordController,

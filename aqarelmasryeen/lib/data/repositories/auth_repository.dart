@@ -10,6 +10,14 @@ import 'package:aqarelmasryeen/data/models/phone_verification_session.dart';
 import 'package:aqarelmasryeen/data/models/user_profile.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+
+typedef PhoneVerificationSessionCallback =
+    FutureOr<void> Function(PhoneVerificationSession session);
+typedef PhoneVerificationCompletedCallback =
+    FutureOr<void> Function(UserCredential credential);
+typedef PhoneVerificationFailedCallback =
+    FutureOr<void> Function(FirebaseAuthException exception);
 
 class AuthRepository {
   AuthRepository({
@@ -23,9 +31,29 @@ class AuthRepository {
 
   FirebaseAuth get _auth => FirebaseAuth.instance;
   FirebaseFirestore get _firestore => FirebaseFirestore.instance;
+  FirebaseStorage get _storage => FirebaseStorage.instance;
 
   bool get isAuthenticated =>
       _bootstrapState.firebaseReady && _auth.currentUser != null;
+
+  bool get hasPasswordProviderLinked {
+    final user = _auth.currentUser;
+    if (user == null) {
+      return false;
+    }
+
+    return user.providerData.any(
+      (provider) => provider.providerId == EmailAuthProvider.PROVIDER_ID,
+    );
+  }
+
+  bool get isFirestoreConfigured =>
+      _bootstrapState.firebaseReady &&
+      _firestore.app.options.projectId.isNotEmpty;
+
+  bool get isStorageConfigured =>
+      _bootstrapState.firebaseReady &&
+      (_storage.app.options.storageBucket ?? '').isNotEmpty;
 
   Future<bool> isPhoneRegistered(String phone) async {
     _ensureReady();
@@ -38,43 +66,55 @@ class AuthRepository {
     return query.docs.isNotEmpty;
   }
 
-  Future<PhoneVerificationSession> startPhoneVerification({
+  Future<void> startPhoneVerification({
     required String phone,
     required bool isRegistration,
+    int? forceResendingToken,
+    required PhoneVerificationSessionCallback onCodeSent,
+    required PhoneVerificationSessionCallback onCodeAutoRetrievalTimeout,
+    required PhoneVerificationCompletedCallback onVerificationCompleted,
+    required PhoneVerificationFailedCallback onVerificationFailed,
   }) async {
     _ensureReady();
 
     final normalizedPhone = PhoneUtils.normalize(phone);
-    final completer = Completer<PhoneVerificationSession>();
 
     await _auth.verifyPhoneNumber(
       phoneNumber: normalizedPhone,
+      forceResendingToken: forceResendingToken,
+      timeout: const Duration(seconds: 60),
       verificationCompleted: (credential) async {
-        if (_auth.currentUser == null) {
-          await _auth.signInWithCredential(credential);
+        try {
+          final userCredential = await _auth.signInWithCredential(credential);
+          await onVerificationCompleted(userCredential);
+        } on FirebaseAuthException catch (error) {
+          await onVerificationFailed(error);
         }
       },
-      verificationFailed: (exception) {
-        if (!completer.isCompleted) {
-          completer.completeError(exception);
-        }
+      verificationFailed: (exception) async {
+        await onVerificationFailed(exception);
       },
-      codeSent: (verificationId, resendToken) {
-        if (!completer.isCompleted) {
-          completer.complete(
-            PhoneVerificationSession(
-              phone: normalizedPhone,
-              verificationId: verificationId,
-              isRegistration: isRegistration,
-              resendToken: resendToken,
-            ),
-          );
-        }
+      codeSent: (verificationId, resendToken) async {
+        await onCodeSent(
+          PhoneVerificationSession(
+            phone: normalizedPhone,
+            verificationId: verificationId,
+            isRegistration: isRegistration,
+            resendToken: resendToken,
+          ),
+        );
       },
-      codeAutoRetrievalTimeout: (_) {},
+      codeAutoRetrievalTimeout: (verificationId) async {
+        await onCodeAutoRetrievalTimeout(
+          PhoneVerificationSession(
+            phone: normalizedPhone,
+            verificationId: verificationId,
+            isRegistration: isRegistration,
+            resendToken: forceResendingToken,
+          ),
+        );
+      },
     );
-
-    return completer.future;
   }
 
   Future<UserCredential> verifyOtp({

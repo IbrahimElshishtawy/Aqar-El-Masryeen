@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:aqarelmasryeen/app/routes/app_routes.dart';
 import 'package:aqarelmasryeen/core/bootstrap/app_bootstrap.dart';
+import 'package:aqarelmasryeen/core/firebase/dev_phone_auth_config.dart';
 import 'package:aqarelmasryeen/core/services/biometric_service.dart';
 import 'package:aqarelmasryeen/core/services/session_service.dart';
 import 'package:aqarelmasryeen/core/utils/phone_utils.dart';
@@ -32,14 +34,45 @@ class AuthController extends GetxController {
   final obscurePassword = true.obs;
   final obscureConfirmPassword = true.obs;
   final biometricAvailable = false.obs;
+  final verificationSession = Rxn<PhoneVerificationSession>();
 
-  PhoneVerificationSession? _verificationSession;
   bool _unlockMode = false;
+  bool _hasLoadedPendingVerification = false;
+  int _phoneAuthAttemptId = 0;
+  String? _lastAutoSubmittedVerificationId;
 
   bool get unlockMode => _unlockMode;
   bool get firebaseReady => _bootstrapState.firebaseReady;
   String get pendingPhone =>
-      _verificationSession?.phone ?? PhoneUtils.normalize(phoneController.text);
+      verificationSession.value?.phone ??
+      PhoneUtils.normalize(phoneController.text);
+
+  String? get debugPhoneAuthHint {
+    if (!DevPhoneAuthConfig.isEnabled || !_supportsOtpOnCurrentPlatform) {
+      return null;
+    }
+
+    return 'Debug test phone: ${DevPhoneAuthConfig.phoneNumber} / ${DevPhoneAuthConfig.smsCode}';
+  }
+
+  String? get suggestedOtpCode {
+    final session = verificationSession.value;
+    if (session == null || !DevPhoneAuthConfig.canAutoSubmitOtp) {
+      return null;
+    }
+
+    if (!DevPhoneAuthConfig.matchesPhone(session.phone)) {
+      return null;
+    }
+
+    return DevPhoneAuthConfig.smsCode;
+  }
+
+  @override
+  void onInit() {
+    super.onInit();
+    unawaited(_restorePendingVerificationSession());
+  }
 
   Future<void> configureEntry(dynamic arguments) async {
     _unlockMode = arguments is Map && arguments['unlock'] == true;
@@ -48,6 +81,8 @@ class AuthController extends GetxController {
       phoneController.text = cachedSession.phone;
       nameController.text = cachedSession.fullName;
     }
+
+    await _restorePendingVerificationSession();
 
     biometricAvailable.value =
         await _sessionService.isBiometricEnabled() &&
@@ -62,7 +97,7 @@ class AuthController extends GetxController {
     final rawPhone = phoneController.text.trim();
     final password = passwordController.text;
     if (rawPhone.isEmpty || password.isEmpty) {
-      _showError('يرجى إدخال رقم الهاتف وكلمة المرور.');
+      _showError('Please enter your phone number and password.');
       return;
     }
 
@@ -71,6 +106,8 @@ class AuthController extends GetxController {
         phone: rawPhone,
         password: password,
       );
+      await _clearPendingVerificationSession();
+
       if (profile.fullName.trim() == profile.phone.trim()) {
         nameController.text = '';
         emailController.text = profile.email ?? '';
@@ -85,7 +122,7 @@ class AuthController extends GetxController {
   Future<void> sendOtp() async {
     final rawPhone = phoneController.text.trim();
     if (rawPhone.isEmpty) {
-      _showError('يرجى إدخال رقم الهاتف أولاً.');
+      _showError('Please enter your phone number first.');
       return;
     }
 
@@ -94,56 +131,97 @@ class AuthController extends GetxController {
       return;
     }
 
-    await _runGuarded(() async {
+    final normalizedPhone = PhoneUtils.normalize(rawPhone);
+    phoneController.text = normalizedPhone;
+
+    try {
       if (isRegisterMode.value &&
-          await _authRepository.isPhoneRegistered(rawPhone)) {
-        _showError('الحساب موجود بالفعل. استخدم تسجيل الدخول.');
+          await _authRepository.isPhoneRegistered(normalizedPhone)) {
+        _showError('An account already exists for this phone number.');
         return;
       }
+    } on FirebaseAuthException catch (error) {
+      _showError(error.message ?? 'Authentication failed.');
+      return;
+    } on StateError catch (error) {
+      _showError(error.message);
+      return;
+    } catch (error) {
+      _showError(error.toString());
+      return;
+    }
 
-      _verificationSession = await _authRepository.startPhoneVerification(
-        phone: rawPhone,
-        isRegistration: isRegisterMode.value,
-      );
-      Get.toNamed(AppRoutes.otp);
-    });
+    await _startPhoneVerificationFlow(
+      phone: normalizedPhone,
+      isRegistration: isRegisterMode.value,
+    );
   }
 
-  Future<void> verifyOtp(String code) async {
-    if (_verificationSession == null) {
+  Future<void> resendOtp() async {
+    final session =
+        verificationSession.value ?? await _restorePendingVerificationSession();
+    final phone = session?.phone ?? PhoneUtils.normalize(phoneController.text);
+    if (phone.isEmpty) {
+      _showError('Please enter your phone number first.');
+      return;
+    }
+
+    await _startPhoneVerificationFlow(
+      phone: phone,
+      isRegistration: session?.isRegistration ?? isRegisterMode.value,
+      forceResendingToken: session?.resendToken,
+    );
+  }
+
+  Future<void> maybeAutoSubmitTestOtp() async {
+    final session =
+        verificationSession.value ?? await _restorePendingVerificationSession();
+    if (session == null || !DevPhoneAuthConfig.canAutoSubmitOtp) {
+      return;
+    }
+
+    if (!DevPhoneAuthConfig.matchesPhone(session.phone)) {
+      return;
+    }
+
+    if (_lastAutoSubmittedVerificationId == session.verificationId ||
+        isBusy.value) {
+      return;
+    }
+
+    _lastAutoSubmittedVerificationId = session.verificationId;
+    await verifyOtp(DevPhoneAuthConfig.smsCode, isAutomaticTestCode: true);
+  }
+
+  Future<void> verifyOtp(
+    String code, {
+    bool isAutomaticTestCode = false,
+  }) async {
+    final session =
+        verificationSession.value ?? await _restorePendingVerificationSession();
+    if (session == null) {
       Get.offAllNamed(AppRoutes.login);
       return;
     }
 
-    if (code.trim().length < 6) {
-      _showError('الرمز غير مكتمل.');
+    final trimmedCode = code.trim();
+    if (trimmedCode.length < 6) {
+      if (!isAutomaticTestCode) {
+        _showError('The verification code must be 6 digits.');
+      }
       return;
     }
 
     await _runGuarded(() async {
       await _authRepository.verifyOtp(
-        verificationId: _verificationSession!.verificationId,
-        code: code,
+        verificationId: session.verificationId,
+        code: trimmedCode,
       );
 
-      if (_verificationSession!.isRegistration) {
-        Get.toNamed(AppRoutes.passwordSetup);
-        return;
-      }
-
-      final profile = await _authRepository.ensureCurrentUserProfile(
-        phone: _verificationSession!.phone,
-        role: AppRole.owner,
+      await _handleVerifiedUser(
+        phone: session.phone,
+        isRegistration: session.isRegistration,
       );
-
-      if (profile.fullName.trim() == profile.phone.trim()) {
-        nameController.text = '';
-        Get.toNamed(AppRoutes.profileCompletion);
-        return;
-      }
-
-      await _cacheAndUnlock(profile);
-      Get.offAllNamed(AppRoutes.dashboard);
     });
   }
 
@@ -152,12 +230,12 @@ class AuthController extends GetxController {
     final confirm = confirmPasswordController.text;
 
     if (password.length < 8) {
-      _showError('كلمة المرور يجب أن تكون 8 أحرف على الأقل.');
+      _showError('Password must be at least 8 characters.');
       return;
     }
 
     if (password != confirm) {
-      _showError('كلمتا المرور غير متطابقتين.');
+      _showError('The password confirmation does not match.');
       return;
     }
 
@@ -166,7 +244,7 @@ class AuthController extends GetxController {
         phone: pendingPhone,
         password: password,
       );
-      Get.toNamed(AppRoutes.profileCompletion);
+      Get.offNamed(AppRoutes.profileCompletion);
     });
   }
 
@@ -174,7 +252,7 @@ class AuthController extends GetxController {
     final fullName = nameController.text.trim();
     final email = emailController.text.trim();
     if (fullName.isEmpty) {
-      _showError('يرجى إدخال الاسم الكامل.');
+      _showError('Please enter your full name.');
       return;
     }
 
@@ -189,6 +267,7 @@ class AuthController extends GetxController {
       );
       await _authRepository.saveUserProfile(profile);
       await _sessionService.setAppLockEnabled(true);
+      await _clearPendingVerificationSession();
 
       if (await _biometricService.isDeviceSupported()) {
         Get.toNamed(AppRoutes.biometricPrompt);
@@ -204,7 +283,7 @@ class AuthController extends GetxController {
     await _runGuarded(() async {
       final success = await _biometricService.authenticate();
       if (!success) {
-        _showError('تعذر تفعيل الدخول الحيوي على هذا الجهاز.');
+        _showError('Biometric authentication is not available on this device.');
         return;
       }
 
@@ -230,7 +309,7 @@ class AuthController extends GetxController {
     await _runGuarded(() async {
       final success = await _biometricService.authenticate();
       if (!success) {
-        _showError('تعذر التحقق الحيوي.');
+        _showError('Biometric verification failed.');
         return;
       }
 
@@ -242,9 +321,159 @@ class AuthController extends GetxController {
   Future<void> logout() async {
     await _authRepository.signOut();
     await _sessionService.clearSession();
-    _verificationSession = null;
+    await _clearPendingVerificationSession();
     Get.offAllNamed(AppRoutes.login);
   }
+
+  Future<void> _startPhoneVerificationFlow({
+    required String phone,
+    required bool isRegistration,
+    int? forceResendingToken,
+  }) async {
+    final attemptId = ++_phoneAuthAttemptId;
+    isBusy.value = true;
+
+    try {
+      await _authRepository.startPhoneVerification(
+        phone: phone,
+        isRegistration: isRegistration,
+        forceResendingToken: forceResendingToken,
+        onCodeSent: (session) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+
+          await _persistVerificationSession(session);
+          isBusy.value = false;
+
+          if (Get.currentRoute != AppRoutes.otp) {
+            unawaited(Get.toNamed(AppRoutes.otp));
+          }
+
+          if (DevPhoneAuthConfig.matchesPhone(session.phone)) {
+            unawaited(
+              Future<void>.delayed(
+                const Duration(milliseconds: 150),
+                maybeAutoSubmitTestOtp,
+              ),
+            );
+          }
+        },
+        onCodeAutoRetrievalTimeout: (session) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+
+          final persisted = (verificationSession.value ?? session).copyWith(
+            verificationId: session.verificationId,
+          );
+          await _persistVerificationSession(persisted);
+          isBusy.value = false;
+        },
+        onVerificationCompleted: (_) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+
+          isBusy.value = false;
+          await _handleVerifiedUser(
+            phone: phone,
+            isRegistration: isRegistration,
+          );
+        },
+        onVerificationFailed: (error) async {
+          if (!_isCurrentPhoneAuthAttempt(attemptId)) {
+            return;
+          }
+
+          isBusy.value = false;
+          await _clearPendingVerificationSession();
+          _showError(error.message ?? 'Phone verification failed.');
+        },
+      );
+    } on FirebaseAuthException catch (error) {
+      isBusy.value = false;
+      _showError(error.message ?? 'Authentication failed.');
+    } on StateError catch (error) {
+      isBusy.value = false;
+      _showError(error.message);
+    } catch (error) {
+      isBusy.value = false;
+      _showError(error.toString());
+    }
+  }
+
+  Future<void> _handleVerifiedUser({
+    required String phone,
+    required bool isRegistration,
+  }) async {
+    final session =
+        verificationSession.value ??
+        PhoneVerificationSession(
+          phone: phone,
+          verificationId: '',
+          isRegistration: isRegistration,
+        );
+    await _persistVerificationSession(
+      session.copyWith(phone: phone, isRegistration: isRegistration),
+    );
+
+    if (isRegistration) {
+      Get.offNamed(AppRoutes.passwordSetup);
+      return;
+    }
+
+    final profile = await _authRepository.ensureCurrentUserProfile(
+      phone: phone,
+      role: AppRole.owner,
+    );
+
+    if (profile.fullName.trim() == profile.phone.trim()) {
+      nameController.text = '';
+      emailController.text = profile.email ?? '';
+      Get.offNamed(AppRoutes.profileCompletion);
+      return;
+    }
+
+    await _clearPendingVerificationSession();
+    await _cacheAndUnlock(profile);
+    Get.offAllNamed(AppRoutes.dashboard);
+  }
+
+  Future<void> _persistVerificationSession(
+    PhoneVerificationSession session,
+  ) async {
+    verificationSession.value = session;
+    phoneController.text = session.phone;
+    await _sessionService.cachePhoneVerificationSession(session);
+  }
+
+  Future<PhoneVerificationSession?> _restorePendingVerificationSession() async {
+    if (_hasLoadedPendingVerification) {
+      return verificationSession.value;
+    }
+
+    final storedSession = await _sessionService.readPhoneVerificationSession();
+    if (storedSession != null) {
+      verificationSession.value = storedSession;
+      if (phoneController.text.isEmpty) {
+        phoneController.text = storedSession.phone;
+      }
+    }
+
+    _hasLoadedPendingVerification = true;
+    return verificationSession.value;
+  }
+
+  Future<void> _clearPendingVerificationSession() async {
+    verificationSession.value = null;
+    _hasLoadedPendingVerification = true;
+    _lastAutoSubmittedVerificationId = null;
+    await _sessionService.clearPhoneVerificationSession();
+  }
+
+  bool _isCurrentPhoneAuthAttempt(int attemptId) =>
+      attemptId == _phoneAuthAttemptId && !isClosed;
 
   Future<void> _cacheAndUnlock(UserProfile profile) async {
     await _sessionService.cacheSession(
