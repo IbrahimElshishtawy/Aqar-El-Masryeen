@@ -18,7 +18,9 @@ class RegistrationScreen extends StatelessWidget {
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final horizontalPadding = constraints.maxWidth > 720 ? 40.0 : 20.0;
+              final horizontalPadding = constraints.maxWidth > 720
+                  ? 40.0
+                  : 20.0;
               return SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
                   horizontalPadding,
@@ -61,9 +63,7 @@ class RegistrationScreen extends StatelessWidget {
                               const SizedBox(height: 18),
                               Text(
                                 'Create your secure account',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall
+                                style: Theme.of(context).textTheme.headlineSmall
                                     ?.copyWith(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w800,
@@ -72,11 +72,11 @@ class RegistrationScreen extends StatelessWidget {
                               const SizedBox(height: 10),
                               Text(
                                 'Once your form is valid, Firebase phone auth sends the OTP immediately and the account is completed after code verification.',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
+                                style: Theme.of(context).textTheme.bodyMedium
                                     ?.copyWith(
-                                      color: Colors.white.withValues(alpha: 0.9),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.9,
+                                      ),
                                       height: 1.55,
                                     ),
                               ),
@@ -108,7 +108,9 @@ class RegistrationScreen extends StatelessWidget {
                                   label: 'Full Name',
                                   hint: 'Ahmed Mahmoud',
                                   errorText: controller.nameError.value,
-                                  prefixIcon: const Icon(Icons.person_outline_rounded),
+                                  prefixIcon: const Icon(
+                                    Icons.person_outline_rounded,
+                                  ),
                                   textCapitalization: TextCapitalization.words,
                                   textInputAction: TextInputAction.next,
                                   autofillHints: const [AutofillHints.name],
@@ -137,7 +139,9 @@ class RegistrationScreen extends StatelessWidget {
                               ),
                               if (controller.debugPhoneAuthHint != null) ...[
                                 const SizedBox(height: 10),
-                                _InlineNotice(text: controller.debugPhoneAuthHint!),
+                                _InlineNotice(
+                                  text: controller.debugPhoneAuthHint!,
+                                ),
                               ],
                               const SizedBox(height: 16),
                               _AnimatedField(
@@ -147,9 +151,13 @@ class RegistrationScreen extends StatelessWidget {
                                   label: 'Password',
                                   obscureText: controller.obscurePassword.value,
                                   errorText: controller.passwordError.value,
-                                  prefixIcon: const Icon(Icons.lock_outline_rounded),
+                                  prefixIcon: const Icon(
+                                    Icons.lock_outline_rounded,
+                                  ),
                                   textInputAction: TextInputAction.next,
-                                  autofillHints: const [AutofillHints.newPassword],
+                                  autofillHints: const [
+                                    AutofillHints.newPassword,
+                                  ],
                                   suffixIcon: IconButton(
                                     onPressed: () =>
                                         controller.obscurePassword.toggle(),
@@ -165,7 +173,8 @@ class RegistrationScreen extends StatelessWidget {
                               _AnimatedField(
                                 delay: 3,
                                 child: AppTextField(
-                                  controller: controller.confirmPasswordController,
+                                  controller:
+                                      controller.confirmPasswordController,
                                   label: 'Confirm Password',
                                   obscureText:
                                       controller.obscureConfirmPassword.value,
@@ -175,7 +184,9 @@ class RegistrationScreen extends StatelessWidget {
                                     Icons.verified_user_outlined,
                                   ),
                                   textInputAction: TextInputAction.done,
-                                  autofillHints: const [AutofillHints.newPassword],
+                                  autofillHints: const [
+                                    AutofillHints.newPassword,
+                                  ],
                                   suffixIcon: IconButton(
                                     onPressed: () => controller
                                         .obscureConfirmPassword
@@ -186,7 +197,8 @@ class RegistrationScreen extends StatelessWidget {
                                           : Icons.visibility_rounded,
                                     ),
                                   ),
-                                  onSubmitted: (_) => controller.startRegistration(),
+                                  onSubmitted: (_) =>
+                                      controller.startRegistration(),
                                 ),
                               ),
                               const SizedBox(height: 18),
@@ -252,9 +264,9 @@ class _PasswordChecklist extends StatelessWidget {
           Text(
             'Password strength',
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: const Color(0xFF0B1F33),
-                  fontWeight: FontWeight.w800,
-                ),
+              color: const Color(0xFF0B1F33),
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 10),
           ClipRRect(
@@ -264,12 +276,17 @@ class _PasswordChecklist extends StatelessWidget {
               minHeight: 8,
               backgroundColor: const Color(0xFFDCE8F8),
               valueColor: AlwaysStoppedAnimation<Color>(
-                policy.isStrong ? const Color(0xFF2E7D32) : const Color(0xFF1976D2),
+                policy.isStrong
+                    ? const Color(0xFF2E7D32)
+                    : const Color(0xFF1976D2),
               ),
             ),
           ),
           const SizedBox(height: 12),
-          _PasswordRule(label: 'At least 8 characters', passed: policy.hasMinLength),
+          _PasswordRule(
+            label: 'At least 8 characters',
+            passed: policy.hasMinLength,
+          ),
           _PasswordRule(label: 'Uppercase letter', passed: policy.hasUppercase),
           _PasswordRule(label: 'Lowercase letter', passed: policy.hasLowercase),
           _PasswordRule(label: 'Number', passed: policy.hasDigit),
@@ -281,9 +298,9 @@ class _PasswordChecklist extends StatelessWidget {
           Text(
             policy.summary,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: const Color(0xFF5E7288),
-                  height: 1.45,
-                ),
+              color: const Color(0xFF5E7288),
+              height: 1.45,
+            ),
           ),
         ],
       ),
@@ -312,9 +329,9 @@ class _PasswordRule extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: const Color(0xFF24405F),
-                  fontWeight: FontWeight.w600,
-                ),
+              color: const Color(0xFF24405F),
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -338,19 +355,15 @@ class _InlineNotice extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(
-            Icons.sms_outlined,
-            size: 18,
-            color: Color(0xFF1976D2),
-          ),
+          const Icon(Icons.sms_outlined, size: 18, color: Color(0xFF1976D2)),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF31506F),
-                    fontWeight: FontWeight.w600,
-                  ),
+                color: const Color(0xFF31506F),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

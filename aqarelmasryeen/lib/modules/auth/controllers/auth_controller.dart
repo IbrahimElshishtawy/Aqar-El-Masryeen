@@ -60,7 +60,8 @@ class AuthController extends GetxController {
   bool get canResendOtp => resendSecondsRemaining.value == 0 && !isBusy.value;
   String get otpCode => otpDigits.join();
   String get pendingPhone =>
-      pendingChallenge.value?.phone ?? PhoneUtils.normalize(phoneController.text);
+      pendingChallenge.value?.phone ??
+      PhoneUtils.normalize(phoneController.text);
   String get maskedPendingPhone => PhoneUtils.mask(pendingPhone);
 
   String? get debugPhoneAuthHint {
@@ -138,7 +139,9 @@ class AuthController extends GetxController {
 
   Future<void> startRegistration() async {
     if (!_supportsOtpOnCurrentPlatform) {
-      _showError('Phone OTP registration is currently supported on Android and iOS only.');
+      _showError(
+        'Phone OTP registration is currently supported on Android and iOS only.',
+      );
       return;
     }
 
@@ -201,7 +204,9 @@ class AuthController extends GetxController {
 
   Future<void> sendLoginOtp() async {
     if (!_supportsOtpOnCurrentPlatform) {
-      _showError('Phone OTP sign-in is currently supported on Android and iOS only.');
+      _showError(
+        'Phone OTP sign-in is currently supported on Android and iOS only.',
+      );
       return;
     }
 
@@ -261,9 +266,12 @@ class AuthController extends GetxController {
       return;
     }
 
-    final challenge = pendingChallenge.value ?? await _restorePendingChallenge();
+    final challenge =
+        pendingChallenge.value ?? await _restorePendingChallenge();
     if (challenge == null) {
-      _showError('Your verification session expired. Please request a new code.');
+      _showError(
+        'Your verification session expired. Please request a new code.',
+      );
       return;
     }
 
@@ -323,9 +331,12 @@ class AuthController extends GetxController {
     }
 
     await _runBusyTask(() async {
-      final challenge = pendingChallenge.value ?? await _restorePendingChallenge();
+      final challenge =
+          pendingChallenge.value ?? await _restorePendingChallenge();
       if (challenge == null) {
-        throw StateError('Your verification session expired. Please request a new code.');
+        throw StateError(
+          'Your verification session expired. Please request a new code.',
+        );
       }
 
       final profile = await _authService.verifyOtp(candidate);
@@ -413,7 +424,8 @@ class AuthController extends GetxController {
   }
 
   Future<void> maybeAutoSubmitTestOtp() async {
-    final challenge = pendingChallenge.value ?? await _restorePendingChallenge();
+    final challenge =
+        pendingChallenge.value ?? await _restorePendingChallenge();
     if (challenge == null || !DevPhoneAuthConfig.canAutoSubmitOtp) {
       return;
     }
@@ -551,11 +563,13 @@ class AuthController extends GetxController {
     final confirmPassword = confirmPasswordController.text;
 
     if (fullName.length < 3) {
-      nameError.value = 'Enter your full name as it should appear on the account.';
+      nameError.value =
+          'Enter your full name as it should appear on the account.';
     }
 
     if (!_isValidPhone(normalizedPhone)) {
-      phoneError.value = 'Enter a valid mobile number including the country code.';
+      phoneError.value =
+          'Enter a valid mobile number including the country code.';
     } else {
       phoneController.text = normalizedPhone;
     }
@@ -574,14 +588,16 @@ class AuthController extends GetxController {
     return nameError.value == null &&
         phoneError.value == null &&
         (!requirePassword ||
-            (passwordError.value == null && confirmPasswordError.value == null));
+            (passwordError.value == null &&
+                confirmPasswordError.value == null));
   }
 
   bool _validatePhoneInput() {
     _clearPhoneError();
     final normalizedPhone = PhoneUtils.normalize(phoneController.text.trim());
     if (!_isValidPhone(normalizedPhone)) {
-      phoneError.value = 'Enter a valid mobile number including the country code.';
+      phoneError.value =
+          'Enter a valid mobile number including the country code.';
       return false;
     }
 

@@ -31,7 +31,9 @@ class _LoginScreenState extends State<LoginScreen> {
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final horizontalPadding = constraints.maxWidth > 720 ? 40.0 : 20.0;
+              final horizontalPadding = constraints.maxWidth > 720
+                  ? 40.0
+                  : 20.0;
               return SingleChildScrollView(
                 padding: EdgeInsets.fromLTRB(
                   horizontalPadding,
@@ -82,9 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   controller.unlockMode
                                       ? 'Use a trusted local method or your password to reopen this device session.'
                                       : 'Choose OTP, password, device PIN, or biometrics based on what is already enabled on this device.',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
+                                  style: Theme.of(context).textTheme.bodyMedium
                                       ?.copyWith(
                                         color: const Color(0xFF5E7288),
                                         height: 1.5,
@@ -99,7 +99,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   textInputAction: TextInputAction.next,
                                   errorText: controller.phoneError.value,
                                   prefixIcon: const Icon(Icons.phone_rounded),
-                                  autofillHints: const [AutofillHints.telephoneNumber],
+                                  autofillHints: const [
+                                    AutofillHints.telephoneNumber,
+                                  ],
                                   inputFormatters: [
                                     FilteringTextInputFormatter.allow(
                                       RegExp(r'[\d+\-\s()]'),
@@ -124,12 +126,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                               controller:
                                                   controller.passwordController,
                                               label: 'Password',
-                                              obscureText:
-                                                  controller.obscurePassword.value,
+                                              obscureText: controller
+                                                  .obscurePassword
+                                                  .value,
                                               textInputAction:
                                                   TextInputAction.done,
-                                              errorText:
-                                                  controller.passwordError.value,
+                                              errorText: controller
+                                                  .passwordError
+                                                  .value,
                                               prefixIcon: const Icon(
                                                 Icons.lock_outline_rounded,
                                               ),
@@ -141,14 +145,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                                     .obscurePassword
                                                     .toggle(),
                                                 icon: Icon(
-                                                  controller.obscurePassword.value
+                                                  controller
+                                                          .obscurePassword
+                                                          .value
                                                       ? Icons
                                                             .visibility_off_rounded
-                                                      : Icons.visibility_rounded,
+                                                      : Icons
+                                                            .visibility_rounded,
                                                 ),
                                               ),
-                                              onSubmitted: (_) =>
-                                                  controller.loginWithPassword(),
+                                              onSubmitted: (_) => controller
+                                                  .loginWithPassword(),
                                             ),
                                             const SizedBox(height: 10),
                                           ],
@@ -266,12 +273,14 @@ class _HeroPanel extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            unlockMode ? 'Trusted device unlock' : 'Authentication designed for production',
+            unlockMode
+                ? 'Trusted device unlock'
+                : 'Authentication designed for production',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  height: 1.15,
-                ),
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              height: 1.15,
+            ),
           ),
           const SizedBox(height: 10),
           Text(
@@ -279,9 +288,9 @@ class _HeroPanel extends StatelessWidget {
                 ? 'Device PIN, fingerprint, Face ID, and encrypted local credentials work together to reopen the app quickly without weakening session security.'
                 : 'OTP, strong password sign-in, local biometrics, and encrypted credential storage are all wired into the same Firebase and GetX flow.',
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  height: 1.55,
-                ),
+              color: Colors.white.withValues(alpha: 0.9),
+              height: 1.55,
+            ),
           ),
         ],
       ),
@@ -340,9 +349,9 @@ class _SecurityOptions extends StatelessWidget {
                     ? 'Password fallback is available.'
                     : 'Password is hidden because biometrics are already enabled.',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: const Color(0xFF5E7288),
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: const Color(0xFF5E7288),
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             TextButton(
@@ -391,9 +400,9 @@ class _QuickAccessButton extends StatelessWidget {
             Text(
               label,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: const Color(0xFF0B1F33),
-                    fontWeight: FontWeight.w800,
-                  ),
+                color: const Color(0xFF0B1F33),
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ],
         ),
@@ -425,10 +434,10 @@ class _InfoBanner extends StatelessWidget {
             child: Text(
               text,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF31506F),
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
+                color: const Color(0xFF31506F),
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
             ),
           ),
         ],

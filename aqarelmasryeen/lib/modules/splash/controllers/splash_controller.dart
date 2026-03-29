@@ -54,17 +54,15 @@ class SplashController extends GetxController {
         return;
       }
 
-      final pendingVerification = await _authService
-          .readPendingChallenge()
-          .timeout(
-            const Duration(seconds: 2),
-            onTimeout: () {
-              debugPrint(
-                'SplashController: pending verification lookup timed out. Ignoring pending phone auth state.',
-              );
-              return null;
-            },
+      final pendingVerification = await _authService.readPendingChallenge().timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {
+          debugPrint(
+            'SplashController: pending verification lookup timed out. Ignoring pending phone auth state.',
           );
+          return null;
+        },
+      );
 
       if (pendingVerification != null) {
         final route = await _resolvePendingVerificationRoute(

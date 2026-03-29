@@ -75,9 +75,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             width: 72,
                             height: 72,
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1976D2).withValues(
-                                alpha: 0.12,
-                              ),
+                              color: const Color(
+                                0xFF1976D2,
+                              ).withValues(alpha: 0.12),
                               shape: BoxShape.circle,
                             ),
                             child: const Icon(
@@ -170,7 +170,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               label: 'Verify',
                               isLoading: controller.isBusy.value,
                               onPressed: controller.canVerifyOtp
-                                  ? () => controller.verifyOtp(pinController.text)
+                                  ? () =>
+                                        controller.verifyOtp(pinController.text)
                                   : null,
                             ),
                           ),

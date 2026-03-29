@@ -66,7 +66,8 @@ class AuthService {
   Future<LocalAuthAvailability> loadLocalAuthAvailability() async {
     final storedCredentials = await readStoredCredentials();
     final cachedSession = await _sessionService.readCachedSession();
-    final availableBiometrics = await _biometricService.getAvailableBiometrics();
+    final availableBiometrics = await _biometricService
+        .getAvailableBiometrics();
     final supportsDeviceCredential =
         storedCredentials != null &&
         await _biometricService.isDeviceSupported();
@@ -88,7 +89,9 @@ class AuthService {
   }
 
   Future<PendingAuthChallenge?> readPendingChallenge() async {
-    final payload = await _secureStorageService.read(StorageKeys.pendingAuthFlow);
+    final payload = await _secureStorageService.read(
+      StorageKeys.pendingAuthFlow,
+    );
     if (payload == null || payload.isEmpty) {
       return null;
     }
@@ -233,7 +236,9 @@ class AuthService {
   }) async {
     final challenge = await readPendingChallenge();
     if (challenge == null) {
-      throw StateError('Your verification session expired. Please request a new code.');
+      throw StateError(
+        'Your verification session expired. Please request a new code.',
+      );
     }
 
     if (!challenge.canResend) {
@@ -271,7 +276,9 @@ class AuthService {
   Future<UserProfile> verifyOtp(String code) async {
     final challenge = await readPendingChallenge();
     if (challenge == null) {
-      throw StateError('Your verification session expired. Please request a new code.');
+      throw StateError(
+        'Your verification session expired. Please request a new code.',
+      );
     }
 
     await _enforceNotLocked(
@@ -417,24 +424,26 @@ class AuthService {
       onCodeAutoRetrievalTimeout: (session) async {
         final now = DateTime.now();
         final current = await readPendingChallenge();
-        final challenge = (current ??
-                PendingAuthChallenge(
-                  phone: phone,
+        final challenge =
+            (current ??
+                    PendingAuthChallenge(
+                      phone: phone,
+                      verificationId: session.verificationId,
+                      isRegistration: isRegistration,
+                      resendToken: session.resendToken,
+                      fullName: fullName,
+                      email: email,
+                      encryptedPassword: encryptedPassword,
+                      createdAt: existingChallenge?.createdAt ?? now,
+                      lastCodeSentAt: existingChallenge?.lastCodeSentAt ?? now,
+                      resendAvailableAt:
+                          existingChallenge?.resendAvailableAt ??
+                          now.add(resendCooldown),
+                    ))
+                .copyWith(
                   verificationId: session.verificationId,
-                  isRegistration: isRegistration,
                   resendToken: session.resendToken,
-                  fullName: fullName,
-                  email: email,
-                  encryptedPassword: encryptedPassword,
-                  createdAt: existingChallenge?.createdAt ?? now,
-                  lastCodeSentAt: existingChallenge?.lastCodeSentAt ?? now,
-                  resendAvailableAt: existingChallenge?.resendAvailableAt ??
-                      now.add(resendCooldown),
-                ))
-            .copyWith(
-              verificationId: session.verificationId,
-              resendToken: session.resendToken,
-            );
+                );
         await cachePendingChallenge(challenge);
         await onCodeAutoRetrievalTimeout(challenge);
       },
@@ -652,10 +661,7 @@ class AuthService {
       mac: Mac(base64Decode(map['m'] as String)),
     );
 
-    final clearBytes = await _aesGcm.decrypt(
-      secretBox,
-      secretKey: secretKey,
-    );
+    final clearBytes = await _aesGcm.decrypt(secretBox, secretKey: secretKey);
     return utf8.decode(clearBytes);
   }
 
@@ -663,7 +669,8 @@ class AuthService {
     return List<int>.generate(length, (_) => _random.nextInt(256));
   }
 
-  String _otpSendKey(String phone) => '${StorageKeys.otpSendAttemptPrefix}$phone';
+  String _otpSendKey(String phone) =>
+      '${StorageKeys.otpSendAttemptPrefix}$phone';
 
   String _otpVerifyKey(String phone) =>
       '${StorageKeys.otpVerifyAttemptPrefix}$phone';
@@ -680,11 +687,7 @@ class AuthService {
 }
 
 class _AttemptState {
-  const _AttemptState({
-    this.count = 0,
-    this.firstAttemptAt,
-    this.lockedUntil,
-  });
+  const _AttemptState({this.count = 0, this.firstAttemptAt, this.lockedUntil});
 
   final int count;
   final DateTime? firstAttemptAt;

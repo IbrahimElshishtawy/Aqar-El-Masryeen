@@ -49,7 +49,9 @@ abstract final class PasswordPolicy {
   static final RegExp _uppercase = RegExp(r'[A-Z]');
   static final RegExp _lowercase = RegExp(r'[a-z]');
   static final RegExp _digit = RegExp(r'\d');
-  static final RegExp _special = RegExp(r'[!@#$%^&*(),.?":{}|<>\[\]\\\/_\-+=~`]');
+  static final RegExp _special = RegExp(
+    r'[!@#$%^&*(),.?":{}|<>\[\]\\\/_\-+=~`]',
+  );
 
   static PasswordPolicyResult evaluate(String value) {
     return PasswordPolicyResult(
