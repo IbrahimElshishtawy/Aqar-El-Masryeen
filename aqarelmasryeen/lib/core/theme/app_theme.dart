@@ -1,10 +1,8 @@
 import 'package:aqarelmasryeen/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 abstract final class AppTheme {
   static ThemeData light() {
-    final baseTextTheme = GoogleFonts.cairoTextTheme();
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
       brightness: Brightness.light,
@@ -13,6 +11,10 @@ abstract final class AppTheme {
       error: AppColors.danger,
       surface: AppColors.surface,
     );
+    final baseTheme = ThemeData(useMaterial3: true, colorScheme: colorScheme);
+    // Keep typography fully local so first launch does not depend on downloading
+    // Google Fonts over the network.
+    final baseTextTheme = baseTheme.textTheme;
 
     return ThemeData(
       useMaterial3: true,
