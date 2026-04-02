@@ -1,0 +1,16 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isPartner() {
+      return isSignedIn();
+    }
+
+    match /properties/{propertyId}/files/{fileName} {
+      allow read, write: if isPartner();
+    }
+  }
+}
