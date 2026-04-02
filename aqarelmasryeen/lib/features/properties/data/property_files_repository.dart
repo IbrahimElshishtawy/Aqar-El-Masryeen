@@ -17,7 +17,7 @@ class PropertyFilesRepository {
       final url = await ref.getDownloadURL();
       files.add(
         PropertyStorageFile(
-          name: metadata.name ?? ref.name,
+          name: metadata.name,
           fullPath: ref.fullPath,
           downloadUrl: url,
           sizeBytes: metadata.size ?? 0,

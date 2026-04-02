@@ -101,7 +101,7 @@ class FirebaseMessagingService {
     const iOS = DarwinInitializationSettings();
 
     await _localNotifications.initialize(
-      const InitializationSettings(android: android, iOS: iOS),
+      settings: const InitializationSettings(android: android, iOS: iOS),
       onDidReceiveNotificationResponse: (response) {
         final payload = NotificationRoutePayload.tryDecode(response.payload);
         if (payload != null) onNotificationTap(payload);
@@ -127,10 +127,10 @@ class FirebaseMessagingService {
     if (notification == null) return;
 
     await _localNotifications.show(
-      notification.hashCode,
-      notification.title,
-      notification.body,
-      const NotificationDetails(
+      id: notification.hashCode,
+      title: notification.title,
+      body: notification.body,
+      notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           AppConfig.notificationChannelId,
           AppConfig.notificationChannelName,

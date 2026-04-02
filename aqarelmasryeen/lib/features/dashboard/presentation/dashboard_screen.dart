@@ -13,6 +13,7 @@ import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
+import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

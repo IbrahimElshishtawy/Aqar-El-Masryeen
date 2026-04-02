@@ -7,7 +7,7 @@ class BiometricService {
   final LocalAuthentication _localAuth;
 
   Future<bool> canCheckBiometrics() async {
-    return _localAuth.canCheckBiometrics ||
+    return await _localAuth.canCheckBiometrics ||
         await _localAuth.isDeviceSupported();
   }
 
@@ -21,10 +21,8 @@ class BiometricService {
 
     return _localAuth.authenticate(
       localizedReason: 'Unlock your finance workspace',
-      options: const AuthenticationOptions(
-        biometricOnly: false,
-        stickyAuth: true,
-      ),
+      biometricOnly: false,
+      persistAcrossBackgrounding: true,
     );
   }
 }
