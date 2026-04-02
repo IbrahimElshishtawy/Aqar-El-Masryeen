@@ -1,0 +1,127 @@
+import 'package:aqarelmasryeen/app/providers.dart';
+import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
+import 'package:aqarelmasryeen/features/installments/domain/installment_plan_generator.dart';
+import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
+import 'package:aqarelmasryeen/shared/models/financial_models.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+
+class InstallmentRepository {
+  InstallmentRepository(this._firestore, this._uuid, this._generator);
+
+  final FirebaseFirestore _firestore;
+  final Uuid _uuid;
+  final InstallmentPlanGenerator _generator;
+
+  Stream<List<Installment>> watchAllInstallments() {
+    return _firestore
+        .collection(FirestorePaths.installments)
+        .orderBy('dueDate')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Installment.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
+  Stream<List<InstallmentPlan>> watchPlansByProperty(String propertyId) {
+    return _firestore
+        .collection(FirestorePaths.installmentPlans)
+        .where('propertyId', isEqualTo: propertyId)
+        .orderBy('updatedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => InstallmentPlan.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
+  Stream<List<Installment>> watchInstallmentsByProperty(String propertyId) {
+    return _firestore
+        .collection(FirestorePaths.installments)
+        .where('propertyId', isEqualTo: propertyId)
+        .orderBy('dueDate')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Installment.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
+  Future<void> savePlan(
+    InstallmentPlan plan, {
+    required String actorId,
+    bool generateInstallments = true,
+  }) async {
+    final planId = plan.id.isEmpty ? _uuid.v4() : plan.id;
+    final planWithId = InstallmentPlan(
+      id: planId,
+      propertyId: plan.propertyId,
+      unitId: plan.unitId,
+      installmentCount: plan.installmentCount,
+      startDate: plan.startDate,
+      intervalDays: plan.intervalDays,
+      installmentAmount: plan.installmentAmount,
+      createdAt: plan.createdAt,
+      updatedAt: DateTime.now(),
+      createdBy: plan.createdBy,
+      updatedBy: actorId,
+    );
+
+    final batch = _firestore.batch();
+    batch.set(
+      _firestore.collection(FirestorePaths.installmentPlans).doc(planId),
+      planWithId.toMap(),
+      SetOptions(merge: true),
+    );
+
+    if (generateInstallments) {
+      final generated = _generator.generate(plan: planWithId, actorId: actorId);
+      for (final installment in generated) {
+        final id = _uuid.v4();
+        batch.set(
+          _firestore.collection(FirestorePaths.installments).doc(id),
+          installment.toMap()
+            ..['planId'] = planId
+            ..['status'] = installment.status.name,
+        );
+      }
+    }
+
+    await batch.commit();
+  }
+
+  Future<void> updateInstallmentPayment({
+    required String installmentId,
+    required double paidAmount,
+  }) async {
+    final ref = _firestore.collection(FirestorePaths.installments).doc(installmentId);
+    final snap = await ref.get();
+    final installment = Installment.fromMap(snap.id, snap.data());
+    final totalPaid = installment.paidAmount + paidAmount;
+    final status = totalPaid >= installment.amount
+        ? InstallmentStatus.paid
+        : totalPaid > 0
+            ? InstallmentStatus.partiallyPaid
+            : installment.dueDate.isBefore(DateTime.now())
+                ? InstallmentStatus.overdue
+                : InstallmentStatus.pending;
+    await ref.update({
+      'paidAmount': totalPaid,
+      'status': status.name,
+      'updatedAt': DateTime.now(),
+    });
+  }
+}
+
+final installmentRepositoryProvider = Provider<InstallmentRepository>((ref) {
+  return InstallmentRepository(
+    ref.watch(firestoreProvider),
+    ref.watch(uuidProvider),
+    const InstallmentPlanGenerator(),
+  );
+});
