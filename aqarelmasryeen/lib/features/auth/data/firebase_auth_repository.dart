@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
+import 'package:aqarelmasryeen/core/services/device_info_service.dart';
+import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
 import 'package:aqarelmasryeen/core/utils/phone_utils.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
@@ -29,8 +31,8 @@ class FirebaseAuthRepository implements AuthRepository {
   final FirebaseFirestore _firestore;
   final ActivityRepository _activityRepository;
   final NotificationRepository _notificationRepository;
-  final dynamic _secureStorage;
-  final dynamic _deviceInfoService;
+  final SecureStorageService _secureStorage;
+  final DeviceInfoService _deviceInfoService;
 
   @override
   Stream<bool> authStateChanges() =>
@@ -48,12 +50,14 @@ class FirebaseAuthRepository implements AuthRepository {
           .collection(FirestorePaths.users)
           .doc(user.uid)
           .snapshots()
-          .map(
-            (doc) => AppSession(
+          .asyncMap((doc) async {
+            final profile = doc.exists ? AppUser.fromMap(doc.id, doc.data()) : null;
+            await _syncLocalSecurityPreferences(profile);
+            return AppSession(
               firebaseUser: user,
-              profile: doc.exists ? AppUser.fromMap(doc.id, doc.data()) : null,
-            ),
-          );
+              profile: profile,
+            );
+          });
     }
   }
 
@@ -61,6 +65,7 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<void> sendOtp({
     required String phone,
     required void Function(String verificationId, int? resendToken) onCodeSent,
+    int? resendToken,
   }) async {
     if (!(defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS)) {
@@ -73,9 +78,11 @@ class FirebaseAuthRepository implements AuthRepository {
 
     await _auth.verifyPhoneNumber(
       phoneNumber: PhoneUtils.normalize(phone),
+      forceResendingToken: resendToken,
       verificationCompleted: (credential) async {
         await _auth.signInWithCredential(credential);
         await _ensureProfileDocument();
+        await _recordLogin();
         if (!completer.isCompleted) completer.complete();
       },
       verificationFailed: (error) {
@@ -112,7 +119,10 @@ class FirebaseAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    await _auth.signInWithEmailAndPassword(email: email, password: password);
+    await _auth.signInWithEmailAndPassword(
+      email: email.trim().toLowerCase(),
+      password: password,
+    );
     await _ensureProfileDocument();
     await _recordLogin();
   }
@@ -141,16 +151,19 @@ class FirebaseAuthRepository implements AuthRepository {
     await user.reload();
 
     final now = DateTime.now();
-    await _firestore.collection(FirestorePaths.users).doc(user.uid).set({
+    final userRef = _firestore.collection(FirestorePaths.users).doc(user.uid);
+    final existing = await userRef.get();
+    final existingData = existing.data() ?? const <String, dynamic>{};
+    await userRef.set({
       'phone': user.phoneNumber ?? '',
       'name': name.trim(),
       'email': normalizedEmail,
-      'createdAt': FieldValue.serverTimestamp(),
+      'createdAt': existingData['createdAt'] ?? now,
       'updatedAt': now,
       'lastLoginAt': now,
-      'role': UserRole.partner.name,
-      'biometricEnabled': false,
-      'trustedDevices': <String>[],
+      'role': existingData['role'] ?? UserRole.partner.name,
+      'biometricEnabled': existingData['biometricEnabled'] as bool? ?? false,
+      'trustedDevices': existingData['trustedDevices'] as List<dynamic>? ?? const <String>[],
     }, SetOptions(merge: true));
 
     await _activityRepository.log(
@@ -168,18 +181,25 @@ class FirebaseAuthRepository implements AuthRepository {
     final user = _auth.currentUser;
     if (user == null) return;
     await _secureStorage.write(
-      _secureStorage.biometricEnabledKey,
+      SecureStorageService.biometricEnabledKey,
       enabled ? 'true' : 'false',
     );
     await _firestore.collection(FirestorePaths.users).doc(user.uid).set({
       'biometricEnabled': enabled,
       'updatedAt': DateTime.now(),
     }, SetOptions(merge: true));
+    await _activityRepository.log(
+      actorId: user.uid,
+      actorName: user.displayName ?? user.phoneNumber ?? 'Partner',
+      action: enabled ? 'biometric_enabled' : 'biometric_disabled',
+      entityType: 'user',
+      entityId: user.uid,
+    );
   }
 
   @override
   Future<bool> biometricsEnabled() async {
-    return (await _secureStorage.read(_secureStorage.biometricEnabledKey)) ==
+    return (await _secureStorage.read(SecureStorageService.biometricEnabledKey)) ==
         'true';
   }
 
@@ -206,19 +226,32 @@ class FirebaseAuthRepository implements AuthRepository {
     final ref = _firestore.collection(FirestorePaths.users).doc(user.uid);
     final snap = await ref.get();
     final device = await _deviceInfoService.currentDeviceLabel();
+    final data = snap.data() ?? const <String, dynamic>{};
+    final now = DateTime.now();
     if (!snap.exists) {
       await ref.set({
         'phone': user.phoneNumber ?? '',
         'name': user.displayName ?? '',
         'email': user.email ?? '',
-        'createdAt': DateTime.now(),
-        'updatedAt': DateTime.now(),
-        'lastLoginAt': DateTime.now(),
+        'createdAt': now,
+        'updatedAt': now,
+        'lastLoginAt': now,
         'role': UserRole.partner.name,
         'biometricEnabled': false,
         'trustedDevices': <String>[device],
       });
+      await _secureStorage.write(SecureStorageService.biometricEnabledKey, 'false');
+      return;
     }
+
+    final profile = AppUser.fromMap(user.uid, data);
+    await _syncLocalSecurityPreferences(profile);
+    await ref.set({
+      'phone': user.phoneNumber ?? profile.phone,
+      'email': user.email ?? profile.email,
+      'name': user.displayName ?? profile.name,
+      'updatedAt': now,
+    }, SetOptions(merge: true));
   }
 
   Future<void> _recordLogin() async {
@@ -234,9 +267,12 @@ class FirebaseAuthRepository implements AuthRepository {
             .toSet();
     final isNewDevice = !existingDevices.contains(device);
 
-    await _secureStorage.write(_secureStorage.trustedDeviceKey, device);
+    await _secureStorage.write(SecureStorageService.trustedDeviceKey, device);
 
     await userRef.set({
+      'phone': user.phoneNumber ?? profile.data()?['phone'] ?? '',
+      'email': user.email ?? profile.data()?['email'] ?? '',
+      'name': user.displayName ?? profile.data()?['name'] ?? '',
       'lastLoginAt': DateTime.now(),
       'updatedAt': DateTime.now(),
       'trustedDevices': FieldValue.arrayUnion([device]),
@@ -259,6 +295,14 @@ class FirebaseAuthRepository implements AuthRepository {
         route: '/settings',
       );
     }
+  }
+
+  Future<void> _syncLocalSecurityPreferences(AppUser? profile) async {
+    if (profile == null) return;
+    await _secureStorage.write(
+      SecureStorageService.biometricEnabledKey,
+      profile.biometricEnabled ? 'true' : 'false',
+    );
   }
 }
 

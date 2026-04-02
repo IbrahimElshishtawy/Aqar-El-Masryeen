@@ -1,6 +1,7 @@
 import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
+import 'package:aqarelmasryeen/core/security/session_lock_controller.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +39,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget build(BuildContext context) {
     ref.listen(authSessionProvider, (previous, next) {
       next.whenData((session) {
+        if (session?.profile?.biometricEnabled == true) {
+          ref.read(sessionLockControllerProvider.notifier).forceLock();
+        }
         final target = session == null
             ? AppRoutes.login
             : session.isProfileComplete

@@ -11,6 +11,10 @@ class BiometricService {
         await _localAuth.isDeviceSupported();
   }
 
+  Future<List<BiometricType>> getAvailableBiometrics() {
+    return _localAuth.getAvailableBiometrics();
+  }
+
   Future<bool> authenticate() async {
     final available = await canCheckBiometrics();
     if (!available) {

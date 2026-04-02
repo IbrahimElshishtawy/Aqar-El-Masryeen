@@ -8,6 +8,7 @@ abstract class AuthRepository {
   Future<void> sendOtp({
     required String phone,
     required void Function(String verificationId, int? resendToken) onCodeSent,
+    int? resendToken,
   });
 
   Future<void> verifyOtp({

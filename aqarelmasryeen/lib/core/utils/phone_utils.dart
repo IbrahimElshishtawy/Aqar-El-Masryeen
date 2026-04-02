@@ -13,4 +13,12 @@ class PhoneUtils {
     final digits = phone.replaceAll(RegExp(r'[^\d]'), '');
     return 'auth_$digits@auth.aqarelmasryeen.app';
   }
+
+  static String maskForDisplay(String raw) {
+    final normalized = normalize(raw);
+    if (normalized.length <= 5) return normalized;
+    final leading = normalized.substring(0, 4);
+    final trailing = normalized.substring(normalized.length - 2);
+    return '$leading ${'*' * (normalized.length - 6)} $trailing';
+  }
 }

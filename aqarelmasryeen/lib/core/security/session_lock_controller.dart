@@ -32,9 +32,9 @@ class SessionLockController extends Notifier<SessionLockState> {
     state = state.copyWith(lastActivityAt: DateTime.now());
   }
 
-  void handleResume() {
+  void handleResume({required bool shouldLock}) {
     final elapsed = DateTime.now().difference(state.lastActivityAt);
-    if (elapsed.inMinutes >= AppConfig.sessionTimeoutMinutes) {
+    if (shouldLock && elapsed.inMinutes >= AppConfig.sessionTimeoutMinutes) {
       state = state.copyWith(isLocked: true);
       return;
     }
