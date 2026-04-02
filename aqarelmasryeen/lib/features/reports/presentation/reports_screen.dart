@@ -1,6 +1,6 @@
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
-import 'package:aqarelmasryeen/core\widgets/app_shell_scaffold.dart';
-import 'package:aqarelmasryeen/core\widgets/metric_card.dart';
+import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
+import 'package:aqarelmasryeen/core/widgets/metric_card.dart';
 import 'package:aqarelmasryeen/features/collections/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';

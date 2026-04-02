@@ -1,7 +1,7 @@
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/async_value_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
-import 'package:aqarelmasryeen/features\properties\data\property_repository.dart';
+import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';

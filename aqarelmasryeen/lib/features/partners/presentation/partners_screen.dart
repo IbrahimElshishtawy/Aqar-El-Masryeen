@@ -1,6 +1,6 @@
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
-import 'package:aqarelmasryeen/core\widgets/empty_state_view.dart';
+import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/partners/domain/partner_settlement_calculator.dart';

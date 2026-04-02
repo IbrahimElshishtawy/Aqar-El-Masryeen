@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/constants/app_breakpoints.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/security/session_lock_controller.dart';

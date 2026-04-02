@@ -1,6 +1,6 @@
-import 'package:aqarelmasryeen/core\widgets\app_shell_scaffold.dart';
-import 'package:aqarelmasryeen/core\widgets/empty_state_view.dart';
-import 'package:aqarelmasryeen/features\properties\data\property_repository.dart';
+import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
+import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
+import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
