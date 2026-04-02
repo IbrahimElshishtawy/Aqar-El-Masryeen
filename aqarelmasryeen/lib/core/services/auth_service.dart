@@ -299,7 +299,7 @@ class AuthService {
       );
       await _clearAttempt(_otpVerifyKey(challenge.phone));
       return _finalizeVerifiedChallenge(challenge);
-    } on FirebaseAuthException catch (error) {
+    } on FirebaseAuthException {
       await _recordOtpFailure(challenge);
       rethrow;
     }

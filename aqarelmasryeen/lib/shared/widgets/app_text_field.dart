@@ -56,7 +56,7 @@ class AppTextField extends StatelessWidget {
       maxLines: maxLines,
       textInputAction: textInputAction,
       onChanged: onChanged,
-      onSubmitted: onSubmitted,
+      onFieldSubmitted: onSubmitted,
       autofillHints: autofillHints,
       inputFormatters: inputFormatters,
       textCapitalization: textCapitalization,
