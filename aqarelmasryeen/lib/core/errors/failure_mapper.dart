@@ -1,6 +1,5 @@
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 AppException mapException(Object error) {
   if (error is AppException) {

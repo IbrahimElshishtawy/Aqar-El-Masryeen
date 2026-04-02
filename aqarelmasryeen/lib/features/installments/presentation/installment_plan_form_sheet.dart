@@ -127,7 +127,7 @@ class _InstallmentPlanFormSheetState
         child: Column(
           children: [
             DropdownButtonFormField<String>(
-              value: _unitId.isEmpty ? null : _unitId,
+              initialValue: _unitId.isEmpty ? null : _unitId,
               items: widget.units
                   .map(
                     (item) => DropdownMenuItem(

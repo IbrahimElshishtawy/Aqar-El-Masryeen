@@ -192,7 +192,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<InstallmentStatus>(
-                  value: status,
+                  initialValue: status,
                   items: InstallmentStatus.values
                       .map(
                         (item) => DropdownMenuItem(

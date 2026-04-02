@@ -162,7 +162,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<UnitType>(
-              value: _unitType,
+              initialValue: _unitType,
               items: UnitType.values
                   .map(
                     (item) =>
@@ -218,7 +218,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<PaymentPlanType>(
-              value: _paymentPlanType,
+              initialValue: _paymentPlanType,
               items: PaymentPlanType.values
                   .map(
                     (item) =>
@@ -231,7 +231,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<UnitStatus>(
-              value: _status,
+              initialValue: _status,
               items: UnitStatus.values
                   .map(
                     (item) =>

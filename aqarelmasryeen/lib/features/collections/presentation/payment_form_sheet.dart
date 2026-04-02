@@ -126,7 +126,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
         child: Column(
           children: [
             DropdownButtonFormField<String>(
-              value: _unitId.isEmpty ? null : _unitId,
+              initialValue: _unitId.isEmpty ? null : _unitId,
               items: widget.units
                   .map(
                     (item) => DropdownMenuItem(
@@ -147,7 +147,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String?>(
-              value: _installmentId,
+              initialValue: _installmentId,
               items: [
                 const DropdownMenuItem<String?>(
                   value: null,
@@ -181,7 +181,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<PaymentMethod>(
-              value: _paymentMethod,
+              initialValue: _paymentMethod,
               items: PaymentMethod.values
                   .map(
                     (item) =>

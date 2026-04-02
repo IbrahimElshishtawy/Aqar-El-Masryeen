@@ -162,7 +162,7 @@ class GoRouterRefreshStream extends ChangeNotifier {
     notifyListeners();
     _subscription = stream.asBroadcastStream().listen(
       (_) => notifyListeners(),
-      onError: (_, __) => notifyListeners(),
+      onError: (error, stackTrace) => notifyListeners(),
     );
   }
 

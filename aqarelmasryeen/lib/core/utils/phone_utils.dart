@@ -11,6 +11,6 @@ class PhoneUtils {
 
   static String syntheticEmail(String phone) {
     final digits = phone.replaceAll(RegExp(r'[^\d]'), '');
-    return 'auth_${digits}@auth.aqarelmasryeen.app';
+    return 'auth_$digits@auth.aqarelmasryeen.app';
   }
 }

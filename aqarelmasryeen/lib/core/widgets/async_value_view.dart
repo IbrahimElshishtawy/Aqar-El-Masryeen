@@ -19,7 +19,7 @@ class AsyncValueView<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return value.when(
-      data: this.data,
+      data: data,
       loading: () => Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

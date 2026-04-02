@@ -171,7 +171,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<ExpenseCategory>(
-              value: _category,
+              initialValue: _category,
               items: ExpenseCategory.values
                   .map(
                     (item) =>
@@ -184,7 +184,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              value: _partnerId.isEmpty ? null : _partnerId,
+              initialValue: _partnerId.isEmpty ? null : _partnerId,
               items: widget.partners
                   .map(
                     (item) => DropdownMenuItem(
@@ -200,7 +200,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<PaymentMethod>(
-              value: _paymentMethod,
+              initialValue: _paymentMethod,
               items: PaymentMethod.values
                   .map(
                     (item) =>
