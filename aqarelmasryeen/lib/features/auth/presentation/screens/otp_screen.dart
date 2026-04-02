@@ -134,7 +134,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 color: theme.colorScheme.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.55,
+                  ),
                 ),
               ),
               child: Column(
@@ -150,7 +152,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   Text(
                     'Auto-fill is supported when available. You can also change the phone number if it was entered incorrectly.',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.72,
+                      ),
                       height: 1.4,
                     ),
                   ),

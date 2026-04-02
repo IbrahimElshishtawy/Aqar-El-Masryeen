@@ -52,7 +52,9 @@ final biometricAvailabilityProvider = FutureProvider<BiometricAvailability>((
 ) async {
   final service = ref.watch(biometricServiceProvider);
   final isSupported = await service.canCheckBiometrics();
-  final methods = isSupported ? await service.getAvailableBiometrics() : const <BiometricType>[];
+  final methods = isSupported
+      ? await service.getAvailableBiometrics()
+      : const <BiometricType>[];
   return BiometricAvailability(isSupported: isSupported, methods: methods);
 });
 
@@ -156,7 +158,9 @@ class OtpFlowController extends Notifier<OtpFlowState> {
   Future<void> resendOtp() async {
     final now = DateTime.now();
     if (!state.canResend(now)) {
-      throw const AppException('Please wait a moment before requesting a new code.');
+      throw const AppException(
+        'Please wait a moment before requesting a new code.',
+      );
     }
     await requestOtp(state.phone, isResend: true);
   }
@@ -203,10 +207,7 @@ class EmailSignInController extends Notifier<AsyncValue<void>> {
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
-  Future<void> signIn({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => ref
@@ -232,11 +233,9 @@ class ProfileCompletionController extends Notifier<AsyncValue<void>> {
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
-      () => ref.read(authRepositoryProvider).completeProfile(
-            name: name,
-            email: email,
-            password: password,
-          ),
+      () => ref
+          .read(authRepositoryProvider)
+          .completeProfile(name: name, email: email, password: password),
     );
   }
 }
@@ -258,7 +257,9 @@ class BiometricSetupController extends Notifier<AsyncValue<void>> {
             .read(biometricServiceProvider)
             .authenticate();
         if (!isAuthenticated) {
-          throw const AppException('Authentication was canceled. Biometrics were not enabled.');
+          throw const AppException(
+            'Authentication was canceled. Biometrics were not enabled.',
+          );
         }
       }
       await ref.read(authRepositoryProvider).setBiometrics(enabled);

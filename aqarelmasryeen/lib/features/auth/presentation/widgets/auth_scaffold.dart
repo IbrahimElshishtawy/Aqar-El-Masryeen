@@ -81,16 +81,19 @@ class AuthScaffold extends StatelessWidget {
                                     Text(
                                       title,
                                       style: theme.textTheme.headlineMedium
-                                          ?.copyWith(fontWeight: FontWeight.w800),
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                          ),
                                     ),
                                     const SizedBox(height: 10),
                                     Text(
                                       subtitle,
-                                      style: theme.textTheme.bodyLarge?.copyWith(
-                                        color: theme.colorScheme.onSurface
-                                            .withValues(alpha: 0.78),
-                                        height: 1.45,
-                                      ),
+                                      style: theme.textTheme.bodyLarge
+                                          ?.copyWith(
+                                            color: theme.colorScheme.onSurface
+                                                .withValues(alpha: 0.78),
+                                            height: 1.45,
+                                          ),
                                     ),
                                     const SizedBox(height: 24),
                                     child,
@@ -131,9 +134,7 @@ class _GlowBubble extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, color.withValues(alpha: 0)],
-          ),
+          gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
         ),
       ),
     );

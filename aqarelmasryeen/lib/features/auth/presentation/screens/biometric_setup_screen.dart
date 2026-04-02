@@ -20,9 +20,9 @@ class BiometricSetupScreen extends ConsumerWidget {
       next,
     ) {
       if (next.hasError) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(mapException(next.error!).message)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(mapException(next.error!).message)),
+        );
       }
       if ((previous?.isLoading ?? false) && next.hasValue && context.mounted) {
         context.go(AppRoutes.dashboard);
@@ -30,7 +30,9 @@ class BiometricSetupScreen extends ConsumerWidget {
     });
 
     Future<void> submit(bool enabled) {
-      return ref.read(biometricSetupControllerProvider.notifier).submit(enabled);
+      return ref
+          .read(biometricSetupControllerProvider.notifier)
+          .submit(enabled);
     }
 
     return AuthScaffold(
@@ -89,7 +91,9 @@ class BiometricSetupScreen extends ConsumerWidget {
                         : 'You can continue without biometric unlock and enable it later from Settings when device support is available.',
                     style: theme.textTheme.bodyMedium?.copyWith(
                       height: 1.4,
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.76),
+                      color: theme.colorScheme.onSurface.withValues(
+                        alpha: 0.76,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -113,7 +117,9 @@ class BiometricSetupScreen extends ConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton(
-                      onPressed: actionState.isLoading ? null : () => submit(false),
+                      onPressed: actionState.isLoading
+                          ? null
+                          : () => submit(false),
                       child: const Text('Skip for now'),
                     ),
                   ),

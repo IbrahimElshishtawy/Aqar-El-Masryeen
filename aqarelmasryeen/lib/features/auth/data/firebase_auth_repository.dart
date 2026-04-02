@@ -51,12 +51,11 @@ class FirebaseAuthRepository implements AuthRepository {
           .doc(user.uid)
           .snapshots()
           .asyncMap((doc) async {
-            final profile = doc.exists ? AppUser.fromMap(doc.id, doc.data()) : null;
+            final profile = doc.exists
+                ? AppUser.fromMap(doc.id, doc.data())
+                : null;
             await _syncLocalSecurityPreferences(profile);
-            return AppSession(
-              firebaseUser: user,
-              profile: profile,
-            );
+            return AppSession(firebaseUser: user, profile: profile);
           });
     }
   }
@@ -163,7 +162,8 @@ class FirebaseAuthRepository implements AuthRepository {
       'lastLoginAt': now,
       'role': existingData['role'] ?? UserRole.partner.name,
       'biometricEnabled': existingData['biometricEnabled'] as bool? ?? false,
-      'trustedDevices': existingData['trustedDevices'] as List<dynamic>? ?? const <String>[],
+      'trustedDevices':
+          existingData['trustedDevices'] as List<dynamic>? ?? const <String>[],
     }, SetOptions(merge: true));
 
     await _activityRepository.log(
@@ -199,7 +199,9 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<bool> biometricsEnabled() async {
-    return (await _secureStorage.read(SecureStorageService.biometricEnabledKey)) ==
+    return (await _secureStorage.read(
+          SecureStorageService.biometricEnabledKey,
+        )) ==
         'true';
   }
 
@@ -240,7 +242,10 @@ class FirebaseAuthRepository implements AuthRepository {
         'biometricEnabled': false,
         'trustedDevices': <String>[device],
       });
-      await _secureStorage.write(SecureStorageService.biometricEnabledKey, 'false');
+      await _secureStorage.write(
+        SecureStorageService.biometricEnabledKey,
+        'false',
+      );
       return;
     }
 

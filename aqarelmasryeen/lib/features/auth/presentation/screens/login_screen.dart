@@ -74,7 +74,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final emailState = ref.watch(emailSignInControllerProvider);
     final theme = Theme.of(context);
 
-    ref.listen<AsyncValue<void>>(emailSignInControllerProvider, (previous, next) {
+    ref.listen<AsyncValue<void>>(emailSignInControllerProvider, (
+      previous,
+      next,
+    ) {
       if (next.hasError) {
         _showMessage(mapException(next.error!).message);
       }
@@ -115,7 +118,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(height: 20),
           _AuthSection(
             title: 'Phone authentication',
-            subtitle: 'Primary sign-in flow for partner onboarding and daily access.',
+            subtitle:
+                'Primary sign-in flow for partner onboarding and daily access.',
             child: Form(
               key: _phoneFormKey,
               child: Column(
@@ -166,7 +170,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(height: 18),
           _AuthSection(
             title: 'Email login',
-            subtitle: 'Use your linked partner credentials after the first verified setup.',
+            subtitle:
+                'Use your linked partner credentials after the first verified setup.',
             child: Form(
               key: _emailFormKey,
               child: AutofillGroup(
@@ -195,7 +200,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         prefixIcon: const Icon(Icons.lock_outline_rounded),
                         suffixIcon: IconButton(
                           onPressed: () {
-                            setState(() => _obscurePassword = !_obscurePassword);
+                            setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            );
                           },
                           icon: Icon(
                             _obscurePassword
@@ -216,7 +223,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ? const SizedBox(
                                 width: 18,
                                 height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               )
                             : const Icon(Icons.login_rounded),
                         label: Text(

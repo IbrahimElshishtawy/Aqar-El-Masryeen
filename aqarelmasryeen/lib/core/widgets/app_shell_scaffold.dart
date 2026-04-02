@@ -64,7 +64,9 @@ class _AppShellScaffoldState extends ConsumerState<AppShellScaffold>
   }
 
   Future<void> _restoreProtectedSession() async {
-    final shouldLock = await ref.read(authRepositoryProvider).biometricsEnabled();
+    final shouldLock = await ref
+        .read(authRepositoryProvider)
+        .biometricsEnabled();
     ref
         .read(sessionLockControllerProvider.notifier)
         .handleResume(shouldLock: shouldLock);
@@ -175,7 +177,9 @@ class _LockOverlayState extends ConsumerState<_LockOverlay> {
   Future<void> _unlock() async {
     setState(() => _isUnlocking = true);
     try {
-      final enabled = await ref.read(authRepositoryProvider).biometricsEnabled();
+      final enabled = await ref
+          .read(authRepositoryProvider)
+          .biometricsEnabled();
       if (!enabled) {
         ref.read(sessionLockControllerProvider.notifier).unlock();
         return;
@@ -188,9 +192,9 @@ class _LockOverlayState extends ConsumerState<_LockOverlay> {
       if (authenticated) {
         ref.read(sessionLockControllerProvider.notifier).unlock();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unlock was canceled.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Unlock was canceled.')));
       }
     } catch (error) {
       if (!mounted) return;
@@ -242,9 +246,7 @@ class _LockOverlayState extends ConsumerState<_LockOverlay> {
                             ? Icons.fingerprint
                             : Icons.lock_open_outlined,
                       ),
-                label: Text(
-                  biometricEnabled ? 'Unlock' : 'Continue',
-                ),
+                label: Text(biometricEnabled ? 'Unlock' : 'Continue'),
               ),
             ],
           ),

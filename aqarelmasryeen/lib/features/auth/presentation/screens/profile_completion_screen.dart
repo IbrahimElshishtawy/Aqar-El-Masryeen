@@ -2,7 +2,7 @@ import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_validators.dart';
-import 'package:aqarelmasryeen/features/auth/presentation\widgets\auth_scaffold.dart';
+import 'package:aqarelmasryeen/features/auth/presentation/widgets/auth_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -56,7 +56,8 @@ class _ProfileCompletionScreenState
 
     if (!_seededInitialValues && session != null) {
       _nameController.text = session.profile?.name ?? '';
-      _emailController.text = session.profile?.email ?? session.firebaseUser.email ?? '';
+      _emailController.text =
+          session.profile?.email ?? session.firebaseUser.email ?? '';
       _seededInitialValues = true;
     }
 
@@ -65,9 +66,9 @@ class _ProfileCompletionScreenState
       next,
     ) {
       if (next.hasError) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(mapException(next.error!).message)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(mapException(next.error!).message)),
+        );
       }
       if ((previous?.isLoading ?? false) && next.hasValue && mounted) {
         context.go(AppRoutes.biometrics);
@@ -107,7 +108,9 @@ class _ProfileCompletionScreenState
                 color: theme.colorScheme.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+                  color: theme.colorScheme.outlineVariant.withValues(
+                    alpha: 0.55,
+                  ),
                 ),
               ),
               child: Column(
