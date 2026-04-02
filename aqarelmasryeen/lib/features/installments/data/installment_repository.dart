@@ -116,6 +116,16 @@ class InstallmentRepository {
       'updatedAt': DateTime.now(),
     });
   }
+
+  Future<void> saveInstallment(Installment installment) {
+    final id = installment.id.isEmpty ? _uuid.v4() : installment.id;
+    return _firestore.collection(FirestorePaths.installments).doc(id).set(
+          installment.toMap()
+            ..['updatedAt'] = DateTime.now()
+            ..['status'] = installment.status.name,
+          SetOptions(merge: true),
+        );
+  }
 }
 
 final installmentRepositoryProvider = Provider<InstallmentRepository>((ref) {

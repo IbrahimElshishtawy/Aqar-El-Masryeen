@@ -19,12 +19,13 @@ class PartnerRepository {
         .map((snapshot) => snapshot.docs.map((doc) => Partner.fromMap(doc.id, doc.data())).toList());
   }
 
-  Future<void> upsert(Partner partner) async {
+  Future<String> upsert(Partner partner) async {
     final id = partner.id.isEmpty ? _uuid.v4() : partner.id;
     await _firestore.collection(FirestorePaths.partners).doc(id).set(
           partner.toMap()..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );
+    return id;
   }
 }
 
