@@ -15,12 +15,24 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:uuid/uuid.dart';
 
-final firebaseAuthProvider = Provider<FirebaseAuth>((ref) => FirebaseAuth.instance);
-final firestoreProvider = Provider<FirebaseFirestore>((ref) => FirebaseFirestore.instance);
-final firebaseStorageProvider = Provider<FirebaseStorage>((ref) => FirebaseStorage.instance);
-final analyticsProvider = Provider<FirebaseAnalytics>((ref) => FirebaseAnalytics.instance);
-final crashlyticsProvider = Provider<FirebaseCrashlytics>((ref) => FirebaseCrashlytics.instance);
-final messagingProvider = Provider<FirebaseMessaging>((ref) => FirebaseMessaging.instance);
+final firebaseAuthProvider = Provider<FirebaseAuth>(
+  (ref) => FirebaseAuth.instance,
+);
+final firestoreProvider = Provider<FirebaseFirestore>(
+  (ref) => FirebaseFirestore.instance,
+);
+final firebaseStorageProvider = Provider<FirebaseStorage>(
+  (ref) => FirebaseStorage.instance,
+);
+final analyticsProvider = Provider<FirebaseAnalytics>(
+  (ref) => FirebaseAnalytics.instance,
+);
+final crashlyticsProvider = Provider<FirebaseCrashlytics>(
+  (ref) => FirebaseCrashlytics.instance,
+);
+final messagingProvider = Provider<FirebaseMessaging>(
+  (ref) => FirebaseMessaging.instance,
+);
 final secureStorageProvider = Provider<SecureStorageService>(
   (ref) => SecureStorageService(const FlutterSecureStorage()),
 );

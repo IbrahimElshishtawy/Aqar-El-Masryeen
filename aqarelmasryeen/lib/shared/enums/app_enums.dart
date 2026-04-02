@@ -2,7 +2,16 @@ enum UserRole { partner }
 
 enum PropertyStatus { planning, active, delivered, archived }
 
-enum ExpenseCategory { construction, legal, permits, utilities, marketing, brokerage, maintenance, other }
+enum ExpenseCategory {
+  construction,
+  legal,
+  permits,
+  utilities,
+  marketing,
+  brokerage,
+  maintenance,
+  other,
+}
 
 enum PaymentMethod { cash, bankTransfer, cheque, wallet, other }
 
@@ -14,7 +23,14 @@ enum InstallmentStatus { pending, partiallyPaid, paid, overdue }
 
 enum PaymentPlanType { cash, installment, custom }
 
-enum NotificationType { installmentDue, overdueInstallment, expenseAdded, paymentReceived, newDeviceLogin, systemAlert }
+enum NotificationType {
+  installmentDue,
+  overdueInstallment,
+  expenseAdded,
+  paymentReceived,
+  newDeviceLogin,
+  systemAlert,
+}
 
 extension EnumLabelX on Enum {
   String get label {

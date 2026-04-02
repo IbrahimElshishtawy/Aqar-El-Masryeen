@@ -10,7 +10,9 @@ final userNotificationsProvider = StreamProvider.autoDispose((ref) async* {
     yield const [];
     return;
   }
-  yield* ref.watch(notificationRepositoryProvider).watchNotifications(session.firebaseUser.uid);
+  yield* ref
+      .watch(notificationRepositoryProvider)
+      .watchNotifications(session.firebaseUser.uid);
 });
 
 class NotificationsCenterScreen extends ConsumerWidget {
@@ -43,7 +45,9 @@ class NotificationsCenterScreen extends ConsumerWidget {
                   title: Text(item.title),
                   subtitle: Text(item.body),
                   onTap: () async {
-                    await ref.read(notificationRepositoryProvider).markRead(item.id);
+                    await ref
+                        .read(notificationRepositoryProvider)
+                        .markRead(item.id);
                     if (context.mounted) context.go(item.route);
                   },
                 ),

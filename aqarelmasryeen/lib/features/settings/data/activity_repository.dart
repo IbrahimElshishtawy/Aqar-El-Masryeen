@@ -21,10 +21,10 @@ class ActivityRepository {
     }
 
     return query.snapshots().map(
-          (snapshot) => snapshot.docs
-              .map((doc) => ActivityLogEntry.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+      (snapshot) => snapshot.docs
+          .map((doc) => ActivityLogEntry.fromMap(doc.id, doc.data()))
+          .toList(),
+    );
   }
 
   Future<void> log({
@@ -49,5 +49,8 @@ class ActivityRepository {
 }
 
 final activityRepositoryProvider = Provider<ActivityRepository>((ref) {
-  return ActivityRepository(ref.watch(firestoreProvider), ref.watch(uuidProvider));
+  return ActivityRepository(
+    ref.watch(firestoreProvider),
+    ref.watch(uuidProvider),
+  );
 });

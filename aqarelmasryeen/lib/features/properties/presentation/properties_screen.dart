@@ -11,7 +11,9 @@ class PropertiesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final properties = ref.watch(
-      StreamProvider((ref) => ref.watch(propertyRepositoryProvider).watchProperties()),
+      StreamProvider(
+        (ref) => ref.watch(propertyRepositoryProvider).watchProperties(),
+      ),
     );
 
     return AppShellScaffold(
@@ -27,7 +29,8 @@ class PropertiesScreen extends ConsumerWidget {
           if (items.isEmpty) {
             return const EmptyStateView(
               title: 'No properties yet',
-              message: 'Create the first real-estate project to start tracking expenses, sales, collections, and partner settlements.',
+              message:
+                  'Create the first real-estate project to start tracking expenses, sales, collections, and partner settlements.',
             );
           }
           return ListView.separated(

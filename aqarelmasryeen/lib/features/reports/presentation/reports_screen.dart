@@ -14,16 +14,31 @@ class ReportsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final properties =
-        ref.watch(StreamProvider.autoDispose((ref) => ref.watch(propertyRepositoryProvider).watchProperties()));
-    final expenses =
-        ref.watch(StreamProvider.autoDispose((ref) => ref.watch(expenseRepositoryProvider).watchAll()));
-    final units =
-        ref.watch(StreamProvider.autoDispose((ref) => ref.watch(salesRepositoryProvider).watchAll()));
-    final payments =
-        ref.watch(StreamProvider.autoDispose((ref) => ref.watch(paymentRepositoryProvider).watchAll()));
+    final properties = ref.watch(
+      StreamProvider.autoDispose(
+        (ref) => ref.watch(propertyRepositoryProvider).watchProperties(),
+      ),
+    );
+    final expenses = ref.watch(
+      StreamProvider.autoDispose(
+        (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
+      ),
+    );
+    final units = ref.watch(
+      StreamProvider.autoDispose(
+        (ref) => ref.watch(salesRepositoryProvider).watchAll(),
+      ),
+    );
+    final payments = ref.watch(
+      StreamProvider.autoDispose(
+        (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
+      ),
+    );
     final installments = ref.watch(
-      StreamProvider.autoDispose((ref) => ref.watch(installmentRepositoryProvider).watchAllInstallments()),
+      StreamProvider.autoDispose(
+        (ref) =>
+            ref.watch(installmentRepositoryProvider).watchAllInstallments(),
+      ),
     );
 
     if (!properties.hasValue ||
@@ -39,9 +54,18 @@ class ReportsScreen extends ConsumerWidget {
     }
 
     final propertyCount = properties.value!.length;
-    final totalExpenses = expenses.value!.fold<double>(0, (sum, item) => sum + item.amount);
-    final totalSales = units.value!.fold<double>(0, (sum, item) => sum + item.totalPrice);
-    final totalCollected = payments.value!.fold<double>(0, (sum, item) => sum + item.amount);
+    final totalExpenses = expenses.value!.fold<double>(
+      0,
+      (sum, item) => sum + item.amount,
+    );
+    final totalSales = units.value!.fold<double>(
+      0,
+      (sum, item) => sum + item.totalPrice,
+    );
+    final totalCollected = payments.value!.fold<double>(
+      0,
+      (sum, item) => sum + item.amount,
+    );
     final overdue = installments.value!.where((item) => item.isOverdue).length;
 
     return AppShellScaffold(
@@ -58,14 +82,34 @@ class ReportsScreen extends ConsumerWidget {
             physics: const NeverScrollableScrollPhysics(),
             childAspectRatio: 1.2,
             children: [
-              MetricCard(label: 'Projects', value: '$propertyCount', icon: Icons.business_outlined),
-              MetricCard(label: 'Expenses', value: totalExpenses.egp, icon: Icons.money_off_csred_outlined),
-              MetricCard(label: 'Collections', value: totalCollected.egp, icon: Icons.payments_outlined),
-              MetricCard(label: 'Overdue', value: '$overdue', icon: Icons.warning_amber_outlined, color: Colors.orange),
+              MetricCard(
+                label: 'Projects',
+                value: '$propertyCount',
+                icon: Icons.business_outlined,
+              ),
+              MetricCard(
+                label: 'Expenses',
+                value: totalExpenses.egp,
+                icon: Icons.money_off_csred_outlined,
+              ),
+              MetricCard(
+                label: 'Collections',
+                value: totalCollected.egp,
+                icon: Icons.payments_outlined,
+              ),
+              MetricCard(
+                label: 'Overdue',
+                value: '$overdue',
+                icon: Icons.warning_amber_outlined,
+                color: Colors.orange,
+              ),
             ],
           ),
           const SizedBox(height: 20),
-          Text('Property performance', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Property performance',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
           for (final property in properties.value!) ...[
             Card(

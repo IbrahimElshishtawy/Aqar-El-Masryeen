@@ -33,9 +33,10 @@ final dashboardInstallmentsProvider = StreamProvider.autoDispose(
 final dashboardPaymentsProvider = StreamProvider.autoDispose(
   (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
 );
-final dashboardActivityProvider = StreamProvider.autoDispose<List<ActivityLogEntry>>(
-  (ref) => ref.watch(activityRepositoryProvider).watchRecent(),
-);
+final dashboardActivityProvider =
+    StreamProvider.autoDispose<List<ActivityLogEntry>>(
+      (ref) => ref.watch(activityRepositoryProvider).watchRecent(),
+    );
 final dashboardPartnersProvider = StreamProvider.autoDispose(
   (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
 );
@@ -96,9 +97,9 @@ class DashboardScreen extends ConsumerWidget {
         children: [
           Text(
             'Welcome ${session?.profile?.name.isNotEmpty == true ? session!.profile!.name : 'Partner'}',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
@@ -114,12 +115,37 @@ class DashboardScreen extends ConsumerWidget {
             physics: const NeverScrollableScrollPhysics(),
             childAspectRatio: 1.2,
             children: [
-              MetricCard(label: 'Properties', value: '${summary.totalProperties}', icon: Icons.apartment_outlined),
-              MetricCard(label: 'Expenses', value: summary.totalExpenses.egp, icon: Icons.account_balance_wallet_outlined),
-              MetricCard(label: 'Sales', value: summary.totalSalesValue.egp, icon: Icons.trending_up_outlined),
-              MetricCard(label: 'Collected', value: summary.totalCollected.egp, icon: Icons.payments_outlined),
-              MetricCard(label: 'Remaining', value: summary.totalRemaining.egp, icon: Icons.hourglass_bottom_outlined),
-              MetricCard(label: 'Overdue', value: '${summary.overdueInstallmentsCount}', icon: Icons.warning_amber_outlined, color: Colors.orange),
+              MetricCard(
+                label: 'Properties',
+                value: '${summary.totalProperties}',
+                icon: Icons.apartment_outlined,
+              ),
+              MetricCard(
+                label: 'Expenses',
+                value: summary.totalExpenses.egp,
+                icon: Icons.account_balance_wallet_outlined,
+              ),
+              MetricCard(
+                label: 'Sales',
+                value: summary.totalSalesValue.egp,
+                icon: Icons.trending_up_outlined,
+              ),
+              MetricCard(
+                label: 'Collected',
+                value: summary.totalCollected.egp,
+                icon: Icons.payments_outlined,
+              ),
+              MetricCard(
+                label: 'Remaining',
+                value: summary.totalRemaining.egp,
+                icon: Icons.hourglass_bottom_outlined,
+              ),
+              MetricCard(
+                label: 'Overdue',
+                value: '${summary.overdueInstallmentsCount}',
+                icon: Icons.warning_amber_outlined,
+                color: Colors.orange,
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -145,7 +171,10 @@ class DashboardScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 20),
-          Text('Priority properties', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Priority properties',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
           if (topProperties.isEmpty)
             const EmptyStateView(
@@ -157,22 +186,30 @@ class DashboardScreen extends ConsumerWidget {
               Card(
                 child: ListTile(
                   title: Text(property.name),
-                  subtitle: Text('${property.location} • ${property.status.label}'),
+                  subtitle: Text(
+                    '${property.location} • ${property.status.label}',
+                  ),
                   trailing: TextButton(
-                    onPressed: () => context.push(AppRoutes.propertyDetails(property.id)),
+                    onPressed: () =>
+                        context.push(AppRoutes.propertyDetails(property.id)),
                     child: const Text('Open'),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
             ],
-          Text('Recent activity', style: Theme.of(context).textTheme.titleLarge),
+          Text(
+            'Recent activity',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
           const SizedBox(height: 12),
           for (final item in activity.value!) ...[
             Card(
               child: ListTile(
                 dense: true,
-                title: Text('${item.actorName} ${item.action.replaceAll('_', ' ')}'),
+                title: Text(
+                  '${item.actorName} ${item.action.replaceAll('_', ' ')}',
+                ),
                 subtitle: Text(item.createdAt.formatWithTime()),
                 trailing: Text(item.entityType),
               ),

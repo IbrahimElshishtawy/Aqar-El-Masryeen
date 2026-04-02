@@ -9,7 +9,8 @@ class SecureStorageService {
   static const trustedDeviceKey = 'trusted_device';
   static const lastActivityAtKey = 'last_activity_at';
 
-  Future<void> write(String key, String value) => _storage.write(key: key, value: value);
+  Future<void> write(String key, String value) =>
+      _storage.write(key: key, value: value);
 
   Future<String?> read(String key) => _storage.read(key: key);
 

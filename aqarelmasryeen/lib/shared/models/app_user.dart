@@ -26,7 +26,8 @@ class AppUser {
   final bool biometricEnabled;
   final List<String> trustedDevices;
 
-  bool get isProfileComplete => name.trim().isNotEmpty && email.trim().isNotEmpty;
+  bool get isProfileComplete =>
+      name.trim().isNotEmpty && email.trim().isNotEmpty;
 
   Map<String, dynamic> toMap() {
     return {
@@ -51,7 +52,9 @@ class AppUser {
       email: data['email'] as String? ?? '',
       createdAt: parseDate(data['createdAt']),
       updatedAt: parseDate(data['updatedAt']),
-      lastLoginAt: data['lastLoginAt'] == null ? null : parseDate(data['lastLoginAt']),
+      lastLoginAt: data['lastLoginAt'] == null
+          ? null
+          : parseDate(data['lastLoginAt']),
       role: UserRole.values.firstWhere(
         (value) => value.name == data['role'],
         orElse: () => UserRole.partner,

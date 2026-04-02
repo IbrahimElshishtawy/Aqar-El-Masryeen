@@ -33,7 +33,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _sendOtp() async {
     if (!_phoneFormKey.currentState!.validate()) return;
     try {
-      await ref.read(otpFlowControllerProvider.notifier).requestOtp(_phoneController.text);
+      await ref
+          .read(otpFlowControllerProvider.notifier)
+          .requestOtp(_phoneController.text);
       if (mounted) context.go(AppRoutes.otp);
     } catch (error) {
       _showMessage(mapException(error).message);
@@ -44,7 +46,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_emailFormKey.currentState!.validate()) return;
     setState(() => _emailSubmitting = true);
     try {
-      await ref.read(authRepositoryProvider).signInWithEmail(
+      await ref
+          .read(authRepositoryProvider)
+          .signInWithEmail(
             email: _emailController.text.trim(),
             password: _passwordController.text,
           );
@@ -57,7 +61,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -91,8 +97,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Text(
                   'Phone authentication',
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -115,7 +121,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: otpState.isSubmitting ? null : _sendOtp,
-                    child: Text(otpState.isSubmitting ? 'Sending OTP...' : 'Send OTP'),
+                    child: Text(
+                      otpState.isSubmitting ? 'Sending OTP...' : 'Send OTP',
+                    ),
                   ),
                 ),
               ],
@@ -133,8 +141,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Text(
                     'Email login',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -168,7 +176,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     width: double.infinity,
                     child: OutlinedButton(
                       onPressed: _emailSubmitting ? null : _emailLogin,
-                      child: Text(_emailSubmitting ? 'Signing in...' : 'Sign in with email'),
+                      child: Text(
+                        _emailSubmitting
+                            ? 'Signing in...'
+                            : 'Sign in with email',
+                      ),
                     ),
                   ),
                 ],

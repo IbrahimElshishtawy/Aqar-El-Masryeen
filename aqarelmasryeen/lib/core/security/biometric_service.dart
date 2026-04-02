@@ -7,13 +7,16 @@ class BiometricService {
   final LocalAuthentication _localAuth;
 
   Future<bool> canCheckBiometrics() async {
-    return _localAuth.canCheckBiometrics || await _localAuth.isDeviceSupported();
+    return _localAuth.canCheckBiometrics ||
+        await _localAuth.isDeviceSupported();
   }
 
   Future<bool> authenticate() async {
     final available = await canCheckBiometrics();
     if (!available) {
-      throw const AppException('Biometric authentication is not available on this device.');
+      throw const AppException(
+        'Biometric authentication is not available on this device.',
+      );
     }
 
     return _localAuth.authenticate(

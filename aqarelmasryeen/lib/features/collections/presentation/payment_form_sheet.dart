@@ -90,25 +90,29 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
     );
 
     await ref.read(paymentRepositoryProvider).record(payment);
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.firebaseUser.uid,
-      actorName: session.profile?.name ?? 'Partner',
-      action: 'payment_recorded',
-      entityType: 'payment',
-      entityId: payment.unitId,
-      metadata: {
-        'propertyId': widget.propertyId,
-        'amount': payment.amount,
-        'installmentId': payment.installmentId,
-      },
-    );
-    await ref.read(notificationRepositoryProvider).create(
-      userId: session.firebaseUser.uid,
-      title: 'Payment received',
-      body: 'EGP ${payment.amount.toStringAsFixed(0)} was recorded',
-      type: NotificationType.paymentReceived,
-      route: '/properties/${widget.propertyId}',
-    );
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.firebaseUser.uid,
+          actorName: session.profile?.name ?? 'Partner',
+          action: 'payment_recorded',
+          entityType: 'payment',
+          entityId: payment.unitId,
+          metadata: {
+            'propertyId': widget.propertyId,
+            'amount': payment.amount,
+            'installmentId': payment.installmentId,
+          },
+        );
+    await ref
+        .read(notificationRepositoryProvider)
+        .create(
+          userId: session.firebaseUser.uid,
+          title: 'Payment received',
+          body: 'EGP ${payment.amount.toStringAsFixed(0)} was recorded',
+          type: NotificationType.paymentReceived,
+          route: '/properties/${widget.propertyId}',
+        );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -157,12 +161,16 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
                 ),
               ],
               onChanged: (value) => setState(() => _installmentId = value),
-              decoration: const InputDecoration(labelText: 'Apply to installment'),
+              decoration: const InputDecoration(
+                labelText: 'Apply to installment',
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(labelText: 'Amount'),
               validator: (value) {
                 if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
@@ -175,7 +183,10 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
             DropdownButtonFormField<PaymentMethod>(
               value: _paymentMethod,
               items: PaymentMethod.values
-                  .map((item) => DropdownMenuItem(value: item, child: Text(item.label)))
+                  .map(
+                    (item) =>
+                        DropdownMenuItem(value: item, child: Text(item.label)),
+                  )
                   .toList(),
               onChanged: (value) =>
                   setState(() => _paymentMethod = value ?? _paymentMethod),

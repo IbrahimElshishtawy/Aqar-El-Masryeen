@@ -40,20 +40,25 @@ class ExpenseRepository {
 
   Future<void> save(ExpenseRecord expense) async {
     final id = expense.id.isEmpty ? _uuid.v4() : expense.id;
-    await _firestore.collection(FirestorePaths.expenses).doc(id).set(
+    await _firestore
+        .collection(FirestorePaths.expenses)
+        .doc(id)
+        .set(
           expense.toMap()..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );
   }
 
   Future<void> softDelete(String expenseId) {
-    return _firestore.collection(FirestorePaths.expenses).doc(expenseId).update({
-      'archived': true,
-      'updatedAt': DateTime.now(),
-    });
+    return _firestore.collection(FirestorePaths.expenses).doc(expenseId).update(
+      {'archived': true, 'updatedAt': DateTime.now()},
+    );
   }
 }
 
 final expenseRepositoryProvider = Provider<ExpenseRepository>((ref) {
-  return ExpenseRepository(ref.watch(firestoreProvider), ref.watch(uuidProvider));
+  return ExpenseRepository(
+    ref.watch(firestoreProvider),
+    ref.watch(uuidProvider),
+  );
 });

@@ -27,47 +27,61 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-final propertyDetailsProvider = StreamProvider.autoDispose.family<PropertyProject?, String>(
-  (ref, propertyId) => ref.watch(propertyRepositoryProvider).watchProperty(propertyId),
-);
-final propertyExpensesProvider = StreamProvider.autoDispose.family<List<ExpenseRecord>, String>(
-  (ref, propertyId) => ref.watch(expenseRepositoryProvider).watchByProperty(propertyId),
-);
-final propertyUnitsProvider = StreamProvider.autoDispose.family<List<UnitSale>, String>(
-  (ref, propertyId) => ref.watch(salesRepositoryProvider).watchByProperty(propertyId),
-);
-final propertyPlansProvider = StreamProvider.autoDispose.family<List<InstallmentPlan>, String>(
-  (ref, propertyId) => ref.watch(installmentRepositoryProvider).watchPlansByProperty(propertyId),
-);
-final propertyInstallmentsProvider =
-    StreamProvider.autoDispose.family<List<Installment>, String>(
-  (ref, propertyId) =>
-      ref.watch(installmentRepositoryProvider).watchInstallmentsByProperty(propertyId),
-);
-final propertyPaymentsProvider = StreamProvider.autoDispose.family<List<PaymentRecord>, String>(
-  (ref, propertyId) => ref.watch(paymentRepositoryProvider).watchByProperty(propertyId),
-);
-final propertyActivityProvider = StreamProvider.autoDispose.family<List<ActivityLogEntry>, String>(
-  (ref, propertyId) => ref.watch(activityRepositoryProvider).watchRecent(propertyId: propertyId),
-);
+final propertyDetailsProvider = StreamProvider.autoDispose
+    .family<PropertyProject?, String>(
+      (ref, propertyId) =>
+          ref.watch(propertyRepositoryProvider).watchProperty(propertyId),
+    );
+final propertyExpensesProvider = StreamProvider.autoDispose
+    .family<List<ExpenseRecord>, String>(
+      (ref, propertyId) =>
+          ref.watch(expenseRepositoryProvider).watchByProperty(propertyId),
+    );
+final propertyUnitsProvider = StreamProvider.autoDispose
+    .family<List<UnitSale>, String>(
+      (ref, propertyId) =>
+          ref.watch(salesRepositoryProvider).watchByProperty(propertyId),
+    );
+final propertyPlansProvider = StreamProvider.autoDispose
+    .family<List<InstallmentPlan>, String>(
+      (ref, propertyId) => ref
+          .watch(installmentRepositoryProvider)
+          .watchPlansByProperty(propertyId),
+    );
+final propertyInstallmentsProvider = StreamProvider.autoDispose
+    .family<List<Installment>, String>(
+      (ref, propertyId) => ref
+          .watch(installmentRepositoryProvider)
+          .watchInstallmentsByProperty(propertyId),
+    );
+final propertyPaymentsProvider = StreamProvider.autoDispose
+    .family<List<PaymentRecord>, String>(
+      (ref, propertyId) =>
+          ref.watch(paymentRepositoryProvider).watchByProperty(propertyId),
+    );
+final propertyActivityProvider = StreamProvider.autoDispose
+    .family<List<ActivityLogEntry>, String>(
+      (ref, propertyId) => ref
+          .watch(activityRepositoryProvider)
+          .watchRecent(propertyId: propertyId),
+    );
 final propertyPartnersProvider = StreamProvider.autoDispose<List<Partner>>(
   (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
 );
-final propertyFilesProvider =
-    FutureProvider.autoDispose.family<List<PropertyStorageFile>, String>(
-  (ref, propertyId) => ref.watch(propertyFilesRepositoryProvider).listFiles(propertyId),
-);
+final propertyFilesProvider = FutureProvider.autoDispose
+    .family<List<PropertyStorageFile>, String>(
+      (ref, propertyId) =>
+          ref.watch(propertyFilesRepositoryProvider).listFiles(propertyId),
+    );
 
 class PropertyDetailScreen extends ConsumerStatefulWidget {
-  const PropertyDetailScreen({
-    super.key,
-    required this.propertyId,
-  });
+  const PropertyDetailScreen({super.key, required this.propertyId});
 
   final String propertyId;
 
   @override
-  ConsumerState<PropertyDetailScreen> createState() => _PropertyDetailScreenState();
+  ConsumerState<PropertyDetailScreen> createState() =>
+      _PropertyDetailScreenState();
 }
 
 class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
@@ -81,11 +95,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 
   Future<void> _confirmDeleteExpense(ExpenseRecord expense) async {
-    final shouldDelete = await showDialog<bool>(
+    final shouldDelete =
+        await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('Delete expense'),
-            content: const Text('This expense will be archived from active views.'),
+            content: const Text(
+              'This expense will be archived from active views.',
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
@@ -104,21 +121,25 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) return;
     await ref.read(expenseRepositoryProvider).softDelete(expense.id);
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.firebaseUser.uid,
-      actorName: session.profile?.name ?? 'Partner',
-      action: 'expense_deleted',
-      entityType: 'expense',
-      entityId: expense.id,
-      metadata: {'propertyId': widget.propertyId, 'amount': expense.amount},
-    );
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.firebaseUser.uid,
+          actorName: session.profile?.name ?? 'Partner',
+          action: 'expense_deleted',
+          entityType: 'expense',
+          entityId: expense.id,
+          metadata: {'propertyId': widget.propertyId, 'amount': expense.amount},
+        );
   }
 
   Future<void> _editInstallment(Installment installment) async {
-    final amountController =
-        TextEditingController(text: installment.amount.toStringAsFixed(0));
-    final paidController =
-        TextEditingController(text: installment.paidAmount.toStringAsFixed(0));
+    final amountController = TextEditingController(
+      text: installment.amount.toStringAsFixed(0),
+    );
+    final paidController = TextEditingController(
+      text: installment.paidAmount.toStringAsFixed(0),
+    );
     var dueDate = installment.dueDate;
     var status = installment.status;
 
@@ -143,13 +164,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               children: [
                 TextFormField(
                   controller: amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(labelText: 'Amount'),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: paidController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
                   decoration: const InputDecoration(labelText: 'Paid amount'),
                 ),
                 const SizedBox(height: 12),
@@ -169,9 +194,15 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 DropdownButtonFormField<InstallmentStatus>(
                   value: status,
                   items: InstallmentStatus.values
-                      .map((item) => DropdownMenuItem(value: item, child: Text(item.label)))
+                      .map(
+                        (item) => DropdownMenuItem(
+                          value: item,
+                          child: Text(item.label),
+                        ),
+                      )
                       .toList(),
-                  onChanged: (value) => setModalState(() => status = value ?? status),
+                  onChanged: (value) =>
+                      setModalState(() => status = value ?? status),
                   decoration: const InputDecoration(labelText: 'Status'),
                 ),
                 const SizedBox(height: 18),
@@ -181,15 +212,23 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     onPressed: () async {
                       final session = ref.read(authSessionProvider).valueOrNull;
                       if (session == null) return;
-                      await ref.read(installmentRepositoryProvider).saveInstallment(
+                      await ref
+                          .read(installmentRepositoryProvider)
+                          .saveInstallment(
                             Installment(
                               id: installment.id,
                               planId: installment.planId,
                               propertyId: installment.propertyId,
                               unitId: installment.unitId,
                               sequence: installment.sequence,
-                              amount: double.tryParse(amountController.text.trim()) ?? installment.amount,
-                              paidAmount: double.tryParse(paidController.text.trim()) ?? installment.paidAmount,
+                              amount:
+                                  double.tryParse(
+                                    amountController.text.trim(),
+                                  ) ??
+                                  installment.amount,
+                              paidAmount:
+                                  double.tryParse(paidController.text.trim()) ??
+                                  installment.paidAmount,
                               dueDate: dueDate,
                               status: status,
                               createdAt: installment.createdAt,
@@ -224,7 +263,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       case _PropertyAction.edit:
         context.push(AppRoutes.editProperty(widget.propertyId));
       case _PropertyAction.addExpense:
-        await _showSheet(ExpenseFormSheet(propertyId: widget.propertyId, partners: partners));
+        await _showSheet(
+          ExpenseFormSheet(propertyId: widget.propertyId, partners: partners),
+        );
       case _PropertyAction.addUnit:
         await _showSheet(UnitFormSheet(propertyId: widget.propertyId));
       case _PropertyAction.addPlan:
@@ -241,7 +282,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         );
       case _PropertyAction.archive:
         if (property == null) return;
-        final confirmed = await showDialog<bool>(
+        final confirmed =
+            await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
                 title: const Text('Archive property'),
@@ -262,17 +304,18 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         if (!confirmed) return;
         final session = ref.read(authSessionProvider).valueOrNull;
         if (session == null) return;
-        await ref.read(propertyRepositoryProvider).archive(
-              widget.propertyId,
+        await ref
+            .read(propertyRepositoryProvider)
+            .archive(widget.propertyId, actorId: session.firebaseUser.uid);
+        await ref
+            .read(activityRepositoryProvider)
+            .log(
               actorId: session.firebaseUser.uid,
+              actorName: session.profile?.name ?? 'Partner',
+              action: 'property_archived',
+              entityType: 'property',
+              entityId: widget.propertyId,
             );
-        await ref.read(activityRepositoryProvider).log(
-          actorId: session.firebaseUser.uid,
-          actorName: session.profile?.name ?? 'Partner',
-          action: 'property_archived',
-          entityType: 'property',
-          entityId: widget.propertyId,
-        );
         if (mounted) context.go(AppRoutes.properties);
     }
   }
@@ -280,12 +323,20 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final propertyAsync = ref.watch(propertyDetailsProvider(widget.propertyId));
-    final expensesAsync = ref.watch(propertyExpensesProvider(widget.propertyId));
+    final expensesAsync = ref.watch(
+      propertyExpensesProvider(widget.propertyId),
+    );
     final unitsAsync = ref.watch(propertyUnitsProvider(widget.propertyId));
     final plansAsync = ref.watch(propertyPlansProvider(widget.propertyId));
-    final installmentsAsync = ref.watch(propertyInstallmentsProvider(widget.propertyId));
-    final paymentsAsync = ref.watch(propertyPaymentsProvider(widget.propertyId));
-    final activityAsync = ref.watch(propertyActivityProvider(widget.propertyId));
+    final installmentsAsync = ref.watch(
+      propertyInstallmentsProvider(widget.propertyId),
+    );
+    final paymentsAsync = ref.watch(
+      propertyPaymentsProvider(widget.propertyId),
+    );
+    final activityAsync = ref.watch(
+      propertyActivityProvider(widget.propertyId),
+    );
     final partnersAsync = ref.watch(propertyPartnersProvider);
     final filesAsync = ref.watch(propertyFilesProvider(widget.propertyId));
 
@@ -347,16 +398,27 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       );
     }
 
-    final totalExpenses = expenses.fold<double>(0, (sum, item) => sum + item.amount);
-    final totalSales = units.fold<double>(0, (sum, item) => sum + item.totalPrice);
-    final totalCollected = payments.fold<double>(0, (sum, item) => sum + item.amount);
+    final totalExpenses = expenses.fold<double>(
+      0,
+      (sum, item) => sum + item.amount,
+    );
+    final totalSales = units.fold<double>(
+      0,
+      (sum, item) => sum + item.totalPrice,
+    );
+    final totalCollected = payments.fold<double>(
+      0,
+      (sum, item) => sum + item.amount,
+    );
     final overdueCount = installments.where((item) => item.isOverdue).length;
     final dueSoonCount = installments
         .where(
           (item) =>
               item.remainingAmount > 0 &&
               item.dueDate.isAfter(DateTime.now()) &&
-              item.dueDate.isBefore(DateTime.now().add(const Duration(days: 7))),
+              item.dueDate.isBefore(
+                DateTime.now().add(const Duration(days: 7)),
+              ),
         )
         .length;
 
@@ -375,13 +437,31 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               installments: installments,
             ),
             itemBuilder: (context) => const [
-              PopupMenuItem(value: _PropertyAction.edit, child: Text('Edit property')),
-              PopupMenuItem(value: _PropertyAction.addExpense, child: Text('Add expense')),
-              PopupMenuItem(value: _PropertyAction.addUnit, child: Text('Add unit')),
-              PopupMenuItem(value: _PropertyAction.addPlan, child: Text('Create installment plan')),
-              PopupMenuItem(value: _PropertyAction.recordPayment, child: Text('Record collection')),
+              PopupMenuItem(
+                value: _PropertyAction.edit,
+                child: Text('Edit property'),
+              ),
+              PopupMenuItem(
+                value: _PropertyAction.addExpense,
+                child: Text('Add expense'),
+              ),
+              PopupMenuItem(
+                value: _PropertyAction.addUnit,
+                child: Text('Add unit'),
+              ),
+              PopupMenuItem(
+                value: _PropertyAction.addPlan,
+                child: Text('Create installment plan'),
+              ),
+              PopupMenuItem(
+                value: _PropertyAction.recordPayment,
+                child: Text('Record collection'),
+              ),
               PopupMenuDivider(),
-              PopupMenuItem(value: _PropertyAction.archive, child: Text('Archive property')),
+              PopupMenuItem(
+                value: _PropertyAction.archive,
+                child: Text('Archive property'),
+              ),
             ],
           ),
         ],
@@ -395,15 +475,24 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(property.location, style: Theme.of(context).textTheme.bodyLarge),
+                      Text(
+                        property.location,
+                        style: Theme.of(context).textTheme.bodyLarge,
+                      ),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           Chip(label: Text(property.status.label)),
-                          Chip(label: Text('Budget ${property.totalBudget.egp}')),
-                          Chip(label: Text('Target ${property.totalSalesTarget.egp}')),
+                          Chip(
+                            label: Text('Budget ${property.totalBudget.egp}'),
+                          ),
+                          Chip(
+                            label: Text(
+                              'Target ${property.totalSalesTarget.egp}',
+                            ),
+                          ),
                           Chip(label: Text('Due soon $dueSoonCount')),
                         ],
                       ),
@@ -438,7 +527,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   _ExpensesTab(
                     expenses: expenses,
                     partners: partners,
-                    onAdd: () => _handleAction(_PropertyAction.addExpense, partners: partners),
+                    onAdd: () => _handleAction(
+                      _PropertyAction.addExpense,
+                      partners: partners,
+                    ),
                     onEdit: (item) => _showSheet(
                       ExpenseFormSheet(
                         propertyId: widget.propertyId,
@@ -459,7 +551,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     plans: plans,
                     installments: installments,
                     units: units,
-                    onAddPlan: () => _handleAction(_PropertyAction.addPlan, units: units),
+                    onAddPlan: () =>
+                        _handleAction(_PropertyAction.addPlan, units: units),
                     onEditInstallment: _editInstallment,
                   ),
                   _CollectionsTab(
@@ -494,7 +587,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 }
 
-enum _PropertyAction { edit, addExpense, addUnit, addPlan, recordPayment, archive }
+enum _PropertyAction {
+  edit,
+  addExpense,
+  addUnit,
+  addPlan,
+  recordPayment,
+  archive,
+}
 
 class _OverviewTab extends StatelessWidget {
   const _OverviewTab({
@@ -532,9 +632,21 @@ class _OverviewTab extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           childAspectRatio: 1.2,
           children: [
-            MetricCard(label: 'Expenses', value: totalExpenses.egp, icon: Icons.wallet_outlined),
-            MetricCard(label: 'Sales value', value: totalSales.egp, icon: Icons.trending_up_outlined),
-            MetricCard(label: 'Collected', value: totalCollected.egp, icon: Icons.payments_outlined),
+            MetricCard(
+              label: 'Expenses',
+              value: totalExpenses.egp,
+              icon: Icons.wallet_outlined,
+            ),
+            MetricCard(
+              label: 'Sales value',
+              value: totalSales.egp,
+              icon: Icons.trending_up_outlined,
+            ),
+            MetricCard(
+              label: 'Collected',
+              value: totalCollected.egp,
+              icon: Icons.payments_outlined,
+            ),
             MetricCard(
               label: 'Overdue',
               value: '$overdueCount',
@@ -578,13 +690,17 @@ class _ExpensesTabState extends State<_ExpensesTab> {
 
   @override
   Widget build(BuildContext context) {
-    final partnerNames = {for (final item in widget.partners) item.id: item.name};
+    final partnerNames = {
+      for (final item in widget.partners) item.id: item.name,
+    };
     final query = _searchController.text.trim().toLowerCase();
     final filtered = widget.expenses.where((expense) {
       if (query.isEmpty) return true;
       return expense.description.toLowerCase().contains(query) ||
           expense.category.label.toLowerCase().contains(query) ||
-          (partnerNames[expense.paidByPartnerId] ?? '').toLowerCase().contains(query);
+          (partnerNames[expense.paidByPartnerId] ?? '').toLowerCase().contains(
+            query,
+          );
     }).toList();
 
     return Column(
@@ -706,7 +822,10 @@ class _SalesTab extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(item.totalPrice.egp),
-                TextButton(onPressed: () => onEdit(item), child: const Text('Edit')),
+                TextButton(
+                  onPressed: () => onEdit(item),
+                  child: const Text('Edit'),
+                ),
               ],
             ),
           ),
@@ -750,7 +869,8 @@ class _InstallmentsTab extends StatelessWidget {
         if (plans.isEmpty)
           const EmptyStateView(
             title: 'No installment plans',
-            message: 'Generate a payment plan for a sold unit to create the schedule.',
+            message:
+                'Generate a payment plan for a sold unit to create the schedule.',
           ),
         for (final plan in plans) ...[
           Card(
@@ -788,10 +908,7 @@ class _InstallmentsTab extends StatelessWidget {
 }
 
 class _CollectionsTab extends StatelessWidget {
-  const _CollectionsTab({
-    required this.payments,
-    required this.onAdd,
-  });
+  const _CollectionsTab({required this.payments, required this.onAdd});
 
   final List<PaymentRecord> payments;
   final VoidCallback onAdd;
@@ -855,7 +972,9 @@ class _ReportsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final soldUnits = units.where((item) => item.status == UnitStatus.sold).length;
+    final soldUnits = units
+        .where((item) => item.status == UnitStatus.sold)
+        .length;
     final overdue = installments.where((item) => item.isOverdue).length;
     final contributionByPartner = <String, double>{};
     for (final expense in expenses) {
@@ -877,10 +996,27 @@ class _ReportsTab extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           childAspectRatio: 1.2,
           children: [
-            MetricCard(label: 'Net remaining', value: (totalSales - totalCollected).egp, icon: Icons.timelapse_outlined),
-            MetricCard(label: 'Collected', value: totalCollected.egp, icon: Icons.payments_outlined),
-            MetricCard(label: 'Sold units', value: '$soldUnits', icon: Icons.home_work_outlined),
-            MetricCard(label: 'Overdue', value: '$overdue', icon: Icons.warning_amber_outlined, color: Colors.orange),
+            MetricCard(
+              label: 'Net remaining',
+              value: (totalSales - totalCollected).egp,
+              icon: Icons.timelapse_outlined,
+            ),
+            MetricCard(
+              label: 'Collected',
+              value: totalCollected.egp,
+              icon: Icons.payments_outlined,
+            ),
+            MetricCard(
+              label: 'Sold units',
+              value: '$soldUnits',
+              icon: Icons.home_work_outlined,
+            ),
+            MetricCard(
+              label: 'Overdue',
+              value: '$overdue',
+              icon: Icons.warning_amber_outlined,
+              color: Colors.orange,
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -888,7 +1024,9 @@ class _ReportsTab extends StatelessWidget {
           Card(
             child: ListTile(
               title: Text(partner.name),
-              subtitle: Text('Share ${(partner.shareRatio * 100).toStringAsFixed(0)}%'),
+              subtitle: Text(
+                'Share ${(partner.shareRatio * 100).toStringAsFixed(0)}%',
+              ),
               trailing: Text((contributionByPartner[partner.id] ?? 0).egp),
             ),
           ),
@@ -909,7 +1047,8 @@ class _FilesTab extends StatelessWidget {
     if (files.isEmpty) {
       return const EmptyStateView(
         title: 'No files uploaded',
-        message: 'Storage-backed property files will appear here once uploaded to Firebase Storage.',
+        message:
+            'Storage-backed property files will appear here once uploaded to Firebase Storage.',
       );
     }
 
@@ -954,7 +1093,9 @@ class _ActivityTab extends StatelessWidget {
         final item = activity[index];
         return Card(
           child: ListTile(
-            title: Text('${item.actorName} ${item.action.replaceAll('_', ' ')}'),
+            title: Text(
+              '${item.actorName} ${item.action.replaceAll('_', ' ')}',
+            ),
             subtitle: Text(item.createdAt.formatWithTime()),
             trailing: Text(item.entityType),
           ),

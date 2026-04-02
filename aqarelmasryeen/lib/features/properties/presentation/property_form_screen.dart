@@ -10,10 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class PropertyFormScreen extends ConsumerStatefulWidget {
-  const PropertyFormScreen({
-    super.key,
-    this.propertyId,
-  });
+  const PropertyFormScreen({super.key, this.propertyId});
 
   final String? propertyId;
 
@@ -74,18 +71,20 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       archived: false,
     );
 
-    final propertyId = await ref.read(propertyRepositoryProvider).save(property);
-    await ref.read(activityRepositoryProvider).log(
-      actorId: user.uid,
-      actorName: ref.read(authSessionProvider).value?.profile?.name ?? 'Partner',
-      action: existing == null ? 'property_created' : 'property_updated',
-      entityType: 'property',
-      entityId: propertyId,
-      metadata: {
-        'name': property.name,
-        'status': property.status.name,
-      },
-    );
+    final propertyId = await ref
+        .read(propertyRepositoryProvider)
+        .save(property);
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: user.uid,
+          actorName:
+              ref.read(authSessionProvider).value?.profile?.name ?? 'Partner',
+          action: existing == null ? 'property_created' : 'property_updated',
+          entityType: 'property',
+          entityId: propertyId,
+          metadata: {'name': property.name, 'status': property.status.name},
+        );
     if (mounted) {
       setState(() => _saving = false);
       context.go(AppRoutes.propertyDetails(propertyId));
@@ -98,13 +97,17 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
         ? const AsyncData<PropertyProject?>(null)
         : ref.watch(
             StreamProvider.autoDispose<PropertyProject?>(
-              (ref) => ref.watch(propertyRepositoryProvider).watchProperty(widget.propertyId!),
+              (ref) => ref
+                  .watch(propertyRepositoryProvider)
+                  .watchProperty(widget.propertyId!),
             ),
           );
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.propertyId == null ? 'Add property' : 'Edit property'),
+        title: Text(
+          widget.propertyId == null ? 'Add property' : 'Edit property',
+        ),
       ),
       body: SafeArea(
         child: AsyncValueView<PropertyProject?>(
@@ -125,7 +128,9 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                       children: [
                         TextFormField(
                           controller: _nameController,
-                          decoration: const InputDecoration(labelText: 'Project name'),
+                          decoration: const InputDecoration(
+                            labelText: 'Project name',
+                          ),
                           validator: (value) => (value ?? '').trim().isEmpty
                               ? 'Enter the property name.'
                               : null,
@@ -133,7 +138,9 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _locationController,
-                          decoration: const InputDecoration(labelText: 'Location'),
+                          decoration: const InputDecoration(
+                            labelText: 'Location',
+                          ),
                           validator: (value) => (value ?? '').trim().isEmpty
                               ? 'Enter the project location.'
                               : null,
@@ -142,7 +149,9 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                         TextFormField(
                           controller: _descriptionController,
                           maxLines: 3,
-                          decoration: const InputDecoration(labelText: 'Description'),
+                          decoration: const InputDecoration(
+                            labelText: 'Description',
+                          ),
                         ),
                         const SizedBox(height: 14),
                         DropdownButtonFormField<PropertyStatus>(
@@ -155,21 +164,32 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                                 ),
                               )
                               .toList(),
-                          onChanged: (value) =>
-                              setState(() => _status = value ?? PropertyStatus.active),
-                          decoration: const InputDecoration(labelText: 'Status'),
+                          onChanged: (value) => setState(
+                            () => _status = value ?? PropertyStatus.active,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Status',
+                          ),
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _budgetController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'Budget'),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Budget',
+                          ),
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _salesTargetController,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: const InputDecoration(labelText: 'Sales target'),
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          decoration: const InputDecoration(
+                            labelText: 'Sales target',
+                          ),
                         ),
                         const SizedBox(height: 20),
                         SizedBox(
@@ -180,8 +200,8 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                               _saving
                                   ? 'Saving...'
                                   : widget.propertyId == null
-                                      ? 'Create property'
-                                      : 'Save changes',
+                                  ? 'Create property'
+                                  : 'Save changes',
                             ),
                           ),
                         ),

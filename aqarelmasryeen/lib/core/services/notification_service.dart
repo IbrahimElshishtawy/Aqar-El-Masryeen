@@ -17,10 +17,7 @@ void reportToCrashlytics(Object error, StackTrace stackTrace) {
 }
 
 class NotificationRoutePayload {
-  const NotificationRoutePayload({
-    required this.route,
-    this.extraId,
-  });
+  const NotificationRoutePayload({required this.route, this.extraId});
 
   final String route;
   final String? extraId;
@@ -68,7 +65,9 @@ class FirebaseMessagingService {
 
     FirebaseMessaging.onMessage.listen(_showForegroundNotification);
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      final payload = NotificationRoutePayload.tryDecode(message.data['payload'] as String?);
+      final payload = NotificationRoutePayload.tryDecode(
+        message.data['payload'] as String?,
+      );
       if (payload != null) onNotificationTap(payload);
     });
 
@@ -117,7 +116,9 @@ class FirebaseMessagingService {
     );
 
     await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
   }
 

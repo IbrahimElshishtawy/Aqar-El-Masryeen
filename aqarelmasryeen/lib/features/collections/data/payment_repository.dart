@@ -40,7 +40,10 @@ class PaymentRepository {
 
   Future<void> record(PaymentRecord payment) async {
     final id = payment.id.isEmpty ? _uuid.v4() : payment.id;
-    await _firestore.collection(FirestorePaths.payments).doc(id).set(
+    await _firestore
+        .collection(FirestorePaths.payments)
+        .doc(id)
+        .set(
           payment.toMap()..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );

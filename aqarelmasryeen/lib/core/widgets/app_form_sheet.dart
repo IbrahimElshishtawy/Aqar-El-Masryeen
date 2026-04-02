@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppFormSheet extends StatelessWidget {
-  const AppFormSheet({
-    super.key,
-    required this.title,
-    required this.child,
-  });
+  const AppFormSheet({super.key, required this.title, required this.child});
 
   final String title;
   final Widget child;
@@ -30,9 +26,9 @@ class AppFormSheet extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 18),
                 child,

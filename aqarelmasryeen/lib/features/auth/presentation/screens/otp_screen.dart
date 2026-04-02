@@ -25,14 +25,18 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   Future<void> _verify() async {
     try {
-      await ref.read(otpFlowControllerProvider.notifier).verifyOtp(_codeController.text);
+      await ref
+          .read(otpFlowControllerProvider.notifier)
+          .verifyOtp(_codeController.text);
       final session = await ref.read(authSessionProvider.future);
       if (!mounted) return;
-      context.go(session?.isProfileComplete == true ? '/dashboard' : '/auth/profile');
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(mapException(error).message)),
+      context.go(
+        session?.isProfileComplete == true ? '/dashboard' : '/auth/profile',
       );
+    } catch (error) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(mapException(error).message)));
     }
   }
 
@@ -50,17 +54,15 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Pinput(
-            controller: _codeController,
-            length: 6,
-            autofocus: true,
-          ),
+          Pinput(controller: _codeController, length: 6, autofocus: true),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
               onPressed: state.isSubmitting ? null : _verify,
-              child: Text(state.isSubmitting ? 'Verifying...' : 'Verify and continue'),
+              child: Text(
+                state.isSubmitting ? 'Verifying...' : 'Verify and continue',
+              ),
             ),
           ),
           if ((state.errorMessage ?? '').isNotEmpty) ...[

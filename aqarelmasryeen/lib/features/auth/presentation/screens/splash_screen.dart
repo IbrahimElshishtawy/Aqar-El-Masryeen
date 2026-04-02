@@ -22,7 +22,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     Future.microtask(() async {
       if (_notificationReady) return;
       _notificationReady = true;
-      await ref.read(notificationServiceProvider).initialize(
+      await ref
+          .read(notificationServiceProvider)
+          .initialize(
             onNotificationTap: (payload) {
               if (mounted) {
                 context.go(payload.route);
@@ -39,8 +41,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         final target = session == null
             ? AppRoutes.login
             : session.isProfileComplete
-                ? AppRoutes.dashboard
-                : AppRoutes.profile;
+            ? AppRoutes.dashboard
+            : AppRoutes.profile;
         if (mounted) context.go(target);
       });
     });
@@ -66,7 +68,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 width: 82,
                 height: 82,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primary.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(26),
                 ),
                 child: Icon(
@@ -79,8 +83,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               Text(
                 AppConfig.appName,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               const SizedBox(height: 8),
               Text(

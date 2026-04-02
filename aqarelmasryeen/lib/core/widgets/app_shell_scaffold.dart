@@ -65,7 +65,8 @@ class _AppShellScaffoldState extends ConsumerState<AppShellScaffold>
     final isWide = MediaQuery.sizeOf(context).width >= AppBreakpoints.tablet;
 
     return Listener(
-      onPointerDown: (_) => ref.read(sessionLockControllerProvider.notifier).recordActivity(),
+      onPointerDown: (_) =>
+          ref.read(sessionLockControllerProvider.notifier).recordActivity(),
       child: Scaffold(
         appBar: AppBar(title: Text(widget.title), actions: widget.actions),
         floatingActionButton: widget.floatingActionButton,
@@ -77,7 +78,8 @@ class _AppShellScaffoldState extends ConsumerState<AppShellScaffold>
                   if (isWide)
                     NavigationRail(
                       selectedIndex: widget.currentIndex,
-                      onDestinationSelected: (index) => context.go(_destinations[index]),
+                      onDestinationSelected: (index) =>
+                          context.go(_destinations[index]),
                       labelType: NavigationRailLabelType.all,
                       destinations: const [
                         NavigationRailDestination(
@@ -121,7 +123,8 @@ class _AppShellScaffoldState extends ConsumerState<AppShellScaffold>
             ? null
             : NavigationBar(
                 selectedIndex: widget.currentIndex,
-                onDestinationSelected: (index) => context.go(_destinations[index]),
+                onDestinationSelected: (index) =>
+                    context.go(_destinations[index]),
                 destinations: const [
                   NavigationDestination(
                     icon: Icon(Icons.dashboard_outlined),
@@ -163,7 +166,10 @@ class _LockOverlay extends ConsumerWidget {
             children: [
               const Icon(Icons.lock_outline, size: 56),
               const SizedBox(height: 16),
-              Text('Session locked', style: Theme.of(context).textTheme.headlineSmall),
+              Text(
+                'Session locked',
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
               const SizedBox(height: 8),
               const Text(
                 'Unlock with biometrics or device passcode to continue.',
@@ -172,13 +178,16 @@ class _LockOverlay extends ConsumerWidget {
               const SizedBox(height: 20),
               FilledButton.icon(
                 onPressed: () async {
-                  final enabled = await ref.read(authRepositoryProvider).biometricsEnabled();
+                  final enabled = await ref
+                      .read(authRepositoryProvider)
+                      .biometricsEnabled();
                   if (!enabled) {
                     ref.read(sessionLockControllerProvider.notifier).unlock();
                     return;
                   }
-                  final authenticated =
-                      await ref.read(biometricServiceProvider).authenticate();
+                  final authenticated = await ref
+                      .read(biometricServiceProvider)
+                      .authenticate();
                   if (authenticated && context.mounted) {
                     ref.read(sessionLockControllerProvider.notifier).unlock();
                   }

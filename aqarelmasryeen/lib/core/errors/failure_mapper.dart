@@ -7,10 +7,16 @@ AppException mapException(Object error) {
     return error;
   }
   if (error is FirebaseAuthException) {
-    return AppException(error.message ?? 'Authentication failed.', code: error.code);
+    return AppException(
+      error.message ?? 'Authentication failed.',
+      code: error.code,
+    );
   }
   if (error is FirebaseException) {
-    return AppException(error.message ?? 'Firebase request failed.', code: error.code);
+    return AppException(
+      error.message ?? 'Firebase request failed.',
+      code: error.code,
+    );
   }
   return AppException(error.toString());
 }

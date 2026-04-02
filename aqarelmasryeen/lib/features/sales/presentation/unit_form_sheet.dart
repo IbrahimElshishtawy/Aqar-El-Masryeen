@@ -8,11 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class UnitFormSheet extends ConsumerStatefulWidget {
-  const UnitFormSheet({
-    super.key,
-    required this.propertyId,
-    this.unit,
-  });
+  const UnitFormSheet({super.key, required this.propertyId, this.unit});
 
   final String propertyId;
   final UnitSale? unit;
@@ -40,12 +36,18 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     super.initState();
     final unit = widget.unit;
     _unitController = TextEditingController(text: unit?.unitNumber ?? '');
-    _floorController =
-        TextEditingController(text: unit == null ? '' : unit.floor.toString());
-    _areaController =
-        TextEditingController(text: unit == null ? '' : unit.area.toStringAsFixed(0));
-    _customerNameController = TextEditingController(text: unit?.customerName ?? '');
-    _customerPhoneController = TextEditingController(text: unit?.customerPhone ?? '');
+    _floorController = TextEditingController(
+      text: unit == null ? '' : unit.floor.toString(),
+    );
+    _areaController = TextEditingController(
+      text: unit == null ? '' : unit.area.toStringAsFixed(0),
+    );
+    _customerNameController = TextEditingController(
+      text: unit?.customerName ?? '',
+    );
+    _customerPhoneController = TextEditingController(
+      text: unit?.customerPhone ?? '',
+    );
     _totalPriceController = TextEditingController(
       text: unit == null ? '' : unit.totalPrice.toStringAsFixed(0),
     );
@@ -77,7 +79,8 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     setState(() => _saving = true);
     final now = DateTime.now();
     final totalPrice = double.tryParse(_totalPriceController.text.trim()) ?? 0;
-    final downPayment = double.tryParse(_downPaymentController.text.trim()) ?? 0;
+    final downPayment =
+        double.tryParse(_downPaymentController.text.trim()) ?? 0;
     final unit = UnitSale(
       id: widget.unit?.id ?? '',
       propertyId: widget.propertyId,
@@ -89,7 +92,9 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
       customerPhone: _customerPhoneController.text.trim(),
       totalPrice: totalPrice,
       downPayment: downPayment,
-      remainingAmount: (totalPrice - downPayment).clamp(0, totalPrice).toDouble(),
+      remainingAmount: (totalPrice - downPayment)
+          .clamp(0, totalPrice)
+          .toDouble(),
       paymentPlanType: _paymentPlanType,
       status: _status,
       createdAt: widget.unit?.createdAt ?? now,
@@ -99,18 +104,20 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     );
 
     await ref.read(salesRepositoryProvider).save(unit);
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.firebaseUser.uid,
-      actorName: session.profile?.name ?? 'Partner',
-      action: widget.unit == null ? 'unit_created' : 'unit_updated',
-      entityType: 'unit',
-      entityId: unit.id.isEmpty ? unit.unitNumber : unit.id,
-      metadata: {
-        'propertyId': widget.propertyId,
-        'totalPrice': unit.totalPrice,
-        'status': unit.status.name,
-      },
-    );
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.firebaseUser.uid,
+          actorName: session.profile?.name ?? 'Partner',
+          action: widget.unit == null ? 'unit_created' : 'unit_updated',
+          entityType: 'unit',
+          entityId: unit.id.isEmpty ? unit.unitNumber : unit.id,
+          metadata: {
+            'propertyId': widget.propertyId,
+            'totalPrice': unit.totalPrice,
+            'status': unit.status.name,
+          },
+        );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -125,7 +132,9 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
           children: [
             TextFormField(
               controller: _unitController,
-              decoration: const InputDecoration(labelText: 'Unit name or number'),
+              decoration: const InputDecoration(
+                labelText: 'Unit name or number',
+              ),
               validator: (value) =>
                   (value ?? '').trim().isEmpty ? 'Enter the unit name.' : null,
             ),
@@ -143,7 +152,9 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _areaController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: const InputDecoration(labelText: 'Area m2'),
                   ),
                 ),
@@ -153,9 +164,13 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
             DropdownButtonFormField<UnitType>(
               value: _unitType,
               items: UnitType.values
-                  .map((item) => DropdownMenuItem(value: item, child: Text(item.label)))
+                  .map(
+                    (item) =>
+                        DropdownMenuItem(value: item, child: Text(item.label)),
+                  )
                   .toList(),
-              onChanged: (value) => setState(() => _unitType = value ?? _unitType),
+              onChanged: (value) =>
+                  setState(() => _unitType = value ?? _unitType),
               decoration: const InputDecoration(labelText: 'Unit type'),
             ),
             const SizedBox(height: 12),
@@ -175,7 +190,9 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _totalPriceController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
                     decoration: const InputDecoration(labelText: 'Total price'),
                     validator: (value) {
                       if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
@@ -189,8 +206,12 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _downPaymentController,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    decoration: const InputDecoration(labelText: 'Down payment'),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Down payment',
+                    ),
                   ),
                 ),
               ],
@@ -199,7 +220,10 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
             DropdownButtonFormField<PaymentPlanType>(
               value: _paymentPlanType,
               items: PaymentPlanType.values
-                  .map((item) => DropdownMenuItem(value: item, child: Text(item.label)))
+                  .map(
+                    (item) =>
+                        DropdownMenuItem(value: item, child: Text(item.label)),
+                  )
                   .toList(),
               onChanged: (value) =>
                   setState(() => _paymentPlanType = value ?? _paymentPlanType),
@@ -209,7 +233,10 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
             DropdownButtonFormField<UnitStatus>(
               value: _status,
               items: UnitStatus.values
-                  .map((item) => DropdownMenuItem(value: item, child: Text(item.label)))
+                  .map(
+                    (item) =>
+                        DropdownMenuItem(value: item, child: Text(item.label)),
+                  )
                   .toList(),
               onChanged: (value) => setState(() => _status = value ?? _status),
               decoration: const InputDecoration(labelText: 'Status'),

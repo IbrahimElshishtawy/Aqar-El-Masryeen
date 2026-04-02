@@ -45,13 +45,18 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     _amountController = TextEditingController(
       text: expense == null ? '' : expense.amount.toStringAsFixed(0),
     );
-    _descriptionController = TextEditingController(text: expense?.description ?? '');
+    _descriptionController = TextEditingController(
+      text: expense?.description ?? '',
+    );
     _notesController = TextEditingController(text: expense?.notes ?? '');
-    _attachmentController = TextEditingController(text: expense?.attachmentUrl ?? '');
+    _attachmentController = TextEditingController(
+      text: expense?.attachmentUrl ?? '',
+    );
     _category = expense?.category ?? ExpenseCategory.construction;
     _paymentMethod = expense?.paymentMethod ?? PaymentMethod.bankTransfer;
     _partnerId =
-        expense?.paidByPartnerId ?? (widget.partners.isEmpty ? '' : widget.partners.first.id);
+        expense?.paidByPartnerId ??
+        (widget.partners.isEmpty ? '' : widget.partners.first.id);
     _selectedDate = expense?.date ?? DateTime.now();
   }
 
@@ -104,25 +109,34 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     );
 
     await ref.read(expenseRepositoryProvider).save(expense);
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.firebaseUser.uid,
-      actorName: session.profile?.name ?? 'Partner',
-      action: widget.expense == null ? 'expense_created' : 'expense_updated',
-      entityType: 'expense',
-      entityId: expense.id.isEmpty ? expense.description : expense.id,
-      metadata: {
-        'propertyId': widget.propertyId,
-        'amount': expense.amount,
-        'category': expense.category.name,
-      },
-    );
-    await ref.read(notificationRepositoryProvider).create(
-      userId: session.firebaseUser.uid,
-      title: widget.expense == null ? 'New expense added' : 'Expense updated',
-      body: '${expense.description} • EGP ${expense.amount.toStringAsFixed(0)}',
-      type: NotificationType.expenseAdded,
-      route: '/properties/${widget.propertyId}',
-    );
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.firebaseUser.uid,
+          actorName: session.profile?.name ?? 'Partner',
+          action: widget.expense == null
+              ? 'expense_created'
+              : 'expense_updated',
+          entityType: 'expense',
+          entityId: expense.id.isEmpty ? expense.description : expense.id,
+          metadata: {
+            'propertyId': widget.propertyId,
+            'amount': expense.amount,
+            'category': expense.category.name,
+          },
+        );
+    await ref
+        .read(notificationRepositoryProvider)
+        .create(
+          userId: session.firebaseUser.uid,
+          title: widget.expense == null
+              ? 'New expense added'
+              : 'Expense updated',
+          body:
+              '${expense.description} • EGP ${expense.amount.toStringAsFixed(0)}',
+          type: NotificationType.expenseAdded,
+          route: '/properties/${widget.propertyId}',
+        );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -144,7 +158,9 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(labelText: 'Amount'),
               validator: (value) {
                 if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
@@ -158,13 +174,12 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
               value: _category,
               items: ExpenseCategory.values
                   .map(
-                    (item) => DropdownMenuItem(
-                      value: item,
-                      child: Text(item.label),
-                    ),
+                    (item) =>
+                        DropdownMenuItem(value: item, child: Text(item.label)),
                   )
                   .toList(),
-              onChanged: (value) => setState(() => _category = value ?? _category),
+              onChanged: (value) =>
+                  setState(() => _category = value ?? _category),
               decoration: const InputDecoration(labelText: 'Category'),
             ),
             const SizedBox(height: 12),
@@ -188,10 +203,8 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
               value: _paymentMethod,
               items: PaymentMethod.values
                   .map(
-                    (item) => DropdownMenuItem(
-                      value: item,
-                      child: Text(item.label),
-                    ),
+                    (item) =>
+                        DropdownMenuItem(value: item, child: Text(item.label)),
                   )
                   .toList(),
               onChanged: (value) =>

@@ -37,7 +37,9 @@ class AuthScaffold extends StatelessWidget {
               return SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight - 40),
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - 40,
+                  ),
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 460),
@@ -54,12 +56,14 @@ class AuthScaffold extends StatelessWidget {
                                 ],
                                 Text(
                                   title,
-                                  style: theme.textTheme.headlineMedium?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                                  style: theme.textTheme.headlineMedium
+                                      ?.copyWith(fontWeight: FontWeight.w800),
                                 ),
                                 const SizedBox(height: 8),
-                                Text(subtitle, style: theme.textTheme.bodyLarge),
+                                Text(
+                                  subtitle,
+                                  style: theme.textTheme.bodyLarge,
+                                ),
                                 const SizedBox(height: 24),
                                 child,
                               ],

@@ -7,10 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class PartnerFormSheet extends ConsumerStatefulWidget {
-  const PartnerFormSheet({
-    super.key,
-    this.partner,
-  });
+  const PartnerFormSheet({super.key, this.partner});
 
   final Partner? partner;
 
@@ -61,23 +58,28 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
       userId: widget.partner?.userId ?? '',
       name: _nameController.text.trim(),
       shareRatio: (double.tryParse(_shareController.text.trim()) ?? 0) / 100,
-      contributionTotal: double.tryParse(_contributionController.text.trim()) ?? 0,
+      contributionTotal:
+          double.tryParse(_contributionController.text.trim()) ?? 0,
       createdAt: widget.partner?.createdAt ?? now,
       updatedAt: now,
     );
 
     final partnerId = await ref.read(partnerRepositoryProvider).upsert(partner);
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.firebaseUser.uid,
-      actorName: session.profile?.name ?? 'Partner',
-      action: widget.partner == null ? 'partner_created' : 'partner_updated',
-      entityType: 'partner',
-      entityId: partnerId,
-      metadata: {
-        'shareRatio': partner.shareRatio,
-        'contributionTotal': partner.contributionTotal,
-      },
-    );
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.firebaseUser.uid,
+          actorName: session.profile?.name ?? 'Partner',
+          action: widget.partner == null
+              ? 'partner_created'
+              : 'partner_updated',
+          entityType: 'partner',
+          entityId: partnerId,
+          metadata: {
+            'shareRatio': partner.shareRatio,
+            'contributionTotal': partner.contributionTotal,
+          },
+        );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -99,7 +101,9 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _shareController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(labelText: 'Share ratio %'),
               validator: (value) {
                 final share = double.tryParse((value ?? '').trim()) ?? -1;
@@ -112,8 +116,12 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _contributionController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Capital contributions'),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Capital contributions',
+              ),
             ),
             const SizedBox(height: 18),
             SizedBox(

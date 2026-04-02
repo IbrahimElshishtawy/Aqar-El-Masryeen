@@ -8,7 +8,10 @@ class PartnerSettlementCalculator {
     required List<Partner> partners,
     required List<ExpenseRecord> expenses,
   }) {
-    final totalExpenses = expenses.fold<double>(0, (sum, item) => sum + item.amount);
+    final totalExpenses = expenses.fold<double>(
+      0,
+      (sum, item) => sum + item.amount,
+    );
 
     return partners.map((partner) {
       final contributed = expenses

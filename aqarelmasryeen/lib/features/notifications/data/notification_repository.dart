@@ -61,12 +61,16 @@ class NotificationRepository {
   }
 
   Future<void> markRead(String notificationId) {
-    return _firestore.collection(FirestorePaths.notifications).doc(notificationId).update({
-      'isRead': true,
-    });
+    return _firestore
+        .collection(FirestorePaths.notifications)
+        .doc(notificationId)
+        .update({'isRead': true});
   }
 }
 
 final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
-  return NotificationRepository(ref.watch(firestoreProvider), ref.watch(uuidProvider));
+  return NotificationRepository(
+    ref.watch(firestoreProvider),
+    ref.watch(uuidProvider),
+  );
 });

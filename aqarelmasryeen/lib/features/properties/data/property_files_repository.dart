@@ -37,6 +37,8 @@ class PropertyFilesRepository {
   }
 }
 
-final propertyFilesRepositoryProvider = Provider<PropertyFilesRepository>((ref) {
+final propertyFilesRepositoryProvider = Provider<PropertyFilesRepository>((
+  ref,
+) {
   return PropertyFilesRepository(ref.watch(firebaseStorageProvider));
 });

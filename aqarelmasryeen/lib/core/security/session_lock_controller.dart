@@ -10,10 +10,7 @@ class SessionLockState {
   final bool isLocked;
   final DateTime lastActivityAt;
 
-  SessionLockState copyWith({
-    bool? isLocked,
-    DateTime? lastActivityAt,
-  }) {
+  SessionLockState copyWith({bool? isLocked, DateTime? lastActivityAt}) {
     return SessionLockState(
       isLocked: isLocked ?? this.isLocked,
       lastActivityAt: lastActivityAt ?? this.lastActivityAt,
@@ -24,10 +21,7 @@ class SessionLockState {
 class SessionLockController extends Notifier<SessionLockState> {
   @override
   SessionLockState build() {
-    return SessionLockState(
-      isLocked: false,
-      lastActivityAt: DateTime.now(),
-    );
+    return SessionLockState(isLocked: false, lastActivityAt: DateTime.now());
   }
 
   void recordActivity() {
@@ -48,10 +42,7 @@ class SessionLockController extends Notifier<SessionLockState> {
   }
 
   void unlock() {
-    state = SessionLockState(
-      isLocked: false,
-      lastActivityAt: DateTime.now(),
-    );
+    state = SessionLockState(isLocked: false, lastActivityAt: DateTime.now());
   }
 
   void forceLock() {
@@ -61,5 +52,5 @@ class SessionLockController extends Notifier<SessionLockState> {
 
 final sessionLockControllerProvider =
     NotifierProvider<SessionLockController, SessionLockState>(
-  SessionLockController.new,
-);
+      SessionLockController.new,
+    );

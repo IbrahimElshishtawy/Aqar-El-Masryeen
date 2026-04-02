@@ -10,10 +10,12 @@ class ProfileCompletionScreen extends ConsumerStatefulWidget {
   const ProfileCompletionScreen({super.key});
 
   @override
-  ConsumerState<ProfileCompletionScreen> createState() => _ProfileCompletionScreenState();
+  ConsumerState<ProfileCompletionScreen> createState() =>
+      _ProfileCompletionScreenState();
 }
 
-class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScreen> {
+class _ProfileCompletionScreenState
+    extends ConsumerState<ProfileCompletionScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -32,16 +34,18 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
     try {
-      await ref.read(authRepositoryProvider).completeProfile(
+      await ref
+          .read(authRepositoryProvider)
+          .completeProfile(
             name: _nameController.text,
             email: _emailController.text,
             password: _passwordController.text,
           );
       if (mounted) context.go(AppRoutes.biometrics);
     } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(mapException(error).message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(mapException(error).message)));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -51,7 +55,8 @@ class _ProfileCompletionScreenState extends ConsumerState<ProfileCompletionScree
   Widget build(BuildContext context) {
     return AuthScaffold(
       title: 'Complete partner profile',
-      subtitle: 'Set your partner identity and email credentials after phone verification.',
+      subtitle:
+          'Set your partner identity and email credentials after phone verification.',
       leading: IconButton.filledTonal(
         onPressed: () => context.go(AppRoutes.login),
         icon: const Icon(Icons.arrow_back),

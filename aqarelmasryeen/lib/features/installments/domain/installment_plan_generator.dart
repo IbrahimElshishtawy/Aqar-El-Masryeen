@@ -9,7 +9,9 @@ class InstallmentPlanGenerator {
     required String actorId,
   }) {
     return List<Installment>.generate(plan.installmentCount, (index) {
-      final dueDate = plan.startDate.add(Duration(days: plan.intervalDays * index));
+      final dueDate = plan.startDate.add(
+        Duration(days: plan.intervalDays * index),
+      );
       return Installment(
         id: '',
         planId: plan.id,

@@ -16,12 +16,19 @@ class PartnerRepository {
         .collection(FirestorePaths.partners)
         .orderBy('createdAt')
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => Partner.fromMap(doc.id, doc.data())).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Partner.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
   }
 
   Future<String> upsert(Partner partner) async {
     final id = partner.id.isEmpty ? _uuid.v4() : partner.id;
-    await _firestore.collection(FirestorePaths.partners).doc(id).set(
+    await _firestore
+        .collection(FirestorePaths.partners)
+        .doc(id)
+        .set(
           partner.toMap()..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );
@@ -30,5 +37,8 @@ class PartnerRepository {
 }
 
 final partnerRepositoryProvider = Provider<PartnerRepository>((ref) {
-  return PartnerRepository(ref.watch(firestoreProvider), ref.watch(uuidProvider));
+  return PartnerRepository(
+    ref.watch(firestoreProvider),
+    ref.watch(uuidProvider),
+  );
 });

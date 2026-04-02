@@ -27,16 +27,23 @@ class SettingsScreen extends ConsumerWidget {
                     ? session!.profile!.name
                     : 'Partner account',
               ),
-              subtitle: Text(session?.profile?.email ?? session?.firebaseUser.phoneNumber ?? ''),
+              subtitle: Text(
+                session?.profile?.email ??
+                    session?.firebaseUser.phoneNumber ??
+                    '',
+              ),
             ),
           ),
           const SizedBox(height: 12),
           Card(
             child: SwitchListTile(
               value: session?.profile?.biometricEnabled ?? false,
-              onChanged: (value) => ref.read(authRepositoryProvider).setBiometrics(value),
+              onChanged: (value) =>
+                  ref.read(authRepositoryProvider).setBiometrics(value),
               title: const Text('Biometric unlock'),
-              subtitle: const Text('Use fingerprint, Face ID, or device passcode'),
+              subtitle: const Text(
+                'Use fingerprint, Face ID, or device passcode',
+              ),
             ),
           ),
           const SizedBox(height: 12),
@@ -45,7 +52,8 @@ class SettingsScreen extends ConsumerWidget {
               leading: const Icon(Icons.lock_clock_outlined),
               title: const Text('Lock now'),
               subtitle: const Text('Require authentication immediately'),
-              onTap: () => ref.read(sessionLockControllerProvider.notifier).forceLock(),
+              onTap: () =>
+                  ref.read(sessionLockControllerProvider.notifier).forceLock(),
             ),
           ),
           const SizedBox(height: 12),

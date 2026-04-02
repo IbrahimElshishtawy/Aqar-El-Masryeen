@@ -13,9 +13,18 @@ class DashboardAssembler {
     required List<PaymentRecord> payments,
     required List<ActivityLogEntry> recentActivity,
   }) {
-    final totalExpenses = expenses.fold<double>(0, (sum, item) => sum + item.amount);
-    final totalSalesValue = units.fold<double>(0, (sum, item) => sum + item.totalPrice);
-    final totalCollected = payments.fold<double>(0, (sum, item) => sum + item.amount);
+    final totalExpenses = expenses.fold<double>(
+      0,
+      (sum, item) => sum + item.amount,
+    );
+    final totalSalesValue = units.fold<double>(
+      0,
+      (sum, item) => sum + item.totalPrice,
+    );
+    final totalCollected = payments.fold<double>(
+      0,
+      (sum, item) => sum + item.amount,
+    );
 
     return DashboardSummary(
       totalProperties: properties.length,
@@ -23,7 +32,9 @@ class DashboardAssembler {
       totalSalesValue: totalSalesValue,
       totalCollected: totalCollected,
       totalRemaining: totalSalesValue - totalCollected,
-      overdueInstallmentsCount: installments.where((item) => item.isOverdue).length,
+      overdueInstallmentsCount: installments
+          .where((item) => item.isOverdue)
+          .length,
       recentActivityCount: recentActivity.length,
     );
   }

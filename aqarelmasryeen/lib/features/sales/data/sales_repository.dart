@@ -17,7 +17,9 @@ class SalesRepository {
         .orderBy('updatedAt', descending: true)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs.map((doc) => UnitSale.fromMap(doc.id, doc.data())).toList(),
+          (snapshot) => snapshot.docs
+              .map((doc) => UnitSale.fromMap(doc.id, doc.data()))
+              .toList(),
         );
   }
 
@@ -28,13 +30,18 @@ class SalesRepository {
         .orderBy('updatedAt', descending: true)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs.map((doc) => UnitSale.fromMap(doc.id, doc.data())).toList(),
+          (snapshot) => snapshot.docs
+              .map((doc) => UnitSale.fromMap(doc.id, doc.data()))
+              .toList(),
         );
   }
 
   Future<String> save(UnitSale unit) async {
     final id = unit.id.isEmpty ? _uuid.v4() : unit.id;
-    await _firestore.collection(FirestorePaths.units).doc(id).set(
+    await _firestore
+        .collection(FirestorePaths.units)
+        .doc(id)
+        .set(
           unit.toMap()..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );

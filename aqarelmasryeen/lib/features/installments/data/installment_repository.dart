@@ -99,17 +99,19 @@ class InstallmentRepository {
     required String installmentId,
     required double paidAmount,
   }) async {
-    final ref = _firestore.collection(FirestorePaths.installments).doc(installmentId);
+    final ref = _firestore
+        .collection(FirestorePaths.installments)
+        .doc(installmentId);
     final snap = await ref.get();
     final installment = Installment.fromMap(snap.id, snap.data());
     final totalPaid = installment.paidAmount + paidAmount;
     final status = totalPaid >= installment.amount
         ? InstallmentStatus.paid
         : totalPaid > 0
-            ? InstallmentStatus.partiallyPaid
-            : installment.dueDate.isBefore(DateTime.now())
-                ? InstallmentStatus.overdue
-                : InstallmentStatus.pending;
+        ? InstallmentStatus.partiallyPaid
+        : installment.dueDate.isBefore(DateTime.now())
+        ? InstallmentStatus.overdue
+        : InstallmentStatus.pending;
     await ref.update({
       'paidAmount': totalPaid,
       'status': status.name,
@@ -119,7 +121,10 @@ class InstallmentRepository {
 
   Future<void> saveInstallment(Installment installment) {
     final id = installment.id.isEmpty ? _uuid.v4() : installment.id;
-    return _firestore.collection(FirestorePaths.installments).doc(id).set(
+    return _firestore
+        .collection(FirestorePaths.installments)
+        .doc(id)
+        .set(
           installment.toMap()
             ..['updatedAt'] = DateTime.now()
             ..['status'] = installment.status.name,

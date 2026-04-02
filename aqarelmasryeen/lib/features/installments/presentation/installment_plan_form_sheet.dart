@@ -58,7 +58,9 @@ class _InstallmentPlanFormSheetState
       (item) => item.id == _unitId,
       orElse: () => widget.units.first,
     );
-    final installmentAmount = count <= 0 ? unit.remainingAmount : unit.remainingAmount / count;
+    final installmentAmount = count <= 0
+        ? unit.remainingAmount
+        : unit.remainingAmount / count;
     _amountController.text = installmentAmount.toStringAsFixed(0);
   }
 
@@ -95,22 +97,23 @@ class _InstallmentPlanFormSheetState
       updatedBy: session.firebaseUser.uid,
     );
 
-    await ref.read(installmentRepositoryProvider).savePlan(
-          plan,
+    await ref
+        .read(installmentRepositoryProvider)
+        .savePlan(plan, actorId: session.firebaseUser.uid);
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
           actorId: session.firebaseUser.uid,
+          actorName: session.profile?.name ?? 'Partner',
+          action: 'installment_plan_created',
+          entityType: 'installment_plan',
+          entityId: plan.unitId,
+          metadata: {
+            'propertyId': widget.propertyId,
+            'count': plan.installmentCount,
+            'amount': plan.installmentAmount,
+          },
         );
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.firebaseUser.uid,
-      actorName: session.profile?.name ?? 'Partner',
-      action: 'installment_plan_created',
-      entityType: 'installment_plan',
-      entityId: plan.unitId,
-      metadata: {
-        'propertyId': widget.propertyId,
-        'count': plan.installmentCount,
-        'amount': plan.installmentAmount,
-      },
-    );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -129,7 +132,9 @@ class _InstallmentPlanFormSheetState
                   .map(
                     (item) => DropdownMenuItem(
                       value: item.id,
-                      child: Text('${item.unitNumber} • ${item.customerName}'.trim()),
+                      child: Text(
+                        '${item.unitNumber} • ${item.customerName}'.trim(),
+                      ),
                     ),
                   )
                   .toList(),
@@ -148,7 +153,9 @@ class _InstallmentPlanFormSheetState
                   child: TextFormField(
                     controller: _countController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Installments'),
+                    decoration: const InputDecoration(
+                      labelText: 'Installments',
+                    ),
                     onChanged: (_) => _prefillAmount(),
                     validator: (value) {
                       if ((int.tryParse((value ?? '').trim()) ?? 0) <= 0) {
@@ -163,7 +170,9 @@ class _InstallmentPlanFormSheetState
                   child: TextFormField(
                     controller: _intervalController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Interval days'),
+                    decoration: const InputDecoration(
+                      labelText: 'Interval days',
+                    ),
                     validator: (value) {
                       if ((int.tryParse((value ?? '').trim()) ?? 0) <= 0) {
                         return 'Required';
@@ -191,8 +200,12 @@ class _InstallmentPlanFormSheetState
             const SizedBox(height: 12),
             TextFormField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(labelText: 'Installment amount'),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(
+                labelText: 'Installment amount',
+              ),
               validator: (value) {
                 if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
                   return 'Enter an amount.';

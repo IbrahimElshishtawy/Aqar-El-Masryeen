@@ -14,10 +14,14 @@ class PartnersScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final partners = ref.watch(
-      StreamProvider.autoDispose((ref) => ref.watch(partnerRepositoryProvider).watchPartners()),
+      StreamProvider.autoDispose(
+        (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
+      ),
     );
     final expenses = ref.watch(
-      StreamProvider.autoDispose((ref) => ref.watch(expenseRepositoryProvider).watchAll()),
+      StreamProvider.autoDispose(
+        (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
+      ),
     );
 
     return AppShellScaffold(
@@ -39,15 +43,18 @@ class PartnersScreen extends ConsumerWidget {
             if (partnerItems.isEmpty) {
               return const EmptyStateView(
                 title: 'No partner records',
-                message: 'Create the two partner records to start settlement tracking.',
+                message:
+                    'Create the two partner records to start settlement tracking.',
               );
             }
             final settlements = const PartnerSettlementCalculator().build(
               partners: partnerItems,
               expenses: expenseItems,
             );
-            final totalCapital =
-                partnerItems.fold<double>(0, (sum, item) => sum + item.contributionTotal);
+            final totalCapital = partnerItems.fold<double>(
+              0,
+              (sum, item) => sum + item.contributionTotal,
+            );
 
             return ListView(
               padding: const EdgeInsets.all(16),
@@ -67,7 +74,9 @@ class PartnersScreen extends ConsumerWidget {
                         isScrollControlled: true,
                         useSafeArea: true,
                         builder: (_) => PartnerFormSheet(
-                          partner: partnerItems.firstWhere((partner) => partner.id == item.partnerId),
+                          partner: partnerItems.firstWhere(
+                            (partner) => partner.id == item.partnerId,
+                          ),
                         ),
                       ),
                       title: Text(item.partnerName),
@@ -77,7 +86,9 @@ class PartnersScreen extends ConsumerWidget {
                       trailing: Text(
                         item.balanceDelta.egp,
                         style: TextStyle(
-                          color: item.balanceDelta >= 0 ? Colors.green : Colors.red,
+                          color: item.balanceDelta >= 0
+                              ? Colors.green
+                              : Colors.red,
                           fontWeight: FontWeight.w700,
                         ),
                       ),

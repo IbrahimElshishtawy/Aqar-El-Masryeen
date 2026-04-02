@@ -33,7 +33,8 @@ class FirebaseAuthRepository implements AuthRepository {
   final dynamic _deviceInfoService;
 
   @override
-  Stream<bool> authStateChanges() => _auth.authStateChanges().map((user) => user != null);
+  Stream<bool> authStateChanges() =>
+      _auth.authStateChanges().map((user) => user != null);
 
   @override
   Stream<AppSession?> watchSession() async* {
@@ -43,12 +44,16 @@ class FirebaseAuthRepository implements AuthRepository {
         continue;
       }
 
-      yield* _firestore.collection(FirestorePaths.users).doc(user.uid).snapshots().map(
-        (doc) => AppSession(
-          firebaseUser: user,
-          profile: doc.exists ? AppUser.fromMap(doc.id, doc.data()) : null,
-        ),
-      );
+      yield* _firestore
+          .collection(FirestorePaths.users)
+          .doc(user.uid)
+          .snapshots()
+          .map(
+            (doc) => AppSession(
+              firebaseUser: user,
+              profile: doc.exists ? AppUser.fromMap(doc.id, doc.data()) : null,
+            ),
+          );
     }
   }
 
@@ -59,7 +64,9 @@ class FirebaseAuthRepository implements AuthRepository {
   }) async {
     if (!(defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS)) {
-      throw const AppException('Phone auth is supported on Android and iOS only.');
+      throw const AppException(
+        'Phone auth is supported on Android and iOS only.',
+      );
     }
 
     final completer = Completer<void>();
@@ -172,7 +179,8 @@ class FirebaseAuthRepository implements AuthRepository {
 
   @override
   Future<bool> biometricsEnabled() async {
-    return (await _secureStorage.read(_secureStorage.biometricEnabledKey)) == 'true';
+    return (await _secureStorage.read(_secureStorage.biometricEnabledKey)) ==
+        'true';
   }
 
   @override
@@ -220,9 +228,10 @@ class FirebaseAuthRepository implements AuthRepository {
     final device = await _deviceInfoService.currentDeviceLabel();
     final userRef = _firestore.collection(FirestorePaths.users).doc(user.uid);
     final profile = await userRef.get();
-    final existingDevices = (profile.data()?['trustedDevices'] as List<dynamic>? ?? const [])
-        .map((item) => item.toString())
-        .toSet();
+    final existingDevices =
+        (profile.data()?['trustedDevices'] as List<dynamic>? ?? const [])
+            .map((item) => item.toString())
+            .toSet();
     final isNewDevice = !existingDevices.contains(device);
 
     await _secureStorage.write(_secureStorage.trustedDeviceKey, device);
@@ -239,10 +248,7 @@ class FirebaseAuthRepository implements AuthRepository {
       action: 'login',
       entityType: 'user',
       entityId: user.uid,
-      metadata: {
-        'device': device,
-        'isNewDevice': isNewDevice,
-      },
+      metadata: {'device': device, 'isNewDevice': isNewDevice},
     );
 
     if (isNewDevice) {

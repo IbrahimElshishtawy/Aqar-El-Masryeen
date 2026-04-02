@@ -44,9 +44,15 @@ class OtpFlowController extends Notifier<OtpFlowState> {
   OtpFlowState build() => const OtpFlowState();
 
   Future<void> requestOtp(String phone) async {
-    state = state.copyWith(isSubmitting: true, errorMessage: null, phone: phone);
+    state = state.copyWith(
+      isSubmitting: true,
+      errorMessage: null,
+      phone: phone,
+    );
     try {
-      await ref.read(authRepositoryProvider).sendOtp(
+      await ref
+          .read(authRepositoryProvider)
+          .sendOtp(
             phone: phone,
             onCodeSent: (verificationId, resendToken) {
               state = state.copyWith(
@@ -69,10 +75,9 @@ class OtpFlowController extends Notifier<OtpFlowState> {
   Future<void> verifyOtp(String smsCode) async {
     state = state.copyWith(isSubmitting: true, errorMessage: null);
     try {
-      await ref.read(authRepositoryProvider).verifyOtp(
-            verificationId: state.verificationId,
-            smsCode: smsCode,
-          );
+      await ref
+          .read(authRepositoryProvider)
+          .verifyOtp(verificationId: state.verificationId, smsCode: smsCode);
       state = state.copyWith(isSubmitting: false);
     } catch (error) {
       state = state.copyWith(
