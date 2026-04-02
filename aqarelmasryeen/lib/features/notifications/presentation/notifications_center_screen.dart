@@ -1,18 +1,16 @@
-import 'package:aqarelmasryeen/features\auth\presentation\auth_providers.dart';
-import 'package:aqarelmasryeen/features\notifications\data\notification_repository.dart';
+import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
+import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 final userNotificationsProvider = StreamProvider.autoDispose((ref) async* {
   final session = await ref.watch(authSessionProvider.future);
-  if (session?.firebaseUser.uid == null) {
+  if (session == null) {
     yield const [];
     return;
   }
-  yield* ref
-      .watch(notificationRepositoryProvider)
-      .watchNotifications(session!.firebaseUser.uid);
+  yield* ref.watch(notificationRepositoryProvider).watchNotifications(session.firebaseUser.uid);
 });
 
 class NotificationsCenterScreen extends ConsumerWidget {
@@ -35,9 +33,12 @@ class NotificationsCenterScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final item = items[index];
               return Card(
+                margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
                   leading: Icon(
-                    item.isRead ? Icons.mark_email_read_outlined : Icons.notifications_active_outlined,
+                    item.isRead
+                        ? Icons.mark_email_read_outlined
+                        : Icons.notifications_active_outlined,
                   ),
                   title: Text(item.title),
                   subtitle: Text(item.body),
