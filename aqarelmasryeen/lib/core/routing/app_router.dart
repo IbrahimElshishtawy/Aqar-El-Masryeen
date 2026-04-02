@@ -120,6 +120,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutes.profile;
       }
 
+      if (location == AppRoutes.biometrics) {
+        return null;
+      }
+
       if (location == AppRoutes.splash || isAuthRoute) {
         return AppRoutes.dashboard;
       }

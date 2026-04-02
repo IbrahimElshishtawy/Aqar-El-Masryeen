@@ -121,6 +121,9 @@ class OtpFlowController extends Notifier<OtpFlowState> {
       isSubmitting: true,
       errorMessage: null,
       phone: phone,
+      verificationId: isResend ? null : '',
+      resendToken: isResend ? _sentinel : null,
+      resendAvailableAt: isResend ? _sentinel : null,
     );
     try {
       await ref

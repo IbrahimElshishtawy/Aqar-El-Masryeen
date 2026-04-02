@@ -41,6 +41,13 @@ class AuthValidators {
     return null;
   }
 
+  static String? loginPassword(String? value) {
+    if ((value ?? '').length < 6) {
+      return 'Password must be at least 6 characters.';
+    }
+    return null;
+  }
+
   static String? confirmPassword(String? value, String password) {
     if ((value ?? '') != password) {
       return 'Passwords do not match.';

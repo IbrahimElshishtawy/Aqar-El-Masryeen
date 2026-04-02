@@ -37,7 +37,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       await ref
           .read(otpFlowControllerProvider.notifier)
           .requestOtp(_phoneController.text.trim());
-      if (mounted) context.go(AppRoutes.otp);
+      final session = ref.read(authSessionProvider).valueOrNull;
+      if (!mounted) return;
+      context.go(
+        session == null
+            ? AppRoutes.otp
+            : session.isProfileComplete
+            ? AppRoutes.dashboard
+            : AppRoutes.profile,
+      );
     } catch (error) {
       _showMessage(mapException(error).message);
     }
@@ -196,7 +204,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ),
                       ),
-                      validator: AuthValidators.password,
+                      validator: AuthValidators.loginPassword,
                       onFieldSubmitted: (_) => _emailLogin(),
                     ),
                     const SizedBox(height: 16),

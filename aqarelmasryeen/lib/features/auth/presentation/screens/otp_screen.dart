@@ -113,7 +113,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
               child: Text(
                 remainingSeconds > 0
                     ? 'You can request a new code in ${remainingSeconds}s.'
-                    : 'Didn’t receive the code? Request another SMS now.',
+                    : 'Did not receive the code? Request another SMS now.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
