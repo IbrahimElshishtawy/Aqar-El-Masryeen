@@ -7,6 +7,7 @@ class SecureStorageService {
 
   static const biometricEnabledKey = 'biometric_enabled';
   static const trustedDeviceKey = 'trusted_device';
+  static const lastActivityAtKey = 'last_activity_at';
 
   Future<void> write(String key, String value) => _storage.write(key: key, value: value);
 
@@ -14,5 +15,5 @@ class SecureStorageService {
 
   Future<void> delete(String key) => _storage.delete(key: key);
 
-  Future<void> clearSession() => delete(biometricEnabledKey);
+  Future<void> clearSession() => _storage.deleteAll();
 }

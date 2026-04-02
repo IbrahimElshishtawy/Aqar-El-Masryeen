@@ -1,5 +1,7 @@
 import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
+import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
+import 'package:aqarelmasryeen/features/auth/presentation/widgets/auth_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -38,30 +40,37 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(otpFlowControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Verify OTP', style: Theme.of(context).textTheme.headlineMedium),
-              const SizedBox(height: 8),
-              Text('A verification code was sent to ${state.phone}.'),
-              const SizedBox(height: 32),
-              Pinput(controller: _codeController, length: 6),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: state.isSubmitting ? null : _verify,
-                  child: Text(state.isSubmitting ? 'Verifying...' : 'Verify'),
-                ),
-              ),
-            ],
+    return AuthScaffold(
+      title: 'Verify one-time code',
+      subtitle: 'Enter the 6-digit code sent to ${state.phone}.',
+      leading: IconButton.filledTonal(
+        onPressed: () => context.go(AppRoutes.login),
+        icon: const Icon(Icons.arrow_back),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Pinput(
+            controller: _codeController,
+            length: 6,
+            autofocus: true,
           ),
-        ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: state.isSubmitting ? null : _verify,
+              child: Text(state.isSubmitting ? 'Verifying...' : 'Verify and continue'),
+            ),
+          ),
+          if ((state.errorMessage ?? '').isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              state.errorMessage!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+        ],
       ),
     );
   }

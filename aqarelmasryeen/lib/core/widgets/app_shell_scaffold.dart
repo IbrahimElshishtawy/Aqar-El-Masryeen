@@ -1,3 +1,5 @@
+import 'package:aqarelmasryeen/core/constants/app_breakpoints.dart';
+import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/security/session_lock_controller.dart';
 import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter/material.dart';
@@ -27,11 +29,11 @@ class AppShellScaffold extends ConsumerStatefulWidget {
 class _AppShellScaffoldState extends ConsumerState<AppShellScaffold>
     with WidgetsBindingObserver {
   static const _destinations = [
-    '/dashboard',
-    '/properties',
-    '/partners',
-    '/reports',
-    '/settings',
+    AppRoutes.dashboard,
+    AppRoutes.properties,
+    AppRoutes.partners,
+    AppRoutes.reports,
+    AppRoutes.settings,
   ];
 
   @override
@@ -59,29 +61,89 @@ class _AppShellScaffoldState extends ConsumerState<AppShellScaffold>
   @override
   Widget build(BuildContext context) {
     final lockState = ref.watch(sessionLockControllerProvider);
+    final isWide = MediaQuery.sizeOf(context).width >= AppBreakpoints.tablet;
 
     return Listener(
       onPointerDown: (_) => ref.read(sessionLockControllerProvider.notifier).recordActivity(),
       child: Scaffold(
         appBar: AppBar(title: Text(widget.title), actions: widget.actions),
         floatingActionButton: widget.floatingActionButton,
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: widget.currentIndex,
-          onDestinationSelected: (index) => context.go(_destinations[index]),
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
-            NavigationDestination(icon: Icon(Icons.apartment_outlined), label: 'Properties'),
-            NavigationDestination(icon: Icon(Icons.group_outlined), label: 'Partners'),
-            NavigationDestination(icon: Icon(Icons.summarize_outlined), label: 'Reports'),
-            NavigationDestination(icon: Icon(Icons.settings_outlined), label: 'Settings'),
-          ],
-        ),
         body: Stack(
           children: [
-            SafeArea(child: widget.child),
+            SafeArea(
+              child: Row(
+                children: [
+                  if (isWide)
+                    NavigationRail(
+                      selectedIndex: widget.currentIndex,
+                      onDestinationSelected: (index) => context.go(_destinations[index]),
+                      labelType: NavigationRailLabelType.all,
+                      destinations: const [
+                        NavigationRailDestination(
+                          icon: Icon(Icons.dashboard_outlined),
+                          label: Text('Dashboard'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.apartment_outlined),
+                          label: Text('Properties'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.group_outlined),
+                          label: Text('Partners'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.summarize_outlined),
+                          label: Text('Reports'),
+                        ),
+                        NavigationRailDestination(
+                          icon: Icon(Icons.settings_outlined),
+                          label: Text('Settings'),
+                        ),
+                      ],
+                    ),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1180),
+                        child: widget.child,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             if (lockState.isLocked) Positioned.fill(child: _LockOverlay()),
           ],
         ),
+        bottomNavigationBar: isWide
+            ? null
+            : NavigationBar(
+                selectedIndex: widget.currentIndex,
+                onDestinationSelected: (index) => context.go(_destinations[index]),
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.dashboard_outlined),
+                    label: 'Dashboard',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.apartment_outlined),
+                    label: 'Properties',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.group_outlined),
+                    label: 'Partners',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.summarize_outlined),
+                    label: 'Reports',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.settings_outlined),
+                    label: 'Settings',
+                  ),
+                ],
+              ),
       ),
     );
   }

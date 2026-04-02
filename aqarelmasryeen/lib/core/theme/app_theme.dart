@@ -5,22 +5,25 @@ class AppTheme {
   const AppTheme._();
 
   static ThemeData light() {
-    const base = Color(0xFF0F172A);
-    const accent = Color(0xFF0F766E);
+    const base = Color(0xFF111827);
+    const accent = Color(0xFF0B6E4F);
+    const secondary = Color(0xFF1D4ED8);
+    const surface = Color(0xFFF4F7F4);
 
     final scheme = ColorScheme.fromSeed(
       seedColor: accent,
       brightness: Brightness.light,
-      surface: Colors.white,
+      surface: surface,
     );
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme.copyWith(
         primary: accent,
-        secondary: const Color(0xFF2563EB),
+        secondary: secondary,
+        surface: Colors.white,
       ),
-      scaffoldBackgroundColor: const Color(0xFFF7FAFC),
+      scaffoldBackgroundColor: surface,
       textTheme: GoogleFonts.cairoTextTheme().apply(
         bodyColor: base,
         displayColor: base,
@@ -29,20 +32,45 @@ class AppTheme {
         centerTitle: false,
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
+        elevation: 0,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFF1F5F9),
+        fillColor: const Color(0xFFF3F4F6),
+        hintStyle: const TextStyle(color: Color(0xFF6B7280)),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(20),
+          borderSide: const BorderSide(color: accent, width: 1.2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w600,
+          ),
+        ),
+      ),
+      dividerTheme: const DividerThemeData(space: 1),
       cardTheme: CardThemeData(
         color: Colors.white,
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       ),
     );
   }
@@ -69,7 +97,8 @@ class AppTheme {
       cardTheme: CardThemeData(
         color: const Color(0xFF0F172A),
         elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       ),
     );
   }

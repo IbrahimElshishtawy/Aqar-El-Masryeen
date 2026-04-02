@@ -21,7 +21,7 @@ class MetricCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -30,11 +30,18 @@ class MetricCard extends StatelessWidget {
               backgroundColor: accent.withValues(alpha: 0.12),
               child: Icon(icon, color: accent),
             ),
-            const SizedBox(height: 16),
-            Text(label, style: theme.textTheme.bodyMedium),
+            const Spacer(),
+            Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodyMedium,
+            ),
             const SizedBox(height: 6),
             Text(
               value,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
             ),
           ],

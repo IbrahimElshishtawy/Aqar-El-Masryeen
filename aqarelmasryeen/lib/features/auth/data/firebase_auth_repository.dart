@@ -197,6 +197,7 @@ class FirebaseAuthRepository implements AuthRepository {
 
     final ref = _firestore.collection(FirestorePaths.users).doc(user.uid);
     final snap = await ref.get();
+    final device = await _deviceInfoService.currentDeviceLabel();
     if (!snap.exists) {
       await ref.set({
         'phone': user.phoneNumber ?? '',
@@ -207,7 +208,7 @@ class FirebaseAuthRepository implements AuthRepository {
         'lastLoginAt': DateTime.now(),
         'role': UserRole.partner.name,
         'biometricEnabled': false,
-        'trustedDevices': <String>[],
+        'trustedDevices': <String>[device],
       });
     }
   }
@@ -217,10 +218,19 @@ class FirebaseAuthRepository implements AuthRepository {
     if (user == null) return;
 
     final device = await _deviceInfoService.currentDeviceLabel();
+    final userRef = _firestore.collection(FirestorePaths.users).doc(user.uid);
+    final profile = await userRef.get();
+    final existingDevices = (profile.data()?['trustedDevices'] as List<dynamic>? ?? const [])
+        .map((item) => item.toString())
+        .toSet();
+    final isNewDevice = !existingDevices.contains(device);
 
-    await _firestore.collection(FirestorePaths.users).doc(user.uid).set({
+    await _secureStorage.write(_secureStorage.trustedDeviceKey, device);
+
+    await userRef.set({
       'lastLoginAt': DateTime.now(),
       'updatedAt': DateTime.now(),
+      'trustedDevices': FieldValue.arrayUnion([device]),
     }, SetOptions(merge: true));
 
     await _activityRepository.log(
@@ -229,15 +239,20 @@ class FirebaseAuthRepository implements AuthRepository {
       action: 'login',
       entityType: 'user',
       entityId: user.uid,
-      metadata: {'device': device},
+      metadata: {
+        'device': device,
+        'isNewDevice': isNewDevice,
+      },
     );
 
-    await _notificationRepository.createSecurityNotification(
-      userId: user.uid,
-      title: 'New device login',
-      body: 'A login was detected from $device',
-      route: '/settings',
-    );
+    if (isNewDevice) {
+      await _notificationRepository.createSecurityNotification(
+        userId: user.uid,
+        title: 'New device login',
+        body: 'A login was detected from $device',
+        route: '/settings',
+      );
+    }
   }
 }
 
