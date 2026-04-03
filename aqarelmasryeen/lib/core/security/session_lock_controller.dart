@@ -3,10 +3,14 @@ import 'dart:async';
 import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/secure_storage_keys.dart';
+import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
-import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+final _sessionLockAuthProvider = StreamProvider<AppSession?>((ref) {
+  return ref.watch(authRepositoryProvider).watchSession();
+});
 
 class SessionLockState extends Equatable {
   const SessionLockState({
@@ -87,7 +91,7 @@ class SessionLockController extends Notifier<SessionLockState> {
     ref.onDispose(() => _inactivityTimer?.cancel());
     if (!_didWireSessionListener) {
       _didWireSessionListener = true;
-      ref.listen(authSessionProvider, (previous, next) {
+      ref.listen(_sessionLockAuthProvider, (previous, next) {
         next.whenData((session) {
           unawaited(_syncFromSession(session));
         });
@@ -128,7 +132,7 @@ class SessionLockController extends Notifier<SessionLockState> {
       lastBackgroundAt: lastBackgroundAt,
     );
 
-    await _syncFromSession(ref.read(authSessionProvider).valueOrNull);
+    await _syncFromSession(ref.read(_sessionLockAuthProvider).valueOrNull);
   }
 
   Future<void> _syncFromSession(AppSession? session) async {
