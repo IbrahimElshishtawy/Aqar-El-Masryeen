@@ -38,7 +38,7 @@ final secureStorageProvider = Provider<SecureStorageService>(
     const FlutterSecureStorage(
       aOptions: AndroidOptions(
         resetOnError: true,
-        migrateOnAlgorithmChange: false,
+        migrateOnAlgorithmChange: true,
       ),
       iOptions: IOSOptions(
         accessibility: KeychainAccessibility.first_unlock_this_device,

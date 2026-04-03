@@ -14,6 +14,7 @@ import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/models/app_user.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -75,7 +76,7 @@ class FirebaseAuthRepository implements AuthRepository {
 
       final user = _authDataSource.currentUser;
       if (user != null) {
-        await _ensurePhoneVerifiedPlaceholder(user);
+        await _bootstrapPhoneVerifiedUser(user);
       }
     } catch (error, stackTrace) {
       _recordError(error, stackTrace);
@@ -97,7 +98,7 @@ class FirebaseAuthRepository implements AuthRepository {
       if (user == null) {
         throw const AppException('Phone verification did not return a user.');
       }
-      await _ensurePhoneVerifiedPlaceholder(user);
+      await _bootstrapPhoneVerifiedUser(user);
     } catch (error, stackTrace) {
       _recordError(error, stackTrace);
       rethrow;
@@ -339,6 +340,15 @@ class FirebaseAuthRepository implements AuthRepository {
     }
   }
 
+  Future<void> _bootstrapPhoneVerifiedUser(User user) async {
+    try {
+      await _ensurePhoneVerifiedPlaceholder(user);
+    } on FirebaseException catch (error) {
+      await _authDataSource.signOut();
+      throw _mapProfileBootstrapException(error);
+    }
+  }
+
   Future<void> _syncLocalSession(AppUser? profile, String uid) async {
     await _secureStorage.markAppOpened();
     await _secureStorage.writeLastKnownUid(uid);
@@ -369,6 +379,27 @@ class FirebaseAuthRepository implements AuthRepository {
 
   void _recordError(Object error, StackTrace stackTrace) {
     _crashlytics.recordError(error, stackTrace, fatal: false);
+  }
+
+  AppException _mapProfileBootstrapException(FirebaseException error) {
+    final message = error.message ?? '';
+    if (error.plugin == 'cloud_firestore' &&
+        message.contains('database (default) does not exist')) {
+      return const AppException(
+        'Phone verification succeeded, but Cloud Firestore is not created for this Firebase project. Create the default Firestore database, then try again.',
+        code: 'firestore_not_configured',
+      );
+    }
+    if (error.plugin == 'cloud_firestore' && error.code == 'unavailable') {
+      return const AppException(
+        'Phone verification succeeded, but the app could not reach Cloud Firestore. Check Firestore setup, App Check, and internet access, then try again.',
+        code: 'firestore_unavailable',
+      );
+    }
+    return AppException(
+      message.isEmpty ? 'Could not finish account setup.' : message,
+      code: error.code,
+    );
   }
 }
 

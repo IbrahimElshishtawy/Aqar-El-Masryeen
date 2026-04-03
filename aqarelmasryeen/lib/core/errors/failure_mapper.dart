@@ -1,4 +1,5 @@
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:local_auth/local_auth.dart';
 
@@ -90,6 +91,27 @@ AppException mapException(Object error) {
     }
   }
   if (error is FirebaseException) {
+    if (error.plugin == 'cloud_firestore') {
+      final message = error.message ?? '';
+      if (message.contains('database (default) does not exist')) {
+        return const AppException(
+          'Cloud Firestore is not set up for this Firebase project yet. Create the default Firestore database in Firebase Console, then try again.',
+          code: 'firestore_not_configured',
+        );
+      }
+      switch (error.code) {
+        case 'unavailable':
+          return const AppException(
+            'Cloud Firestore is unavailable right now. If this is a new project, create the default Firestore database first.',
+            code: 'firestore_unavailable',
+          );
+        case 'permission-denied':
+          return const AppException(
+            'Firestore access was denied. Check your Firebase App Check and Firestore security rules.',
+            code: 'firestore_permission_denied',
+          );
+      }
+    }
     return AppException(
       error.message ?? 'Firebase request failed.',
       code: error.code,
