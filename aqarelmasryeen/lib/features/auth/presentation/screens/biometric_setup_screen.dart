@@ -124,7 +124,7 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<int>(
-              value: _timeoutSeconds,
+              initialValue: _timeoutSeconds,
               decoration: const InputDecoration(
                 labelText: 'Inactivity timeout',
                 prefixIcon: Icon(Icons.timer_outlined),
