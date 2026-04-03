@@ -1,62 +1,56 @@
 import 'dart:async';
 
 import 'package:aqarelmasryeen/app/providers.dart';
-import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
+import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/services/device_info_service.dart';
 import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
 import 'package:aqarelmasryeen/core/utils/phone_utils.dart';
+import 'package:aqarelmasryeen/features/auth/data/datasources/firebase_auth_remote_data_source.dart';
+import 'package:aqarelmasryeen/features/auth/data/datasources/user_profile_remote_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
-import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/app_user.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class FirebaseAuthRepository implements AuthRepository {
   FirebaseAuthRepository(
-    this._auth,
-    this._firestore,
+    this._authDataSource,
+    this._profileDataSource,
     this._activityRepository,
     this._notificationRepository,
     this._secureStorage,
     this._deviceInfoService,
+    this._analytics,
+    this._crashlytics,
   );
 
-  final FirebaseAuth _auth;
-  final FirebaseFirestore _firestore;
+  final FirebaseAuthRemoteDataSource _authDataSource;
+  final UserProfileRemoteDataSource _profileDataSource;
   final ActivityRepository _activityRepository;
   final NotificationRepository _notificationRepository;
   final SecureStorageService _secureStorage;
   final DeviceInfoService _deviceInfoService;
-
-  @override
-  Stream<bool> authStateChanges() =>
-      _auth.authStateChanges().map((user) => user != null);
+  final FirebaseAnalytics _analytics;
+  final FirebaseCrashlytics _crashlytics;
 
   @override
   Stream<AppSession?> watchSession() async* {
-    await for (final user in _auth.authStateChanges()) {
+    await for (final user in _authDataSource.authStateChanges()) {
       if (user == null) {
         yield null;
         continue;
       }
 
-      yield* _firestore
-          .collection(FirestorePaths.users)
-          .doc(user.uid)
-          .snapshots()
-          .asyncMap((doc) async {
-            final profile = doc.exists
-                ? AppUser.fromMap(doc.id, doc.data())
-                : null;
-            await _syncLocalSecurityPreferences(profile);
-            return AppSession(firebaseUser: user, profile: profile);
-          });
+      yield* _profileDataSource.watchProfile(user.uid).asyncMap((profile) async {
+        await _syncLocalSession(profile ?? await _profileDataSource.fetchProfile(user.uid), user.uid);
+        return AppSession(firebaseUser: user, profile: profile);
+      });
     }
   }
 
@@ -66,37 +60,23 @@ class FirebaseAuthRepository implements AuthRepository {
     required void Function(String verificationId, int? resendToken) onCodeSent,
     int? resendToken,
   }) async {
-    if (!(defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS)) {
-      throw const AppException(
-        'Phone auth is supported on Android and iOS only.',
+    final normalizedPhone = PhoneUtils.normalize(phone);
+
+    try {
+      await _authDataSource.sendOtp(
+        phone: normalizedPhone,
+        resendToken: resendToken,
+        onCodeSent: onCodeSent,
       );
+
+      final user = _authDataSource.currentUser;
+      if (user != null) {
+        await _ensurePhoneVerifiedPlaceholder(user);
+      }
+    } catch (error, stackTrace) {
+      _recordError(error, stackTrace);
+      rethrow;
     }
-
-    final completer = Completer<void>();
-
-    await _auth.verifyPhoneNumber(
-      phoneNumber: PhoneUtils.normalize(phone),
-      forceResendingToken: resendToken,
-      verificationCompleted: (credential) async {
-        await _auth.signInWithCredential(credential);
-        await _ensureProfileDocument();
-        await _recordLogin();
-        if (!completer.isCompleted) completer.complete();
-      },
-      verificationFailed: (error) {
-        if (!completer.isCompleted) completer.completeError(error);
-      },
-      codeSent: (verificationId, resendToken) {
-        onCodeSent(verificationId, resendToken);
-        if (!completer.isCompleted) completer.complete();
-      },
-      codeAutoRetrievalTimeout: (_) {
-        if (!completer.isCompleted) completer.complete();
-      },
-    );
-
-    await completer.future;
   }
 
   @override
@@ -104,220 +84,299 @@ class FirebaseAuthRepository implements AuthRepository {
     required String verificationId,
     required String smsCode,
   }) async {
-    final credential = PhoneAuthProvider.credential(
-      verificationId: verificationId,
-      smsCode: smsCode,
-    );
-    await _auth.signInWithCredential(credential);
-    await _ensureProfileDocument();
-    await _recordLogin();
+    try {
+      final credential = await _authDataSource.verifyOtp(
+        verificationId: verificationId,
+        smsCode: smsCode,
+      );
+      final user = credential.user;
+      if (user == null) {
+        throw const AppException('Phone verification did not return a user.');
+      }
+      await _ensurePhoneVerifiedPlaceholder(user);
+    } catch (error, stackTrace) {
+      _recordError(error, stackTrace);
+      rethrow;
+    }
   }
 
   @override
-  Future<void> signInWithEmail({
-    required String email,
+  Future<void> signInWithIdentifier({
+    required String identifier,
     required String password,
   }) async {
-    await _auth.signInWithEmailAndPassword(
-      email: email.trim().toLowerCase(),
-      password: password,
-    );
-    await _ensureProfileDocument();
-    await _recordLogin();
+    try {
+      final normalized = identifier.trim().toLowerCase();
+      final looksLikeEmail = normalized.contains('@');
+      String email = normalized;
+
+      if (!looksLikeEmail) {
+        final phone = PhoneUtils.normalize(identifier);
+        final profile = await _profileDataSource.findByPhone(phone);
+        if (profile == null) {
+          throw const AppException(
+            'No account was found for this phone number.',
+            code: 'missing_account',
+          );
+        }
+        if (!profile.isActive) {
+          throw const AppException(
+            'This account is disabled. Contact the administrator.',
+            code: 'account_disabled',
+          );
+        }
+        if (profile.email.trim().isEmpty) {
+          throw const AppException(
+            'This account is missing an email login. Sign in with phone verification again to recover access.',
+            code: 'missing_email_login',
+          );
+        }
+        email = profile.email.trim().toLowerCase();
+      }
+
+      final credential = await _authDataSource.signInWithEmail(
+        email: email,
+        password: password,
+      );
+      final user = credential.user;
+      if (user == null) {
+        throw const AppException('Authentication did not return a user.');
+      }
+
+      final deviceInfo = await _deviceInfoService.currentDeviceInfo();
+      final profile = await _profileDataSource.fetchProfile(user.uid);
+      if (profile == null) {
+        await _authDataSource.signOut();
+        throw const AppException(
+          'Your account profile is missing. Use phone registration recovery or contact the administrator.',
+          code: 'missing_profile',
+        );
+      }
+      if (!profile.isActive) {
+        await _authDataSource.signOut();
+        throw const AppException(
+          'This account is disabled. Contact the administrator.',
+          code: 'account_disabled',
+        );
+      }
+
+      await _profileDataSource.touchLogin(uid: user.uid, deviceInfo: deviceInfo);
+      await _syncLocalSession(profile, user.uid);
+      await _logSecurityEvent(
+        actorId: user.uid,
+        actorName: profile.fullName.isEmpty ? 'Partner' : profile.fullName,
+        action: 'login',
+        metadata: {'route': 'credentials', 'device': deviceInfo.deviceName},
+      );
+      await _analytics.logLogin(loginMethod: looksLikeEmail ? 'email' : 'phone_password');
+    } catch (error, stackTrace) {
+      _recordError(error, stackTrace);
+      rethrow;
+    }
   }
 
   @override
   Future<void> completeProfile({
-    required String name,
+    required String fullName,
     required String email,
     required String password,
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) throw const AppException('No authenticated user found.');
-
-    final normalizedEmail = email.trim().toLowerCase();
-    final emailCredential = EmailAuthProvider.credential(
-      email: normalizedEmail,
-      password: password,
-    );
-
-    final providers = user.providerData.map((item) => item.providerId).toSet();
-    if (!providers.contains(EmailAuthProvider.PROVIDER_ID)) {
-      await user.linkWithCredential(emailCredential);
+    final user = _authDataSource.currentUser;
+    if (user == null) {
+      throw const AppException('No authenticated user found.');
     }
 
-    await user.updateDisplayName(name.trim());
-    await user.reload();
+    final normalizedEmail = email.trim().toLowerCase();
 
-    final now = DateTime.now();
-    final userRef = _firestore.collection(FirestorePaths.users).doc(user.uid);
-    final existing = await userRef.get();
-    final existingData = existing.data() ?? const <String, dynamic>{};
-    await userRef.set({
-      'phone': user.phoneNumber ?? '',
-      'name': name.trim(),
-      'email': normalizedEmail,
-      'createdAt': existingData['createdAt'] ?? now,
-      'updatedAt': now,
-      'lastLoginAt': now,
-      'role': existingData['role'] ?? UserRole.partner.name,
-      'biometricEnabled': existingData['biometricEnabled'] as bool? ?? false,
-      'trustedDevices':
-          existingData['trustedDevices'] as List<dynamic>? ?? const <String>[],
-    }, SetOptions(merge: true));
+    try {
+      await _authDataSource.linkEmailCredential(
+        user: user,
+        email: normalizedEmail,
+        password: password,
+      );
+      await _authDataSource.updateDisplayName(user, fullName.trim());
+      await _authDataSource.reloadUser(user);
 
-    await _activityRepository.log(
-      actorId: user.uid,
-      actorName: name.trim(),
-      action: 'profile_completed',
-      entityType: 'user',
-      entityId: user.uid,
-      metadata: {'email': normalizedEmail},
-    );
+      final deviceInfo = await _deviceInfoService.currentDeviceInfo();
+      await _profileDataSource.completeProfile(
+        user: user,
+        fullName: fullName.trim(),
+        email: normalizedEmail,
+        deviceInfo: deviceInfo,
+      );
+
+      await _secureStorage.writeLastKnownUid(user.uid);
+      await _analytics.logSignUp(signUpMethod: 'phone_otp');
+      await _logSecurityEvent(
+        actorId: user.uid,
+        actorName: fullName.trim(),
+        action: 'profile_completed',
+        metadata: {'email': normalizedEmail},
+      );
+    } catch (error, stackTrace) {
+      _recordError(error, stackTrace);
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> saveSecurityPreferences({
+    required bool trustedDeviceEnabled,
+    required bool biometricEnabled,
+    required bool appLockEnabled,
+    required int inactivityTimeoutSeconds,
+  }) async {
+    final user = _authDataSource.currentUser;
+    if (user == null) {
+      throw const AppException('No authenticated user found.');
+    }
+
+    try {
+      final deviceInfo = await _deviceInfoService.currentDeviceInfo();
+      await _profileDataSource.updateSecurityPreferences(
+        uid: user.uid,
+        trustedDeviceEnabled: trustedDeviceEnabled,
+        biometricEnabled: biometricEnabled,
+        appLockEnabled: appLockEnabled,
+        inactivityTimeoutSeconds: inactivityTimeoutSeconds,
+        deviceInfo: deviceInfo,
+      );
+      await _secureStorage.persistSecurityPreferences(
+        trustedDeviceEnabled: trustedDeviceEnabled,
+        biometricEnabled: biometricEnabled,
+        appLockEnabled: appLockEnabled,
+        inactivityTimeoutSeconds: inactivityTimeoutSeconds,
+      );
+
+      await _logSecurityEvent(
+        actorId: user.uid,
+        actorName: user.displayName ?? 'Partner',
+        action: 'security_preferences_updated',
+        metadata: {
+          'trustedDeviceEnabled': trustedDeviceEnabled,
+          'biometricEnabled': biometricEnabled,
+          'appLockEnabled': appLockEnabled,
+          'inactivityTimeoutSeconds': inactivityTimeoutSeconds,
+        },
+      );
+    } catch (error, stackTrace) {
+      _recordError(error, stackTrace);
+      rethrow;
+    }
   }
 
   @override
   Future<void> setBiometrics(bool enabled) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    await _secureStorage.write(
-      SecureStorageService.biometricEnabledKey,
-      enabled ? 'true' : 'false',
+    final user = _authDataSource.currentUser;
+    if (user == null) {
+      throw const AppException('No authenticated user found.');
+    }
+    await _profileDataSource.setBiometricPreference(
+      uid: user.uid,
+      biometricEnabled: enabled,
     );
-    await _firestore.collection(FirestorePaths.users).doc(user.uid).set({
-      'biometricEnabled': enabled,
-      'updatedAt': DateTime.now(),
-    }, SetOptions(merge: true));
-    await _activityRepository.log(
-      actorId: user.uid,
-      actorName: user.displayName ?? user.phoneNumber ?? 'Partner',
-      action: enabled ? 'biometric_enabled' : 'biometric_disabled',
-      entityType: 'user',
-      entityId: user.uid,
+    final appLockEnabled = await _secureStorage.readBool('security.app_lock_enabled') ?? true;
+    final inactivityTimeoutSeconds =
+        await _secureStorage.readInt('security.inactivity_timeout_seconds') ?? 90;
+    final trustedDeviceEnabled =
+        await _secureStorage.readBool('security.trusted_device_enabled') ?? enabled;
+    await _secureStorage.persistSecurityPreferences(
+      trustedDeviceEnabled: trustedDeviceEnabled,
+      biometricEnabled: enabled,
+      appLockEnabled: appLockEnabled,
+      inactivityTimeoutSeconds: inactivityTimeoutSeconds,
     );
-  }
-
-  @override
-  Future<bool> biometricsEnabled() async {
-    return (await _secureStorage.read(
-          SecureStorageService.biometricEnabledKey,
-        )) ==
-        'true';
   }
 
   @override
   Future<void> signOut() async {
-    final user = _auth.currentUser;
+    final user = _authDataSource.currentUser;
     if (user != null) {
-      await _activityRepository.log(
+      await _logSecurityEvent(
         actorId: user.uid,
         actorName: user.displayName ?? user.phoneNumber ?? 'Partner',
         action: 'logout',
-        entityType: 'user',
-        entityId: user.uid,
       );
+      await _analytics.logEvent(name: 'secure_logout');
     }
-    await _secureStorage.clearSession();
-    await _auth.signOut();
+    await _secureStorage.clearSessionData();
+    await _authDataSource.signOut();
   }
 
-  Future<void> _ensureProfileDocument() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    final ref = _firestore.collection(FirestorePaths.users).doc(user.uid);
-    final snap = await ref.get();
-    final device = await _deviceInfoService.currentDeviceLabel();
-    final data = snap.data() ?? const <String, dynamic>{};
-    final now = DateTime.now();
-    if (!snap.exists) {
-      await ref.set({
-        'phone': user.phoneNumber ?? '',
-        'name': user.displayName ?? '',
-        'email': user.email ?? '',
-        'createdAt': now,
-        'updatedAt': now,
-        'lastLoginAt': now,
-        'role': UserRole.partner.name,
-        'biometricEnabled': false,
-        'trustedDevices': <String>[device],
-      });
-      await _secureStorage.write(
-        SecureStorageService.biometricEnabledKey,
-        'false',
-      );
-      return;
-    }
-
-    final profile = AppUser.fromMap(user.uid, data);
-    await _syncLocalSecurityPreferences(profile);
-    await ref.set({
-      'phone': user.phoneNumber ?? profile.phone,
-      'email': user.email ?? profile.email,
-      'name': user.displayName ?? profile.name,
-      'updatedAt': now,
-    }, SetOptions(merge: true));
-  }
-
-  Future<void> _recordLogin() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-
-    final device = await _deviceInfoService.currentDeviceLabel();
-    final userRef = _firestore.collection(FirestorePaths.users).doc(user.uid);
-    final profile = await userRef.get();
-    final existingDevices =
-        (profile.data()?['trustedDevices'] as List<dynamic>? ?? const [])
-            .map((item) => item.toString())
-            .toSet();
-    final isNewDevice = !existingDevices.contains(device);
-
-    await _secureStorage.write(SecureStorageService.trustedDeviceKey, device);
-
-    await userRef.set({
-      'phone': user.phoneNumber ?? profile.data()?['phone'] ?? '',
-      'email': user.email ?? profile.data()?['email'] ?? '',
-      'name': user.displayName ?? profile.data()?['name'] ?? '',
-      'lastLoginAt': DateTime.now(),
-      'updatedAt': DateTime.now(),
-      'trustedDevices': FieldValue.arrayUnion([device]),
-    }, SetOptions(merge: true));
-
-    await _activityRepository.log(
-      actorId: user.uid,
-      actorName: user.displayName ?? user.phoneNumber ?? 'Partner',
-      action: 'login',
-      entityType: 'user',
-      entityId: user.uid,
-      metadata: {'device': device, 'isNewDevice': isNewDevice},
+  Future<void> _ensurePhoneVerifiedPlaceholder(User user) async {
+    final deviceInfo = await _deviceInfoService.currentDeviceInfo();
+    await _profileDataSource.ensurePlaceholderProfile(
+      user: user,
+      deviceInfo: deviceInfo,
     );
+    final profile = await _profileDataSource.fetchProfile(user.uid);
+    await _syncLocalSession(profile, user.uid);
 
+    final isNewDevice =
+        profile?.deviceInfo?.deviceId.isNotEmpty == true &&
+        profile!.deviceInfo!.deviceId != deviceInfo.deviceId;
     if (isNewDevice) {
       await _notificationRepository.createSecurityNotification(
         userId: user.uid,
-        title: 'New device login',
-        body: 'A login was detected from $device',
-        route: '/settings',
+        title: 'New trusted device detected',
+        body: 'A sign-in attempt used ${deviceInfo.deviceName}.',
+        route: AppRoutes.settings,
       );
     }
   }
 
-  Future<void> _syncLocalSecurityPreferences(AppUser? profile) async {
+  Future<void> _syncLocalSession(AppUser? profile, String uid) async {
+    await _secureStorage.markAppOpened();
+    await _secureStorage.writeLastKnownUid(uid);
     if (profile == null) return;
-    await _secureStorage.write(
-      SecureStorageService.biometricEnabledKey,
-      profile.biometricEnabled ? 'true' : 'false',
+    await _secureStorage.persistSecurityPreferences(
+      trustedDeviceEnabled: profile.trustedDeviceEnabled,
+      biometricEnabled: profile.biometricEnabled,
+      appLockEnabled: profile.appLockEnabled,
+      inactivityTimeoutSeconds: profile.inactivityTimeoutSeconds,
     );
+  }
+
+  Future<void> _logSecurityEvent({
+    required String actorId,
+    required String actorName,
+    required String action,
+    Map<String, dynamic> metadata = const {},
+  }) {
+    return _activityRepository.log(
+      actorId: actorId,
+      actorName: actorName,
+      action: action,
+      entityType: 'user',
+      entityId: actorId,
+      metadata: metadata,
+    );
+  }
+
+  void _recordError(Object error, StackTrace stackTrace) {
+    _crashlytics.recordError(error, stackTrace, fatal: false);
   }
 }
 
+final firebaseAuthRemoteDataSourceProvider =
+    Provider<FirebaseAuthRemoteDataSource>((ref) {
+      return FirebaseAuthRemoteDataSource(ref.watch(firebaseAuthProvider));
+    });
+
+final userProfileRemoteDataSourceProvider =
+    Provider<UserProfileRemoteDataSource>((ref) {
+      return UserProfileRemoteDataSource(ref.watch(firestoreProvider));
+    });
+
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return FirebaseAuthRepository(
-    ref.watch(firebaseAuthProvider),
-    ref.watch(firestoreProvider),
+    ref.watch(firebaseAuthRemoteDataSourceProvider),
+    ref.watch(userProfileRemoteDataSourceProvider),
     ref.watch(activityRepositoryProvider),
     ref.watch(notificationRepositoryProvider),
     ref.watch(secureStorageProvider),
     ref.watch(deviceInfoServiceProvider),
+    ref.watch(analyticsProvider),
+    ref.watch(crashlyticsProvider),
   );
 });

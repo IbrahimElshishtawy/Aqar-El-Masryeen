@@ -34,7 +34,17 @@ final messagingProvider = Provider<FirebaseMessaging>(
   (ref) => FirebaseMessaging.instance,
 );
 final secureStorageProvider = Provider<SecureStorageService>(
-  (ref) => SecureStorageService(const FlutterSecureStorage()),
+  (ref) => SecureStorageService(
+    const FlutterSecureStorage(
+      aOptions: AndroidOptions(
+        resetOnError: true,
+        migrateOnAlgorithmChange: true,
+      ),
+      iOptions: IOSOptions(
+        accessibility: KeychainAccessibility.first_unlock_this_device,
+      ),
+    ),
+  ),
 );
 final biometricServiceProvider = Provider<BiometricService>(
   (ref) => BiometricService(LocalAuthentication()),
@@ -44,7 +54,10 @@ final localNotificationsProvider = Provider<FlutterLocalNotificationsPlugin>(
   (ref) => flutterLocalNotificationsPlugin,
 );
 final deviceInfoServiceProvider = Provider<DeviceInfoService>(
-  (ref) => DeviceInfoService(DeviceInfoPlugin()),
+  (ref) => DeviceInfoService(
+    DeviceInfoPlugin(),
+    ref.watch(secureStorageProvider),
+  ),
 );
 final notificationServiceProvider = Provider<FirebaseMessagingService>((ref) {
   return FirebaseMessagingService(

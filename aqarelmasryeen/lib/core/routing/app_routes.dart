@@ -3,9 +3,11 @@ class AppRoutes {
 
   static const splash = '/';
   static const login = '/auth/login';
+  static const register = '/auth/register';
   static const otp = '/auth/otp';
   static const profile = '/auth/profile';
-  static const biometrics = '/auth/biometrics';
+  static const securitySetup = '/auth/security-setup';
+  static const unlock = '/auth/unlock';
   static const dashboard = '/dashboard';
   static const properties = '/properties';
   static const partners = '/partners';

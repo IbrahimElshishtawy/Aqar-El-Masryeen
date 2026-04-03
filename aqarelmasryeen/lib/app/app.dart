@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/security/session_activity_listener.dart';
 import 'package:aqarelmasryeen/core/routing/app_router.dart';
 import 'package:aqarelmasryeen/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +19,9 @@ class AqarPartnersApp extends ConsumerWidget {
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
       routerConfig: router,
+      builder: (context, child) => SessionActivityListener(
+        child: child ?? const SizedBox.shrink(),
+      ),
       supportedLocales: const [Locale('en'), Locale('ar')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

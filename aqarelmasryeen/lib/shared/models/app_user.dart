@@ -1,54 +1,80 @@
 import 'package:aqarelmasryeen/core/utils/firestore_parser.dart';
+import 'package:aqarelmasryeen/shared/models/auth_device_info.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
+import 'package:equatable/equatable.dart';
 
-class AppUser {
+class AppUser extends Equatable {
   const AppUser({
-    required this.id,
+    required this.uid,
     required this.phone,
-    required this.name,
+    required this.fullName,
     required this.email,
     required this.createdAt,
     required this.updatedAt,
     required this.lastLoginAt,
     required this.role,
+    required this.trustedDeviceEnabled,
     required this.biometricEnabled,
-    required this.trustedDevices,
+    required this.appLockEnabled,
+    required this.inactivityTimeoutSeconds,
+    required this.deviceInfo,
+    required this.isActive,
+    required this.securitySetupCompletedAt,
   });
 
-  final String id;
+  final String uid;
   final String phone;
-  final String name;
+  final String fullName;
   final String email;
   final DateTime createdAt;
   final DateTime updatedAt;
   final DateTime? lastLoginAt;
   final UserRole role;
+  final bool trustedDeviceEnabled;
   final bool biometricEnabled;
-  final List<String> trustedDevices;
+  final bool appLockEnabled;
+  final int inactivityTimeoutSeconds;
+  final AuthDeviceInfo? deviceInfo;
+  final bool isActive;
+  final DateTime? securitySetupCompletedAt;
+
+  String get id => uid;
+
+  String get name => fullName;
 
   bool get isProfileComplete =>
-      name.trim().isNotEmpty && email.trim().isNotEmpty;
+      fullName.trim().isNotEmpty && email.trim().isNotEmpty;
+
+  bool get isSecuritySetupComplete => securitySetupCompletedAt != null;
 
   Map<String, dynamic> toMap() {
     return {
+      'uid': uid,
       'phone': phone,
-      'name': name,
+      'fullName': fullName,
+      'name': fullName,
       'email': email,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'lastLoginAt': lastLoginAt,
       'role': role.name,
+      'trustedDeviceEnabled': trustedDeviceEnabled,
       'biometricEnabled': biometricEnabled,
-      'trustedDevices': trustedDevices,
+      'appLockEnabled': appLockEnabled,
+      'inactivityTimeoutSeconds': inactivityTimeoutSeconds,
+      'deviceInfo': deviceInfo?.toMap(),
+      'isActive': isActive,
+      'securitySetupCompletedAt': securitySetupCompletedAt,
     };
   }
 
   factory AppUser.fromMap(String id, Map<String, dynamic>? map) {
     final data = map ?? <String, dynamic>{};
     return AppUser(
-      id: id,
+      uid: data['uid'] as String? ?? id,
       phone: data['phone'] as String? ?? '',
-      name: data['name'] as String? ?? '',
+      fullName:
+          data['fullName'] as String? ?? data['name'] as String? ?? '',
       email: data['email'] as String? ?? '',
       createdAt: parseDate(data['createdAt']),
       updatedAt: parseDate(data['updatedAt']),
@@ -59,10 +85,75 @@ class AppUser {
         (value) => value.name == data['role'],
         orElse: () => UserRole.partner,
       ),
+      trustedDeviceEnabled: data['trustedDeviceEnabled'] as bool? ?? false,
       biometricEnabled: data['biometricEnabled'] as bool? ?? false,
-      trustedDevices: (data['trustedDevices'] as List<dynamic>? ?? const [])
-          .map((item) => item.toString())
-          .toList(),
+      appLockEnabled: data['appLockEnabled'] as bool? ?? true,
+      inactivityTimeoutSeconds:
+          data['inactivityTimeoutSeconds'] as int? ?? 90,
+      deviceInfo: data['deviceInfo'] is Map<String, dynamic>
+          ? AuthDeviceInfo.fromMap(data['deviceInfo'] as Map<String, dynamic>)
+          : null,
+      isActive: data['isActive'] as bool? ?? true,
+      securitySetupCompletedAt: data['securitySetupCompletedAt'] == null
+          ? null
+          : parseDate(data['securitySetupCompletedAt']),
     );
   }
+
+  AppUser copyWith({
+    String? uid,
+    String? phone,
+    String? fullName,
+    String? email,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    DateTime? lastLoginAt,
+    UserRole? role,
+    bool? trustedDeviceEnabled,
+    bool? biometricEnabled,
+    bool? appLockEnabled,
+    int? inactivityTimeoutSeconds,
+    AuthDeviceInfo? deviceInfo,
+    bool? isActive,
+    DateTime? securitySetupCompletedAt,
+  }) {
+    return AppUser(
+      uid: uid ?? this.uid,
+      phone: phone ?? this.phone,
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      lastLoginAt: lastLoginAt ?? this.lastLoginAt,
+      role: role ?? this.role,
+      trustedDeviceEnabled: trustedDeviceEnabled ?? this.trustedDeviceEnabled,
+      biometricEnabled: biometricEnabled ?? this.biometricEnabled,
+      appLockEnabled: appLockEnabled ?? this.appLockEnabled,
+      inactivityTimeoutSeconds:
+          inactivityTimeoutSeconds ?? this.inactivityTimeoutSeconds,
+      deviceInfo: deviceInfo ?? this.deviceInfo,
+      isActive: isActive ?? this.isActive,
+      securitySetupCompletedAt:
+          securitySetupCompletedAt ?? this.securitySetupCompletedAt,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    uid,
+    phone,
+    fullName,
+    email,
+    createdAt,
+    updatedAt,
+    lastLoginAt,
+    role,
+    trustedDeviceEnabled,
+    biometricEnabled,
+    appLockEnabled,
+    inactivityTimeoutSeconds,
+    deviceInfo,
+    isActive,
+    securitySetupCompletedAt,
+  ];
 }
