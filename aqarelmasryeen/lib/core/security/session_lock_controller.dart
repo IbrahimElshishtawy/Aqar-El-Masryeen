@@ -6,6 +6,7 @@ import 'package:aqarelmasryeen/core/constants/secure_storage_keys.dart';
 import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final _sessionLockAuthProvider = StreamProvider<AppSession?>((ref) {
@@ -104,35 +105,49 @@ class SessionLockController extends Notifier<SessionLockState> {
     if (state.isInitialized) return;
 
     final storage = ref.read(secureStorageProvider);
-    final appLockEnabled =
-        await storage.readBool(SecureStorageKeys.appLockEnabled) ?? false;
-    final trustedDeviceEnabled =
-        await storage.readBool(SecureStorageKeys.trustedDeviceEnabled) ?? false;
-    final biometricEnabled =
-        await storage.readBool(SecureStorageKeys.biometricEnabled) ?? false;
-    final inactivityTimeoutSeconds =
-        await storage.readInt(SecureStorageKeys.inactivityTimeoutSeconds) ??
-        AppConfig.defaultInactivityTimeoutSeconds;
-    final lastActivityAt =
-        await storage.readDateTime(SecureStorageKeys.lastActivityAt) ??
-        DateTime.now();
-    final lastBackgroundAt =
-        await storage.readDateTime(SecureStorageKeys.lastBackgroundAt);
-    final storedLockState =
-        await storage.readBool(SecureStorageKeys.isLocked) ?? false;
+    try {
+      final appLockEnabled =
+          await storage.readBool(SecureStorageKeys.appLockEnabled) ?? false;
+      final trustedDeviceEnabled =
+          await storage.readBool(SecureStorageKeys.trustedDeviceEnabled) ??
+          false;
+      final biometricEnabled =
+          await storage.readBool(SecureStorageKeys.biometricEnabled) ?? false;
+      final inactivityTimeoutSeconds =
+          await storage.readInt(SecureStorageKeys.inactivityTimeoutSeconds) ??
+          AppConfig.defaultInactivityTimeoutSeconds;
+      final lastActivityAt =
+          await storage.readDateTime(SecureStorageKeys.lastActivityAt) ??
+          DateTime.now();
+      final lastBackgroundAt = await storage.readDateTime(
+        SecureStorageKeys.lastBackgroundAt,
+      );
+      final storedLockState =
+          await storage.readBool(SecureStorageKeys.isLocked) ?? false;
 
-    state = SessionLockState(
-      isInitialized: true,
-      isLocked: storedLockState,
-      appLockEnabled: appLockEnabled,
-      trustedDeviceEnabled: trustedDeviceEnabled,
-      biometricEnabled: biometricEnabled,
-      inactivityTimeoutSeconds: inactivityTimeoutSeconds,
-      lastActivityAt: lastActivityAt,
-      lastBackgroundAt: lastBackgroundAt,
-    );
+      state = SessionLockState(
+        isInitialized: true,
+        isLocked: storedLockState,
+        appLockEnabled: appLockEnabled,
+        trustedDeviceEnabled: trustedDeviceEnabled,
+        biometricEnabled: biometricEnabled,
+        inactivityTimeoutSeconds: inactivityTimeoutSeconds,
+        lastActivityAt: lastActivityAt,
+        lastBackgroundAt: lastBackgroundAt,
+      );
+    } catch (error, stackTrace) {
+      debugPrint('SessionLockController initialization failed: $error');
+      debugPrintStack(stackTrace: stackTrace, maxFrames: 6);
+      state = SessionLockState.initial().copyWith(isInitialized: true);
+    }
 
-    await _syncFromSession(ref.read(_sessionLockAuthProvider).valueOrNull);
+    try {
+      await _syncFromSession(ref.read(_sessionLockAuthProvider).valueOrNull);
+    } catch (error, stackTrace) {
+      debugPrint('SessionLockController session sync failed: $error');
+      debugPrintStack(stackTrace: stackTrace, maxFrames: 6);
+      state = state.copyWith(isInitialized: true);
+    }
   }
 
   Future<void> _syncFromSession(AppSession? session) async {
@@ -161,8 +176,9 @@ class SessionLockController extends Notifier<SessionLockState> {
       final elapsedInBackground = lastBackgroundAt == null
           ? 0
           : now.difference(lastBackgroundAt).inSeconds;
-      final elapsedSinceActivity =
-          now.difference(state.lastActivityAt).inSeconds;
+      final elapsedSinceActivity = now
+          .difference(state.lastActivityAt)
+          .inSeconds;
       shouldLock =
           shouldLock ||
           elapsedInBackground >= inactivityTimeoutSeconds ||
@@ -233,10 +249,7 @@ class SessionLockController extends Notifier<SessionLockState> {
         state.trustedDeviceEnabled &&
         (state.isLocked || elapsed >= state.inactivityTimeoutSeconds);
 
-    state = state.copyWith(
-      isLocked: shouldLock,
-      lastBackgroundAt: null,
-    );
+    state = state.copyWith(isLocked: shouldLock, lastBackgroundAt: null);
 
     final storage = ref.read(secureStorageProvider);
     await storage.writeBool(SecureStorageKeys.isLocked, shouldLock);

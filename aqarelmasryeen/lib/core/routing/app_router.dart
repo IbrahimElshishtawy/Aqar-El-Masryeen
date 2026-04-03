@@ -120,8 +120,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final isPublicRoute =
           isSplashRoute || isAuthRoute || location == AppRoutes.unlock;
 
-      if (sessionState.isLoading || !lockState.isInitialized) {
+      if (!lockState.isInitialized) {
         return isSplashRoute ? null : AppRoutes.splash;
+      }
+
+      if (sessionState.isLoading) {
+        return isSplashRoute || isAuthRoute ? null : AppRoutes.splash;
       }
 
       if (session == null) {

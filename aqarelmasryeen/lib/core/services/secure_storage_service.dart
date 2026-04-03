@@ -1,19 +1,71 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:aqarelmasryeen/core/constants/secure_storage_keys.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SecureStorageService {
   SecureStorageService(this._storage);
 
   final FlutterSecureStorage _storage;
+  Future<SharedPreferences>? _preferences;
 
-  Future<void> write(String key, String value) =>
-      _storage.write(key: key, value: value);
+  Future<SharedPreferences> get _sharedPreferences =>
+      _preferences ??= SharedPreferences.getInstance();
 
-  Future<String?> read(String key) => _storage.read(key: key);
+  Future<void> write(String key, String value) async {
+    try {
+      await _storage.write(key: key, value: value);
+    } catch (error, stackTrace) {
+      _logFallback('write', key, error, stackTrace);
+    }
 
-  Future<void> delete(String key) => _storage.delete(key: key);
+    try {
+      final prefs = await _sharedPreferences;
+      await prefs.setString(key, value);
+    } catch (error, stackTrace) {
+      _logFallback('write_cache', key, error, stackTrace);
+    }
+  }
+
+  Future<String?> read(String key) async {
+    try {
+      final value = await _storage.read(key: key);
+      if (value != null) {
+        final prefs = await _sharedPreferences;
+        await prefs.setString(key, value);
+      }
+      if (value != null) {
+        return value;
+      }
+    } catch (error, stackTrace) {
+      _logFallback('read', key, error, stackTrace);
+    }
+
+    try {
+      final prefs = await _sharedPreferences;
+      return prefs.getString(key);
+    } catch (error, stackTrace) {
+      _logFallback('read_cache', key, error, stackTrace);
+      return null;
+    }
+  }
+
+  Future<void> delete(String key) async {
+    try {
+      await _storage.delete(key: key);
+    } catch (error, stackTrace) {
+      _logFallback('delete', key, error, stackTrace);
+    }
+
+    try {
+      final prefs = await _sharedPreferences;
+      await prefs.remove(key);
+    } catch (error, stackTrace) {
+      _logFallback('delete_cache', key, error, stackTrace);
+    }
+  }
 
   Future<void> writeBool(String key, bool value) =>
       write(key, value ? 'true' : 'false');
@@ -45,8 +97,13 @@ class SecureStorageService {
   Future<Map<String, dynamic>?> readJson(String key) async {
     final value = await read(key);
     if (value == null || value.isEmpty) return null;
-    final decoded = jsonDecode(value);
-    return decoded is Map<String, dynamic> ? decoded : null;
+    try {
+      final decoded = jsonDecode(value);
+      return decoded is Map<String, dynamic> ? decoded : null;
+    } catch (error, stackTrace) {
+      _logFallback('decode_json', key, error, stackTrace);
+      return null;
+    }
   }
 
   Future<bool> hasOpenedAppBefore() async =>
@@ -88,5 +145,17 @@ class SecureStorageService {
       delete(SecureStorageKeys.lastBackgroundAt),
       delete(SecureStorageKeys.isLocked),
     ]);
+  }
+
+  void _logFallback(
+    String operation,
+    String key,
+    Object error,
+    StackTrace stackTrace,
+  ) {
+    debugPrint(
+      'SecureStorageService fallback on $operation for "$key": $error',
+    );
+    debugPrintStack(stackTrace: stackTrace, maxFrames: 4);
   }
 }

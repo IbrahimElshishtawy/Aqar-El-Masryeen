@@ -25,13 +25,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Future<void> _initializeNotifications() async {
     if (_notificationReady) return;
     _notificationReady = true;
-    await ref.read(notificationServiceProvider).initialize(
-      onNotificationTap: (payload) {
-        if (mounted) {
-          context.go(payload.route);
-        }
-      },
-    );
+    try {
+      await ref
+          .read(notificationServiceProvider)
+          .initialize(
+            onNotificationTap: (payload) {
+              if (mounted) {
+                context.go(payload.route);
+              }
+            },
+          );
+    } catch (error, stackTrace) {
+      debugPrint('Notification initialization failed on splash: $error');
+      debugPrintStack(stackTrace: stackTrace, maxFrames: 6);
+    }
   }
 
   void _scheduleNavigation(String route) {
@@ -103,10 +110,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       return const CircularProgressIndicator();
                     },
                     loading: () => const CircularProgressIndicator(),
-                    error: (error, stackTrace) => Text(
-                      error.toString(),
-                      textAlign: TextAlign.center,
-                    ),
+                    error: (error, stackTrace) =>
+                        Text(error.toString(), textAlign: TextAlign.center),
                   ),
                 ],
               ),
