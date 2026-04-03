@@ -24,7 +24,7 @@ class _ProfileCompletionScreenState
   final _confirmPasswordController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _seededInitialValues = false;
+  bool _seeded = false;
 
   @override
   void dispose() {
@@ -39,29 +39,27 @@ class _ProfileCompletionScreenState
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
 
-    await ref
-        .read(profileCompletionControllerProvider.notifier)
-        .save(
-          name: _nameController.text.trim(),
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+    await ref.read(profileSetupControllerProvider.notifier).save(
+      fullName: _nameController.text.trim(),
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final actionState = ref.watch(profileCompletionControllerProvider);
+    final state = ref.watch(profileSetupControllerProvider);
     final session = ref.watch(authSessionProvider).valueOrNull;
     final theme = Theme.of(context);
 
-    if (!_seededInitialValues && session != null) {
-      _nameController.text = session.profile?.name ?? '';
+    if (!_seeded && session != null) {
+      _seeded = true;
+      _nameController.text = session.profile?.fullName ?? '';
       _emailController.text =
           session.profile?.email ?? session.firebaseUser.email ?? '';
-      _seededInitialValues = true;
     }
 
-    ref.listen<AsyncValue<void>>(profileCompletionControllerProvider, (
+    ref.listen<AsyncValue<void>>(profileSetupControllerProvider, (
       previous,
       next,
     ) {
@@ -71,140 +69,110 @@ class _ProfileCompletionScreenState
         );
       }
       if ((previous?.isLoading ?? false) && next.hasValue && mounted) {
-        context.go(AppRoutes.biometrics);
+        context.go(AppRoutes.securitySetup);
       }
     });
 
     return AuthScaffold(
-      title: 'Complete partner profile',
+      title: 'Complete profile',
       subtitle:
-          'Finish the verified account setup by saving the partner identity and a secure email login.',
+          'Save the verified partner identity and strong credentials for future sign in.',
       leading: IconButton.filledTonal(
-        onPressed: () => context.go(AppRoutes.login),
+        onPressed: () => context.go(AppRoutes.register),
         icon: const Icon(Icons.arrow_back),
       ),
-      footer: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.secondary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Text(
-          'This step links email credentials to the verified phone account, so future sign-in can use either method.',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            height: 1.35,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-          ),
-        ),
+      footer: Text(
+        'Passwords are never stored in local storage. Only security flags and non-sensitive session metadata stay on device.',
+        style: theme.textTheme.bodyMedium,
       ),
       child: Form(
         key: _formKey,
         child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.55,
+            TextFormField(
+              controller: _nameController,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.name],
+              decoration: const InputDecoration(
+                labelText: 'Full name',
+                prefixIcon: Icon(Icons.person_outline_rounded),
+              ),
+              validator: AuthValidators.name,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.username],
+              decoration: const InputDecoration(
+                labelText: 'Email',
+                prefixIcon: Icon(Icons.alternate_email_rounded),
+              ),
+              validator: AuthValidators.email,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _passwordController,
+              obscureText: _obscurePassword,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.newPassword],
+              decoration: InputDecoration(
+                labelText: 'Password',
+                prefixIcon: const Icon(Icons.lock_outline_rounded),
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(() => _obscurePassword = !_obscurePassword);
+                  },
+                  icon: Icon(
+                    _obscurePassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
                   ),
                 ),
               ),
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _nameController,
-                    textInputAction: TextInputAction.next,
-                    autofillHints: const [AutofillHints.name],
-                    decoration: const InputDecoration(
-                      labelText: 'Partner name',
-                      prefixIcon: Icon(Icons.person_outline_rounded),
-                    ),
-                    validator: AuthValidators.name,
+              validator: AuthValidators.password,
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _confirmPasswordController,
+              obscureText: _obscureConfirmPassword,
+              textInputAction: TextInputAction.done,
+              decoration: InputDecoration(
+                labelText: 'Confirm password',
+                prefixIcon: const Icon(Icons.lock_person_outlined),
+                suffixIcon: IconButton(
+                  onPressed: () {
+                    setState(
+                      () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                    );
+                  },
+                  icon: Icon(
+                    _obscureConfirmPassword
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
                   ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _emailController,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    autofillHints: const [AutofillHints.username],
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.alternate_email_rounded),
-                    ),
-                    validator: AuthValidators.email,
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    textInputAction: TextInputAction.next,
-                    autofillHints: const [AutofillHints.newPassword],
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() => _obscurePassword = !_obscurePassword);
-                        },
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                        ),
-                      ),
-                    ),
-                    validator: AuthValidators.password,
-                  ),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: _confirmPasswordController,
-                    obscureText: _obscureConfirmPassword,
-                    textInputAction: TextInputAction.done,
-                    autofillHints: const [AutofillHints.newPassword],
-                    decoration: InputDecoration(
-                      labelText: 'Confirm password',
-                      prefixIcon: const Icon(Icons.lock_person_outlined),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _obscureConfirmPassword = !_obscureConfirmPassword;
-                          });
-                        },
-                        icon: Icon(
-                          _obscureConfirmPassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                        ),
-                      ),
-                    ),
-                    validator: (value) => AuthValidators.confirmPassword(
-                      value,
-                      _passwordController.text,
-                    ),
-                    onFieldSubmitted: (_) => _submit(),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: actionState.isLoading ? null : _submit,
-                      icon: actionState.isLoading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.arrow_forward_rounded),
-                      label: Text(
-                        actionState.isLoading ? 'Saving...' : 'Continue',
-                      ),
-                    ),
-                  ),
-                ],
+                ),
+              ),
+              validator: (value) => AuthValidators.confirmPassword(
+                value,
+                _passwordController.text,
+              ),
+              onFieldSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: state.isLoading ? null : _submit,
+                icon: state.isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.arrow_forward_rounded),
+                label: Text(state.isLoading ? 'Saving...' : 'Continue'),
               ),
             ),
           ],

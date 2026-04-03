@@ -32,13 +32,13 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
     try {
       await ref
-          .read(otpFlowControllerProvider.notifier)
-          .verifyOtp(_codeController.text);
+          .read(phoneRegistrationControllerProvider.notifier)
+          .verifyOtp(_codeController.text.trim());
       final session = await ref.read(authSessionProvider.future);
       if (!mounted) return;
       context.go(
         session?.isProfileComplete == true
-            ? AppRoutes.dashboard
+            ? AppRoutes.securitySetup
             : AppRoutes.profile,
       );
     } catch (error) {
@@ -50,7 +50,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   Future<void> _resendCode() async {
     try {
-      await ref.read(otpFlowControllerProvider.notifier).resendOtp();
+      await ref.read(phoneRegistrationControllerProvider.notifier).resendOtp();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('A fresh verification code was sent.')),
@@ -62,170 +62,68 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     }
   }
 
-  void _changeNumber() {
-    ref.read(otpFlowControllerProvider.notifier).reset();
-    context.go(AppRoutes.login);
-  }
-
   @override
   Widget build(BuildContext context) {
     ref.watch(otpTickerProvider);
-    final state = ref.watch(otpFlowControllerProvider);
+    final state = ref.watch(phoneRegistrationControllerProvider);
     final theme = Theme.of(context);
-    final now = DateTime.now();
-    final remainingSeconds = state.remainingSeconds(now);
-
-    final defaultPinTheme = PinTheme(
-      width: 48,
-      height: 56,
-      textStyle: theme.textTheme.titleLarge?.copyWith(
-        fontWeight: FontWeight.w700,
-      ),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.8),
-        ),
-      ),
-    );
+    final remaining = state.remainingSeconds(DateTime.now());
 
     return AuthScaffold(
-      title: 'Verify one-time code',
+      title: 'Verify OTP',
       subtitle:
-          'Enter the 6-digit code sent to ${PhoneUtils.maskForDisplay(state.phone)} to continue the secure sign-in flow.',
+          'Enter the 6-digit code sent to ${PhoneUtils.maskForDisplay(state.phone)} to complete verified registration.',
       leading: IconButton.filledTonal(
-        onPressed: _changeNumber,
+        onPressed: () {
+          ref.read(phoneRegistrationControllerProvider.notifier).reset();
+          context.go(AppRoutes.register);
+        },
         icon: const Icon(Icons.arrow_back),
-      ),
-      footer: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(18),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.timer_outlined, size: 18),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                remainingSeconds > 0
-                    ? 'You can request a new code in ${remainingSeconds}s.'
-                    : 'Did not receive the code? Request another SMS now.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
       child: Form(
         key: _formKey,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(18),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withValues(
-                    alpha: 0.55,
-                  ),
+            Pinput(
+              controller: _codeController,
+              length: 6,
+              autofocus: true,
+              keyboardType: TextInputType.number,
+              validator: AuthValidators.otp,
+              onCompleted: (_) => _verify(),
+            ),
+            if ((state.errorMessage ?? '').isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                state.errorMessage!,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.error,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Verification code',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Auto-fill is supported when available. You can also change the phone number if it was entered incorrectly.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.72,
-                      ),
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Pinput(
-                    controller: _codeController,
-                    length: 6,
-                    autofocus: true,
-                    keyboardType: TextInputType.number,
-                    defaultPinTheme: defaultPinTheme,
-                    focusedPinTheme: defaultPinTheme.copyDecorationWith(
-                      border: Border.all(
-                        color: theme.colorScheme.primary,
-                        width: 1.4,
-                      ),
-                    ),
-                    errorPinTheme: defaultPinTheme.copyDecorationWith(
-                      border: Border.all(
-                        color: theme.colorScheme.error,
-                        width: 1.2,
-                      ),
-                    ),
-                    validator: AuthValidators.otp,
-                    onCompleted: (_) => _verify(),
-                  ),
-                  if ((state.errorMessage ?? '').isNotEmpty) ...[
-                    const SizedBox(height: 14),
-                    Text(
-                      state.errorMessage!,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.error,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: state.isSubmitting ? null : _verify,
-                      icon: state.isSubmitting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.verified_user_outlined),
-                      label: Text(
-                        state.isSubmitting
-                            ? 'Verifying...'
-                            : 'Verify and continue',
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: state.canResend(now) ? _resendCode : null,
-                      child: Text(
-                        remainingSeconds > 0
-                            ? 'Resend code in ${remainingSeconds}s'
-                            : 'Resend code',
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: _changeNumber,
-                    child: const Text('Change phone number'),
-                  ),
-                ],
+            ],
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: state.isSubmitting ? null : _verify,
+                icon: state.isSubmitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.verified_user_outlined),
+                label: Text(
+                  state.isSubmitting ? 'Verifying...' : 'Verify and continue',
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            OutlinedButton(
+              onPressed: remaining == 0 ? _resendCode : null,
+              child: Text(
+                remaining == 0 ? 'Resend code' : 'Resend in ${remaining}s',
               ),
             ),
           ],

@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
@@ -6,16 +7,41 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class BiometricSetupScreen extends ConsumerWidget {
+class BiometricSetupScreen extends ConsumerStatefulWidget {
   const BiometricSetupScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final availability = ref.watch(biometricAvailabilityProvider);
-    final actionState = ref.watch(biometricSetupControllerProvider);
-    final theme = Theme.of(context);
+  ConsumerState<BiometricSetupScreen> createState() =>
+      _BiometricSetupScreenState();
+}
 
-    ref.listen<AsyncValue<void>>(biometricSetupControllerProvider, (
+class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
+  bool _seeded = false;
+  bool _trustedDeviceEnabled = true;
+  bool _biometricEnabled = true;
+  bool _appLockEnabled = true;
+  int _timeoutSeconds = AppConfig.defaultInactivityTimeoutSeconds;
+
+  @override
+  Widget build(BuildContext context) {
+    final availability = ref.watch(biometricAvailabilityProvider);
+    final state = ref.watch(securitySetupControllerProvider);
+    final theme = Theme.of(context);
+    final session = ref.watch(authSessionProvider).valueOrNull;
+
+    if (!_seeded && session?.profile != null) {
+      _seeded = true;
+      _trustedDeviceEnabled = session!.profile!.trustedDeviceEnabled;
+      _biometricEnabled = session.profile!.biometricEnabled;
+      _appLockEnabled = session.profile!.appLockEnabled;
+      _timeoutSeconds = session.profile!.inactivityTimeoutSeconds;
+      if (!_trustedDeviceEnabled && !session.profile!.isSecuritySetupComplete) {
+        _trustedDeviceEnabled = true;
+        _biometricEnabled = true;
+      }
+    }
+
+    ref.listen<AsyncValue<void>>(securitySetupControllerProvider, (
       previous,
       next,
     ) {
@@ -24,21 +50,24 @@ class BiometricSetupScreen extends ConsumerWidget {
           SnackBar(content: Text(mapException(next.error!).message)),
         );
       }
-      if ((previous?.isLoading ?? false) && next.hasValue && context.mounted) {
+      if ((previous?.isLoading ?? false) && next.hasValue && mounted) {
         context.go(AppRoutes.dashboard);
       }
     });
 
-    Future<void> submit(bool enabled) {
-      return ref
-          .read(biometricSetupControllerProvider.notifier)
-          .submit(enabled);
+    Future<void> submit() {
+      return ref.read(securitySetupControllerProvider.notifier).submit(
+        trustedDeviceEnabled: _trustedDeviceEnabled,
+        biometricEnabled: _biometricEnabled,
+        appLockEnabled: _appLockEnabled,
+        inactivityTimeoutSeconds: _timeoutSeconds,
+      );
     }
 
     return AuthScaffold(
-      title: 'Protect the workspace',
+      title: 'Secure this device',
       subtitle:
-          'Use Face ID, fingerprint, or device credentials to reopen the app after inactivity and secure financial records.',
+          'Configure trusted-device unlock, operating-system credentials, and automatic app locking for this finance workspace.',
       leading: Container(
         width: 64,
         height: 64,
@@ -46,88 +75,109 @@ class BiometricSetupScreen extends ConsumerWidget {
           color: theme.colorScheme.primary.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Icon(
-          Icons.fingerprint,
-          size: 32,
-          color: theme.colorScheme.primary,
-        ),
+        child: Icon(Icons.fingerprint, color: theme.colorScheme.primary),
       ),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+      child: availability.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) => Text(mapException(error).message),
+        data: (data) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SwitchListTile.adaptive(
+              value: _trustedDeviceEnabled,
+              onChanged: (value) {
+                setState(() {
+                  _trustedDeviceEnabled = value;
+                  if (!value) {
+                    _biometricEnabled = false;
+                    _appLockEnabled = false;
+                  }
+                });
+              },
+              title: const Text('Enable trusted-device quick unlock'),
+              subtitle: Text(
+                data.canUseSecureUnlock
+                    ? 'Uses: ${data.methodsLabel}'
+                    : 'This device cannot use biometrics or device credentials.',
               ),
             ),
-            child: availability.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stackTrace) => Text(
-                mapException(error).message,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.error,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              data: (data) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    data.isSupported
-                        ? 'This device can protect app access'
-                        : 'Secure unlock is unavailable on this device',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    data.isSupported
-                        ? 'Available methods: ${data.methodsLabel}. A quick verification will be requested before enabling protection.'
-                        : 'You can continue without biometric unlock and enable it later from Settings when device support is available.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      height: 1.4,
-                      color: theme.colorScheme.onSurface.withValues(
-                        alpha: 0.76,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: data.isSupported && !actionState.isLoading
-                          ? () => submit(true)
-                          : null,
-                      icon: actionState.isLoading
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Icon(Icons.shield_outlined),
-                      label: const Text('Enable secure unlock'),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: actionState.isLoading
-                          ? null
-                          : () => submit(false),
-                      child: const Text('Skip for now'),
-                    ),
-                  ),
-                ],
+            SwitchListTile.adaptive(
+              value: _biometricEnabled && _trustedDeviceEnabled,
+              onChanged:
+                  _trustedDeviceEnabled && data.availableBiometrics.isNotEmpty
+                  ? (value) => setState(() => _biometricEnabled = value)
+                  : null,
+              title: const Text('Prefer biometrics when available'),
+              subtitle: const Text(
+                'Device passcode/PIN remains available when the operating system allows it.',
               ),
             ),
-          ),
-        ],
+            SwitchListTile.adaptive(
+              value: _appLockEnabled && _trustedDeviceEnabled,
+              onChanged: _trustedDeviceEnabled
+                  ? (value) => setState(() => _appLockEnabled = value)
+                  : null,
+              title: const Text('Lock app after inactivity'),
+              subtitle: const Text(
+                'The session also locks when the app remains in the background beyond the timeout.',
+              ),
+            ),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<int>(
+              value: _timeoutSeconds,
+              decoration: const InputDecoration(
+                labelText: 'Inactivity timeout',
+                prefixIcon: Icon(Icons.timer_outlined),
+              ),
+              items: const [
+                DropdownMenuItem(value: 30, child: Text('30 seconds')),
+                DropdownMenuItem(value: 60, child: Text('1 minute')),
+                DropdownMenuItem(value: 90, child: Text('90 seconds')),
+                DropdownMenuItem(value: 180, child: Text('3 minutes')),
+                DropdownMenuItem(value: 300, child: Text('5 minutes')),
+              ],
+              onChanged: _trustedDeviceEnabled && _appLockEnabled
+                  ? (value) {
+                      if (value != null) {
+                        setState(() => _timeoutSeconds = value);
+                      }
+                    }
+                  : null,
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: state.isLoading ? null : submit,
+                icon: state.isLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.shield_outlined),
+                label: Text(state.isLoading ? 'Saving...' : 'Finish setup'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                onPressed: state.isLoading
+                    ? null
+                    : () {
+                        setState(() {
+                          _trustedDeviceEnabled = false;
+                          _biometricEnabled = false;
+                          _appLockEnabled = false;
+                        });
+                        submit();
+                      },
+                child: const Text('Skip quick unlock for now'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
