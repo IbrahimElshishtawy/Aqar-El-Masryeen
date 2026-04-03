@@ -38,7 +38,7 @@ final secureStorageProvider = Provider<SecureStorageService>(
     const FlutterSecureStorage(
       aOptions: AndroidOptions(
         resetOnError: true,
-        migrateOnAlgorithmChange: true,
+        migrateOnAlgorithmChange: false,
       ),
       iOptions: IOSOptions(
         accessibility: KeychainAccessibility.first_unlock_this_device,
@@ -54,10 +54,8 @@ final localNotificationsProvider = Provider<FlutterLocalNotificationsPlugin>(
   (ref) => flutterLocalNotificationsPlugin,
 );
 final deviceInfoServiceProvider = Provider<DeviceInfoService>(
-  (ref) => DeviceInfoService(
-    DeviceInfoPlugin(),
-    ref.watch(secureStorageProvider),
-  ),
+  (ref) =>
+      DeviceInfoService(DeviceInfoPlugin(), ref.watch(secureStorageProvider)),
 );
 final notificationServiceProvider = Provider<FirebaseMessagingService>((ref) {
   return FirebaseMessagingService(
