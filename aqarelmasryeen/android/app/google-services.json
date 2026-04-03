@@ -1,31 +1,21 @@
 {
   "project_info": {
-    "project_number": "55493381725",
-    "firebase_url": "https://aqar-146b6-default-rtdb.firebaseio.com",
-    "project_id": "aqar-146b6",
-    "storage_bucket": "aqar-146b6.firebasestorage.app"
+    "project_number": "288037062988",
+    "project_id": "aqarr-cfd58",
+    "storage_bucket": "aqarr-cfd58.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:55493381725:android:514946b81ac7baf516c7b4",
+        "mobilesdk_app_id": "1:288037062988:android:ba75ae2955602da1a127e9",
         "android_client_info": {
           "package_name": "com.example.aqarelmasryeen"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "55493381725-g0sgvd57e28g7ratafqb95jkhcfkbm4s.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.aqarelmasryeen",
-            "certificate_hash": "40f30b4b335893f56238429c1ebc3c9322a26b19"
-          }
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCL-Y4qhkdOT80u7Ro1vaL9lA7idcUie3Y"
+          "current_key": "AIzaSyDSm9TbHE-Fo-zaJD5gx-mAQE_6RrYz7ZI"
         }
       ],
       "services": {

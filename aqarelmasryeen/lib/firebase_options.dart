@@ -22,56 +22,49 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCL-Y4qhkdOT80u7Ro1vaL9lA7idcUie3Y',
-    appId: '1:55493381725:android:514946b81ac7baf516c7b4',
-    messagingSenderId: '55493381725',
-    projectId: 'aqar-146b6',
-    databaseURL: 'https://aqar-146b6-default-rtdb.firebaseio.com',
-    storageBucket: 'aqar-146b6.firebasestorage.app',
+    apiKey: 'AIzaSyDSm9TbHE-Fo-zaJD5gx-mAQE_6RrYz7ZI',
+    appId: '1:288037062988:android:ba75ae2955602da1a127e9',
+    messagingSenderId: '288037062988',
+    projectId: 'aqarr-cfd58',
+    storageBucket: 'aqarr-cfd58.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDkJbmkj-oqIz4rhAWh1Ysvrbs9SZY27vg',
-    appId: '1:55493381725:ios:aea3632d8f9017b716c7b4',
-    messagingSenderId: '55493381725',
-    projectId: 'aqar-146b6',
-    databaseURL: 'https://aqar-146b6-default-rtdb.firebaseio.com',
-    storageBucket: 'aqar-146b6.firebasestorage.app',
-    androidClientId: '55493381725-g0sgvd57e28g7ratafqb95jkhcfkbm4s.apps.googleusercontent.com',
+    apiKey: 'AIzaSyBx7NUVZZYAxjqfEyl7PVZKzVJDOur0fhE',
+    appId: '1:288037062988:ios:72dbe6d71916d24aa127e9',
+    messagingSenderId: '288037062988',
+    projectId: 'aqarr-cfd58',
+    storageBucket: 'aqarr-cfd58.firebasestorage.app',
     iosBundleId: 'com.example.aqarelmasryeen',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyDkJbmkj-oqIz4rhAWh1Ysvrbs9SZY27vg',
-    appId: '1:55493381725:ios:aea3632d8f9017b716c7b4',
-    messagingSenderId: '55493381725',
-    projectId: 'aqar-146b6',
-    databaseURL: 'https://aqar-146b6-default-rtdb.firebaseio.com',
-    storageBucket: 'aqar-146b6.firebasestorage.app',
-    androidClientId: '55493381725-g0sgvd57e28g7ratafqb95jkhcfkbm4s.apps.googleusercontent.com',
+    apiKey: 'AIzaSyBx7NUVZZYAxjqfEyl7PVZKzVJDOur0fhE',
+    appId: '1:288037062988:ios:72dbe6d71916d24aa127e9',
+    messagingSenderId: '288037062988',
+    projectId: 'aqarr-cfd58',
+    storageBucket: 'aqarr-cfd58.firebasestorage.app',
     iosBundleId: 'com.example.aqarelmasryeen',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyCmKvs7tLjTLUk194h8jMrvXu0PhKZnc8A',
-    appId: '1:55493381725:web:edfe77f4718f699416c7b4',
-    messagingSenderId: '55493381725',
-    projectId: 'aqar-146b6',
-    authDomain: 'aqar-146b6.firebaseapp.com',
-    databaseURL: 'https://aqar-146b6-default-rtdb.firebaseio.com',
-    storageBucket: 'aqar-146b6.firebasestorage.app',
-    measurementId: 'G-HKB4DCG4CX',
+    apiKey: 'AIzaSyCFH6tZRTB6aP_QcuRNT-I0u9NMy58Dl5Y',
+    appId: '1:288037062988:web:f58e59d729cc988ca127e9',
+    messagingSenderId: '288037062988',
+    projectId: 'aqarr-cfd58',
+    authDomain: 'aqarr-cfd58.firebaseapp.com',
+    storageBucket: 'aqarr-cfd58.firebasestorage.app',
+    measurementId: 'G-0NGGV3B02X',
   );
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCmKvs7tLjTLUk194h8jMrvXu0PhKZnc8A',
-    appId: '1:55493381725:web:36b87d058fc9e81f16c7b4',
-    messagingSenderId: '55493381725',
-    projectId: 'aqar-146b6',
-    authDomain: 'aqar-146b6.firebaseapp.com',
-    databaseURL: 'https://aqar-146b6-default-rtdb.firebaseio.com',
-    storageBucket: 'aqar-146b6.firebasestorage.app',
-    measurementId: 'G-SSHGZ9YYJR',
+    apiKey: 'AIzaSyCFH6tZRTB6aP_QcuRNT-I0u9NMy58Dl5Y',
+    appId: '1:288037062988:web:8983cf44faadb9fda127e9',
+    messagingSenderId: '288037062988',
+    projectId: 'aqarr-cfd58',
+    authDomain: 'aqarr-cfd58.firebaseapp.com',
+    storageBucket: 'aqarr-cfd58.firebasestorage.app',
+    measurementId: 'G-Z9TYBD0Y47',
   );
 
 }
