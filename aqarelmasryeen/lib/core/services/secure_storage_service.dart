@@ -80,7 +80,6 @@ class SecureStorageService {
 
   Future<void> clearSessionData() async {
     await Future.wait([
-      delete(SecureStorageKeys.lastKnownUid),
       delete(SecureStorageKeys.appLockEnabled),
       delete(SecureStorageKeys.biometricEnabled),
       delete(SecureStorageKeys.trustedDeviceEnabled),

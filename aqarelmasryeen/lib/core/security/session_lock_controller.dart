@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/secure_storage_keys.dart';
+import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -130,7 +131,7 @@ class SessionLockController extends Notifier<SessionLockState> {
     await _syncFromSession(ref.read(authSessionProvider).valueOrNull);
   }
 
-  Future<void> _syncFromSession(dynamic session) async {
+  Future<void> _syncFromSession(AppSession? session) async {
     final storage = ref.read(secureStorageProvider);
 
     if (session == null) {

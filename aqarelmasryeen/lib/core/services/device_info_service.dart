@@ -1,5 +1,4 @@
-import 'dart:io';
-
+import 'package:aqarelmasryeen/core/constants/secure_storage_keys.dart';
 import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
 import 'package:aqarelmasryeen/shared/models/auth_device_info.dart';
 import 'package:device_info_plus/device_info_plus.dart';
@@ -71,7 +70,7 @@ class DeviceInfoService {
           osVersion: info.osRelease,
           appVersion: packageInfo.version,
           buildNumber: packageInfo.buildNumber,
-          model: info.model,
+          model: info.modelName,
           manufacturer: 'Apple',
           isPhysicalDevice: false,
         );
@@ -104,9 +103,9 @@ class DeviceInfoService {
       default:
         return AuthDeviceInfo(
           deviceId: deviceId,
-          deviceName: Platform.operatingSystem,
-          platform: Platform.operatingSystem,
-          osVersion: Platform.operatingSystemVersion,
+          deviceName: defaultTargetPlatform.name,
+          platform: defaultTargetPlatform.name,
+          osVersion: '',
           appVersion: packageInfo.version,
           buildNumber: packageInfo.buildNumber,
           model: 'unknown',
@@ -118,14 +117,14 @@ class DeviceInfoService {
 
   Future<String> _resolveTrustedDeviceId() async {
     final existing = await _secureStorage.read(
-      'security.trusted_device_id',
+      SecureStorageKeys.trustedDeviceId,
     );
     if (existing != null && existing.isNotEmpty) {
       return existing;
     }
     final generated =
         'device_${DateTime.now().microsecondsSinceEpoch.toRadixString(16)}';
-    await _secureStorage.write('security.trusted_device_id', generated);
+    await _secureStorage.write(SecureStorageKeys.trustedDeviceId, generated);
     return generated;
   }
 }

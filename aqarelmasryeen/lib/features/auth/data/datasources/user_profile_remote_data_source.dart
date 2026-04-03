@@ -93,7 +93,6 @@ class UserProfileRemoteDataSource {
       'biometricEnabled': false,
       'appLockEnabled': true,
       'inactivityTimeoutSeconds': AppConfig.defaultInactivityTimeoutSeconds,
-      'createdAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 

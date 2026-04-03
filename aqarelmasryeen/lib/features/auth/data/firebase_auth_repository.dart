@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:aqarelmasryeen/app/providers.dart';
+import 'package:aqarelmasryeen/core/constants/secure_storage_keys.dart';
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/services/device_info_service.dart';
@@ -48,7 +49,10 @@ class FirebaseAuthRepository implements AuthRepository {
       }
 
       yield* _profileDataSource.watchProfile(user.uid).asyncMap((profile) async {
-        await _syncLocalSession(profile ?? await _profileDataSource.fetchProfile(user.uid), user.uid);
+        await _syncLocalSession(
+          profile ?? await _profileDataSource.fetchProfile(user.uid),
+          user.uid,
+        );
         return AppSession(firebaseUser: user, profile: profile);
       });
     }
@@ -168,7 +172,9 @@ class FirebaseAuthRepository implements AuthRepository {
         action: 'login',
         metadata: {'route': 'credentials', 'device': deviceInfo.deviceName},
       );
-      await _analytics.logLogin(loginMethod: looksLikeEmail ? 'email' : 'phone_password');
+      await _analytics.logLogin(
+        loginMethod: looksLikeEmail ? 'email' : 'phone_password',
+      );
     } catch (error, stackTrace) {
       _recordError(error, stackTrace);
       rethrow;
@@ -275,11 +281,18 @@ class FirebaseAuthRepository implements AuthRepository {
       uid: user.uid,
       biometricEnabled: enabled,
     );
-    final appLockEnabled = await _secureStorage.readBool('security.app_lock_enabled') ?? true;
+    final appLockEnabled =
+        await _secureStorage.readBool(SecureStorageKeys.appLockEnabled) ?? true;
     final inactivityTimeoutSeconds =
-        await _secureStorage.readInt('security.inactivity_timeout_seconds') ?? 90;
+        await _secureStorage.readInt(
+          SecureStorageKeys.inactivityTimeoutSeconds,
+        ) ??
+        90;
     final trustedDeviceEnabled =
-        await _secureStorage.readBool('security.trusted_device_enabled') ?? enabled;
+        await _secureStorage.readBool(
+          SecureStorageKeys.trustedDeviceEnabled,
+        ) ??
+        enabled;
     await _secureStorage.persistSecurityPreferences(
       trustedDeviceEnabled: trustedDeviceEnabled,
       biometricEnabled: enabled,
@@ -304,6 +317,7 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   Future<void> _ensurePhoneVerifiedPlaceholder(User user) async {
+    final existingProfile = await _profileDataSource.fetchProfile(user.uid);
     final deviceInfo = await _deviceInfoService.currentDeviceInfo();
     await _profileDataSource.ensurePlaceholderProfile(
       user: user,
@@ -313,8 +327,8 @@ class FirebaseAuthRepository implements AuthRepository {
     await _syncLocalSession(profile, user.uid);
 
     final isNewDevice =
-        profile?.deviceInfo?.deviceId.isNotEmpty == true &&
-        profile!.deviceInfo!.deviceId != deviceInfo.deviceId;
+        existingProfile?.deviceInfo?.deviceId.isNotEmpty == true &&
+        existingProfile!.deviceInfo!.deviceId != deviceInfo.deviceId;
     if (isNewDevice) {
       await _notificationRepository.createSecurityNotification(
         userId: user.uid,
