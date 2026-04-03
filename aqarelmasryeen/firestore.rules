@@ -5,22 +5,50 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function userDoc() {
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function currentUserDoc() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    function isPartner() {
-      return isSignedIn() && userDoc().data.role == 'partner';
+    function isActivePartner() {
+      return isSignedIn()
+        && currentUserDoc().exists()
+        && currentUserDoc().data.role == 'partner'
+        && currentUserDoc().data.isActive == true;
+    }
+
+    function immutableUserCore(userId) {
+      return request.resource.data.uid == userId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.createdAt == resource.data.createdAt;
     }
 
     match /users/{userId} {
-      allow read: if isPartner() && request.auth.uid == userId;
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update: if isPartner() && request.auth.uid == userId;
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == userId
+        && request.resource.data.role == 'partner'
+        && request.resource.data.isActive == true;
+
+      allow read: if isOwner(userId);
+
+      allow update: if isOwner(userId)
+        && immutableUserCore(userId);
+
+      allow delete: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow create: if isActivePartner();
+      allow read, update: if isActivePartner()
+        && resource.data.userId == request.auth.uid;
+      allow delete: if false;
     }
 
     match /{collection}/{documentId} {
-      allow read, write: if isPartner()
+      allow read, write: if isActivePartner()
         && collection in [
           'partners',
           'properties',
@@ -32,11 +60,6 @@ service cloud.firestore {
           'activity_logs',
           'settings'
         ];
-    }
-
-    match /notifications/{notificationId} {
-      allow read, update: if isPartner() && resource.data.userId == request.auth.uid;
-      allow create: if isPartner();
     }
   }
 }
