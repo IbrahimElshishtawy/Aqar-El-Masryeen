@@ -19,9 +19,8 @@ class AqarPartnersApp extends ConsumerWidget {
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
       routerConfig: router,
-      builder: (context, child) => SessionActivityListener(
-        child: child ?? const SizedBox.shrink(),
-      ),
+      builder: (context, child) =>
+          SessionActivityListener(child: child ?? const SizedBox.shrink()),
       supportedLocales: const [Locale('en'), Locale('ar')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

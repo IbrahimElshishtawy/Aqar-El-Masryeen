@@ -1,20 +1,20 @@
 import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ProfileSetupController extends Notifier<AsyncValue<void>> {
+class RegisterController extends Notifier<AsyncValue<void>> {
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
-  Future<void> save({
+  Future<void> register({
     required String fullName,
     required String email,
-    String? password,
+    required String password,
   }) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => ref
           .read(authRepositoryProvider)
-          .completeProfile(
+          .registerWithEmail(
             fullName: fullName,
             email: email,
             password: password,
@@ -23,7 +23,7 @@ class ProfileSetupController extends Notifier<AsyncValue<void>> {
   }
 }
 
-final profileSetupControllerProvider =
-    NotifierProvider<ProfileSetupController, AsyncValue<void>>(
-      ProfileSetupController.new,
+final registerControllerProvider =
+    NotifierProvider<RegisterController, AsyncValue<void>>(
+      RegisterController.new,
     );

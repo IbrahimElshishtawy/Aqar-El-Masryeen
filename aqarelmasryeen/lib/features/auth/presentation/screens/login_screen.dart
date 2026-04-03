@@ -16,25 +16,29 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _identifierController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _identifierController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
-    await ref.read(credentialLoginControllerProvider.notifier).signIn(
-      identifier: _identifierController.text.trim(),
-      password: _passwordController.text,
-    );
+    await ref
+        .read(credentialLoginControllerProvider.notifier)
+        .signIn(
+          email: _emailController.text.trim(),
+          password: _passwordController.text,
+        );
   }
 
   @override
@@ -46,26 +50,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       previous,
       next,
     ) {
-      if (!mounted) return;
-      if (next.hasError) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(mapException(next.error!).message)),
-        );
+      if (!mounted || !next.hasError) {
+        return;
       }
-      if ((previous?.isLoading ?? false) && next.hasValue && mounted) {
-        final session = ref.read(authSessionProvider).valueOrNull;
-        context.go(
-          session?.needsSecuritySetup == true
-              ? AppRoutes.securitySetup
-              : AppRoutes.dashboard,
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(mapException(next.error!).message)),
+      );
     });
 
     return AuthScaffold(
       title: 'Partner sign in',
       subtitle:
-          'Use your registered email or phone number with password. Trusted devices can unlock with biometrics or device credentials after login.',
+          'Access the accounting workspace with your Firebase email credentials. Returning partners can unlock with device biometrics after setup.',
       leading: Container(
         width: 64,
         height: 64,
@@ -74,7 +70,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Icon(
-          Icons.verified_user_outlined,
+          Icons.admin_panel_settings_outlined,
           color: theme.colorScheme.primary,
         ),
       ),
@@ -86,7 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           borderRadius: BorderRadius.circular(18),
         ),
         child: const Text(
-          'Phone sign in safely resolves the linked profile email in Firestore and still authenticates against Firebase credentials.',
+          'Passwords are never stored on device. Only security flags for quick unlock and app lock are kept in secure storage.',
         ),
       ),
       child: Column(
@@ -105,18 +101,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 children: [
                   TextFormField(
-                    controller: _identifierController,
+                    controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
                     textInputAction: TextInputAction.next,
-                    autofillHints: const [
-                      AutofillHints.username,
-                      AutofillHints.telephoneNumber,
-                    ],
+                    autofillHints: const [AutofillHints.username],
                     decoration: const InputDecoration(
-                      labelText: 'Email or phone',
-                      prefixIcon: Icon(Icons.person_outline_rounded),
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.alternate_email_rounded),
                     ),
-                    validator: AuthValidators.identifier,
+                    validator: AuthValidators.email,
                   ),
                   const SizedBox(height: 14),
                   TextFormField(
@@ -165,7 +158,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(height: 16),
           TextButton(
             onPressed: () => context.go(AppRoutes.register),
-            child: const Text('New partner device? Register with phone OTP'),
+            child: const Text('Create a partner account'),
           ),
         ],
       ),

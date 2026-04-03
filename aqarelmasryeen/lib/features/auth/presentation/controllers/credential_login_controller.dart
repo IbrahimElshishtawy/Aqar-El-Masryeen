@@ -5,15 +5,12 @@ class CredentialLoginController extends Notifier<AsyncValue<void>> {
   @override
   AsyncValue<void> build() => const AsyncData(null);
 
-  Future<void> signIn({
-    required String identifier,
-    required String password,
-  }) async {
+  Future<void> signIn({required String email, required String password}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(
       () => ref
           .read(authRepositoryProvider)
-          .signInWithIdentifier(identifier: identifier, password: password),
+          .signInWithEmail(email: email, password: password),
     );
   }
 }

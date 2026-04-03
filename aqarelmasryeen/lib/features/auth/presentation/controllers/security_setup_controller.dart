@@ -23,15 +23,19 @@ class SecuritySetupController extends Notifier<AsyncValue<void>> {
       }
 
       if (trustedDeviceEnabled) {
-        final availability = await ref.read(biometricServiceProvider).getAvailability();
+        final availability = await ref
+            .read(biometricServiceProvider)
+            .getAvailability();
         if (!availability.canUseSecureUnlock) {
           throw const AppException(
             'This device does not support secure device authentication.',
           );
         }
-        final authenticated = await ref.read(biometricServiceProvider).authenticate(
-          reason: 'Confirm secure unlock for this trusted device',
-        );
+        final authenticated = await ref
+            .read(biometricServiceProvider)
+            .authenticate(
+              reason: 'Confirm secure unlock for this trusted device',
+            );
         if (!authenticated) {
           throw const AppException(
             'Device authentication was canceled. Security settings were not saved.',
@@ -39,12 +43,14 @@ class SecuritySetupController extends Notifier<AsyncValue<void>> {
         }
       }
 
-      await ref.read(authRepositoryProvider).saveSecurityPreferences(
-        trustedDeviceEnabled: trustedDeviceEnabled,
-        biometricEnabled: biometricEnabled && trustedDeviceEnabled,
-        appLockEnabled: appLockEnabled,
-        inactivityTimeoutSeconds: inactivityTimeoutSeconds,
-      );
+      await ref
+          .read(authRepositoryProvider)
+          .saveSecurityPreferences(
+            trustedDeviceEnabled: trustedDeviceEnabled,
+            biometricEnabled: biometricEnabled && trustedDeviceEnabled,
+            appLockEnabled: appLockEnabled,
+            inactivityTimeoutSeconds: inactivityTimeoutSeconds,
+          );
 
       if (trustedDeviceEnabled && appLockEnabled) {
         await ref.read(sessionLockControllerProvider.notifier).unlock();

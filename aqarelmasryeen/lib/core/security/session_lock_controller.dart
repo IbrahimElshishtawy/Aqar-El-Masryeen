@@ -162,13 +162,24 @@ class SessionLockController extends Notifier<SessionLockState> {
 
     final profile = session.profile;
     final now = DateTime.now();
-    final appLockEnabled = profile?.appLockEnabled ?? state.appLockEnabled;
-    final trustedDeviceEnabled =
-        profile?.trustedDeviceEnabled ?? state.trustedDeviceEnabled;
-    final biometricEnabled =
-        profile?.biometricEnabled ?? state.biometricEnabled;
-    final inactivityTimeoutSeconds =
-        profile?.inactivityTimeoutSeconds ?? state.inactivityTimeoutSeconds;
+    if (profile == null) {
+      state = state.copyWith(
+        isInitialized: true,
+        isLocked: false,
+        appLockEnabled: false,
+        trustedDeviceEnabled: false,
+        biometricEnabled: false,
+        inactivityTimeoutSeconds: AppConfig.defaultInactivityTimeoutSeconds,
+      );
+      _inactivityTimer?.cancel();
+      await storage.clearSessionData();
+      return;
+    }
+
+    final appLockEnabled = profile.appLockEnabled;
+    final trustedDeviceEnabled = profile.trustedDeviceEnabled;
+    final biometricEnabled = profile.biometricEnabled;
+    final inactivityTimeoutSeconds = profile.inactivityTimeoutSeconds;
 
     bool shouldLock = state.isLocked;
     if (appLockEnabled && trustedDeviceEnabled) {

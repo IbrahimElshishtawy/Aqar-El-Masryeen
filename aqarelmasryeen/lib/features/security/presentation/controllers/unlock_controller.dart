@@ -48,9 +48,11 @@ class UnlockController extends Notifier<UnlockState> {
 
     state = state.copyWith(isUnlocking: true, clearError: true);
     try {
-      final authenticated = await ref.read(biometricServiceProvider).authenticate(
-        reason: 'Authenticate to unlock the accounting workspace',
-      );
+      final authenticated = await ref
+          .read(biometricServiceProvider)
+          .authenticate(
+            reason: 'Authenticate to unlock the accounting workspace',
+          );
       if (!authenticated) {
         throw const AppException('Authentication was canceled.');
       }

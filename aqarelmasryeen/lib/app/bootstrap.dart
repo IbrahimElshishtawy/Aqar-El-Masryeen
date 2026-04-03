@@ -7,21 +7,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 Future<void> bootstrap() async {
-  await runZonedGuarded(
-    () async {
-      WidgetsFlutterBinding.ensureInitialized();
-      await initializeFirebase();
-      FirebaseMessagingService.registerBackgroundHandler();
+  await runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    await initializeFirebase();
+    FirebaseMessagingService.registerBackgroundHandler();
 
-      FlutterError.onError = (details) {
-        Zone.current.handleUncaughtError(
-          details.exception,
-          details.stack ?? StackTrace.current,
-        );
-      };
+    FlutterError.onError = (details) {
+      Zone.current.handleUncaughtError(
+        details.exception,
+        details.stack ?? StackTrace.current,
+      );
+    };
 
-      runApp(const ProviderScope(child: AqarPartnersApp()));
-    },
-    reportToCrashlytics,
-  );
+    runApp(const ProviderScope(child: AqarPartnersApp()));
+  }, reportToCrashlytics);
 }

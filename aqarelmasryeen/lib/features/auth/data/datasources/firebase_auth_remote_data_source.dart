@@ -1,8 +1,5 @@
-import 'dart:async';
-
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart';
 
 class FirebaseAuthRemoteDataSource {
   FirebaseAuthRemoteDataSource(this._auth);
@@ -13,51 +10,14 @@ class FirebaseAuthRemoteDataSource {
 
   User? get currentUser => _auth.currentUser;
 
-  Future<void> sendOtp({
-    required String phone,
-    required void Function(String verificationId, int? resendToken) onCodeSent,
-    int? resendToken,
-  }) async {
-    if (!(defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS)) {
-      throw const AppException(
-        'Phone verification is supported on Android and iOS only.',
-      );
-    }
-
-    final completer = Completer<void>();
-
-    await _auth.verifyPhoneNumber(
-      phoneNumber: phone,
-      forceResendingToken: resendToken,
-      verificationCompleted: (credential) async {
-        await _auth.signInWithCredential(credential);
-        if (!completer.isCompleted) completer.complete();
-      },
-      verificationFailed: (error) {
-        if (!completer.isCompleted) completer.completeError(error);
-      },
-      codeSent: (verificationId, token) {
-        onCodeSent(verificationId, token);
-        if (!completer.isCompleted) completer.complete();
-      },
-      codeAutoRetrievalTimeout: (_) {
-        if (!completer.isCompleted) completer.complete();
-      },
-    );
-
-    await completer.future;
-  }
-
-  Future<UserCredential> verifyOtp({
-    required String verificationId,
-    required String smsCode,
+  Future<UserCredential> createUserWithEmail({
+    required String email,
+    required String password,
   }) {
-    final credential = PhoneAuthProvider.credential(
-      verificationId: verificationId,
-      smsCode: smsCode,
+    return _auth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
     );
-    return _auth.signInWithCredential(credential);
   }
 
   Future<UserCredential> signInWithEmail({
@@ -85,6 +45,24 @@ class FirebaseAuthRemoteDataSource {
 
     if (user.email != email) {
       await user.verifyBeforeUpdateEmail(email);
+    }
+  }
+
+  Future<void> updateEmail(User user, String email) async {
+    final existingEmail = user.email?.trim().toLowerCase();
+    if (existingEmail == email) {
+      return;
+    }
+    try {
+      await user.verifyBeforeUpdateEmail(email);
+    } on FirebaseAuthException catch (error) {
+      if (error.code == 'requires-recent-login') {
+        throw const AppException(
+          'Re-enter your credentials before changing the login email.',
+          code: 'requires_recent_login',
+        );
+      }
+      rethrow;
     }
   }
 

@@ -1,12 +1,9 @@
-import 'dart:async';
-
 import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/constants/secure_storage_keys.dart';
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/services/device_info_service.dart';
 import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
-import 'package:aqarelmasryeen/core/utils/phone_utils.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/firebase_auth_remote_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/user_profile_remote_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
@@ -51,55 +48,53 @@ class FirebaseAuthRepository implements AuthRepository {
       yield* _profileDataSource.watchProfile(user.uid).asyncMap((
         profile,
       ) async {
-        await _syncLocalSession(
-          profile ?? await _profileDataSource.fetchProfile(user.uid),
-          user.uid,
-        );
-        return AppSession(firebaseUser: user, profile: profile);
+        final resolvedProfile =
+            profile ?? await _profileDataSource.fetchProfile(user.uid);
+        await _syncLocalSession(resolvedProfile, user.uid);
+        return AppSession(firebaseUser: user, profile: resolvedProfile);
       });
     }
   }
 
   @override
-  Future<void> sendOtp({
-    required String phone,
-    required void Function(String verificationId, int? resendToken) onCodeSent,
-    int? resendToken,
+  Future<void> registerWithEmail({
+    required String fullName,
+    required String email,
+    required String password,
   }) async {
-    final normalizedPhone = PhoneUtils.normalize(phone);
+    final normalizedEmail = email.trim().toLowerCase();
+    final normalizedName = fullName.trim();
 
     try {
-      await _authDataSource.sendOtp(
-        phone: normalizedPhone,
-        resendToken: resendToken,
-        onCodeSent: onCodeSent,
-      );
-
-      final user = _authDataSource.currentUser;
-      if (user != null) {
-        await _bootstrapPhoneVerifiedUser(user);
-      }
-    } catch (error, stackTrace) {
-      _recordError(error, stackTrace);
-      rethrow;
-    }
-  }
-
-  @override
-  Future<void> verifyOtp({
-    required String verificationId,
-    required String smsCode,
-  }) async {
-    try {
-      final credential = await _authDataSource.verifyOtp(
-        verificationId: verificationId,
-        smsCode: smsCode,
+      final credential = await _authDataSource.createUserWithEmail(
+        email: normalizedEmail,
+        password: password,
       );
       final user = credential.user;
       if (user == null) {
-        throw const AppException('Phone verification did not return a user.');
+        throw const AppException('Account creation did not return a user.');
       }
-      await _bootstrapPhoneVerifiedUser(user);
+
+      await _authDataSource.updateDisplayName(user, normalizedName);
+      await _authDataSource.reloadUser(user);
+
+      final deviceInfo = await _deviceInfoService.currentDeviceInfo();
+      await _profileDataSource.createOrMergeProfile(
+        uid: user.uid,
+        fullName: normalizedName,
+        email: normalizedEmail,
+        deviceInfo: deviceInfo,
+      );
+
+      final profile = await _profileDataSource.fetchProfile(user.uid);
+      await _syncLocalSession(profile, user.uid);
+      await _analytics.logSignUp(signUpMethod: 'email_password');
+      await _logSecurityEvent(
+        actorId: user.uid,
+        actorName: normalizedName,
+        action: 'register',
+        metadata: {'email': normalizedEmail},
+      );
     } catch (error, stackTrace) {
       _recordError(error, stackTrace);
       rethrow;
@@ -107,41 +102,15 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> signInWithIdentifier({
-    required String identifier,
+  Future<void> signInWithEmail({
+    required String email,
     required String password,
   }) async {
+    final normalizedEmail = email.trim().toLowerCase();
+
     try {
-      final normalized = identifier.trim().toLowerCase();
-      final looksLikeEmail = normalized.contains('@');
-      String email = normalized;
-
-      if (!looksLikeEmail) {
-        final phone = PhoneUtils.normalize(identifier);
-        final profile = await _profileDataSource.findByPhone(phone);
-        if (profile == null) {
-          throw const AppException(
-            'No account was found for this phone number.',
-            code: 'missing_account',
-          );
-        }
-        if (!profile.isActive) {
-          throw const AppException(
-            'This account is disabled. Contact the administrator.',
-            code: 'account_disabled',
-          );
-        }
-        if (profile.email.trim().isEmpty) {
-          throw const AppException(
-            'This account is missing an email login. Sign in with phone verification again to recover access.',
-            code: 'missing_email_login',
-          );
-        }
-        email = profile.email.trim().toLowerCase();
-      }
-
       final credential = await _authDataSource.signInWithEmail(
-        email: email,
+        email: normalizedEmail,
         password: password,
       );
       final user = credential.user;
@@ -151,14 +120,7 @@ class FirebaseAuthRepository implements AuthRepository {
 
       final deviceInfo = await _deviceInfoService.currentDeviceInfo();
       final profile = await _profileDataSource.fetchProfile(user.uid);
-      if (profile == null) {
-        await _authDataSource.signOut();
-        throw const AppException(
-          'Your account profile is missing. Use phone registration recovery or contact the administrator.',
-          code: 'missing_profile',
-        );
-      }
-      if (!profile.isActive) {
+      if (profile != null && !profile.isActive) {
         await _authDataSource.signOut();
         throw const AppException(
           'This account is disabled. Contact the administrator.',
@@ -166,19 +128,32 @@ class FirebaseAuthRepository implements AuthRepository {
         );
       }
 
-      await _profileDataSource.touchLogin(
-        uid: user.uid,
-        deviceInfo: deviceInfo,
-      );
+      if (profile != null) {
+        final previousDeviceId = profile.deviceInfo?.deviceId ?? '';
+        final isNewDevice =
+            previousDeviceId.isNotEmpty &&
+            previousDeviceId != deviceInfo.deviceId;
+        await _profileDataSource.touchLogin(
+          uid: user.uid,
+          deviceInfo: deviceInfo,
+        );
+        if (isNewDevice) {
+          await _notificationRepository.createSecurityNotification(
+            userId: user.uid,
+            title: 'New trusted device detected',
+            body: 'A sign-in attempt used ${deviceInfo.deviceName}.',
+            route: AppRoutes.settings,
+          );
+        }
+      }
+
       await _syncLocalSession(profile, user.uid);
+      await _analytics.logLogin(loginMethod: 'email_password');
       await _logSecurityEvent(
         actorId: user.uid,
-        actorName: profile.fullName.isEmpty ? 'Partner' : profile.fullName,
+        actorName: _actorName(user, profile, normalizedEmail),
         action: 'login',
-        metadata: {'route': 'credentials', 'device': deviceInfo.deviceName},
-      );
-      await _analytics.logLogin(
-        loginMethod: looksLikeEmail ? 'email' : 'phone_password',
+        metadata: {'route': 'email_password'},
       );
     } catch (error, stackTrace) {
       _recordError(error, stackTrace);
@@ -190,40 +165,64 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<void> completeProfile({
     required String fullName,
     required String email,
-    required String password,
+    String? password,
   }) async {
     final user = _authDataSource.currentUser;
     if (user == null) {
       throw const AppException('No authenticated user found.');
     }
 
-    final normalizedEmail = email.trim().toLowerCase();
+    final normalizedName = fullName.trim();
+    final requestedEmail = email.trim().toLowerCase();
+    final authEmail = user.email?.trim().toLowerCase();
+    final hasEmailProvider = user.providerData.any(
+      (provider) => provider.providerId == EmailAuthProvider.PROVIDER_ID,
+    );
 
     try {
-      await _authDataSource.linkEmailCredential(
-        user: user,
-        email: normalizedEmail,
-        password: password,
-      );
-      await _authDataSource.updateDisplayName(user, fullName.trim());
+      final profileEmail = authEmail?.isNotEmpty == true
+          ? authEmail!
+          : requestedEmail;
+
+      if (!hasEmailProvider || authEmail == null || authEmail.isEmpty) {
+        if ((password ?? '').isEmpty) {
+          throw const AppException(
+            'Create a password to finish migrating this account.',
+            code: 'password_required',
+          );
+        }
+        await _authDataSource.linkEmailCredential(
+          user: user,
+          email: profileEmail,
+          password: password!,
+        );
+      } else if (requestedEmail.isNotEmpty && requestedEmail != profileEmail) {
+        throw const AppException(
+          'Use the signed-in email address to complete the profile.',
+          code: 'email_mismatch',
+        );
+      }
+
+      await _authDataSource.updateDisplayName(user, normalizedName);
       await _authDataSource.reloadUser(user);
 
       final deviceInfo = await _deviceInfoService.currentDeviceInfo();
       await _profileDataSource.completeProfile(
         user: user,
-        fullName: fullName.trim(),
-        email: normalizedEmail,
+        fullName: normalizedName,
+        email: profileEmail,
         deviceInfo: deviceInfo,
       );
 
-      await _secureStorage.writeLastKnownUid(user.uid);
-      await _analytics.logSignUp(signUpMethod: 'phone_otp');
+      final profile = await _profileDataSource.fetchProfile(user.uid);
+      await _syncLocalSession(profile, user.uid);
       await _logSecurityEvent(
         actorId: user.uid,
-        actorName: fullName.trim(),
+        actorName: normalizedName,
         action: 'profile_completed',
-        metadata: {'email': normalizedEmail},
+        metadata: {'email': profileEmail},
       );
+      await _analytics.logEvent(name: 'profile_completed');
     } catch (error, stackTrace) {
       _recordError(error, stackTrace);
       rethrow;
@@ -258,10 +257,9 @@ class FirebaseAuthRepository implements AuthRepository {
         appLockEnabled: appLockEnabled,
         inactivityTimeoutSeconds: inactivityTimeoutSeconds,
       );
-
       await _logSecurityEvent(
         actorId: user.uid,
-        actorName: user.displayName ?? 'Partner',
+        actorName: user.displayName ?? user.email ?? 'Partner',
         action: 'security_preferences_updated',
         metadata: {
           'trustedDeviceEnabled': trustedDeviceEnabled,
@@ -282,6 +280,7 @@ class FirebaseAuthRepository implements AuthRepository {
     if (user == null) {
       throw const AppException('No authenticated user found.');
     }
+
     await _profileDataSource.setBiometricPreference(
       uid: user.uid,
       biometricEnabled: enabled,
@@ -310,7 +309,7 @@ class FirebaseAuthRepository implements AuthRepository {
     if (user != null) {
       await _logSecurityEvent(
         actorId: user.uid,
-        actorName: user.displayName ?? user.phoneNumber ?? 'Partner',
+        actorName: user.displayName ?? user.email ?? 'Partner',
         action: 'logout',
       );
       await _analytics.logEvent(name: 'secure_logout');
@@ -319,42 +318,13 @@ class FirebaseAuthRepository implements AuthRepository {
     await _authDataSource.signOut();
   }
 
-  Future<void> _ensurePhoneVerifiedPlaceholder(User user) async {
-    final existingProfile = await _profileDataSource.fetchProfile(user.uid);
-    final deviceInfo = await _deviceInfoService.currentDeviceInfo();
-    await _profileDataSource.ensurePlaceholderProfile(
-      user: user,
-      deviceInfo: deviceInfo,
-    );
-    final profile = await _profileDataSource.fetchProfile(user.uid);
-    await _syncLocalSession(profile, user.uid);
-
-    final isNewDevice =
-        existingProfile?.deviceInfo?.deviceId.isNotEmpty == true &&
-        existingProfile!.deviceInfo!.deviceId != deviceInfo.deviceId;
-    if (isNewDevice) {
-      await _notificationRepository.createSecurityNotification(
-        userId: user.uid,
-        title: 'New trusted device detected',
-        body: 'A sign-in attempt used ${deviceInfo.deviceName}.',
-        route: AppRoutes.settings,
-      );
-    }
-  }
-
-  Future<void> _bootstrapPhoneVerifiedUser(User user) async {
-    try {
-      await _ensurePhoneVerifiedPlaceholder(user);
-    } on FirebaseException catch (error) {
-      await _authDataSource.signOut();
-      throw _mapProfileBootstrapException(error);
-    }
-  }
-
   Future<void> _syncLocalSession(AppUser? profile, String uid) async {
     await _secureStorage.markAppOpened();
     await _secureStorage.writeLastKnownUid(uid);
-    if (profile == null) return;
+    if (profile == null) {
+      await _secureStorage.clearSessionData();
+      return;
+    }
     await _secureStorage.persistSecurityPreferences(
       trustedDeviceEnabled: profile.trustedDeviceEnabled,
       biometricEnabled: profile.biometricEnabled,
@@ -379,29 +349,20 @@ class FirebaseAuthRepository implements AuthRepository {
     );
   }
 
-  void _recordError(Object error, StackTrace stackTrace) {
-    _crashlytics.recordError(error, stackTrace, fatal: false);
+  String _actorName(User user, AppUser? profile, String fallbackEmail) {
+    final profileName = profile?.fullName.trim() ?? '';
+    if (profileName.isNotEmpty) {
+      return profileName;
+    }
+    final displayName = user.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) {
+      return displayName;
+    }
+    return fallbackEmail;
   }
 
-  AppException _mapProfileBootstrapException(FirebaseException error) {
-    final message = error.message ?? '';
-    if (error.plugin == 'cloud_firestore' &&
-        message.contains('database (default) does not exist')) {
-      return const AppException(
-        'Phone verification succeeded, but Cloud Firestore is not created for this Firebase project. Create the default Firestore database, then try again.',
-        code: 'firestore_not_configured',
-      );
-    }
-    if (error.plugin == 'cloud_firestore' && error.code == 'unavailable') {
-      return const AppException(
-        'Phone verification succeeded, but the app could not reach Cloud Firestore. Check Firestore setup, App Check, and internet access, then try again.',
-        code: 'firestore_unavailable',
-      );
-    }
-    return AppException(
-      message.isEmpty ? 'Could not finish account setup.' : message,
-      code: error.code,
-    );
+  void _recordError(Object error, StackTrace stackTrace) {
+    _crashlytics.recordError(error, stackTrace, fatal: false);
   }
 }
 

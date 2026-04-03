@@ -4,7 +4,6 @@ class AppRoutes {
   static const splash = '/';
   static const login = '/auth/login';
   static const register = '/auth/register';
-  static const otp = '/auth/otp';
   static const profile = '/auth/profile';
   static const securitySetup = '/auth/security-setup';
   static const unlock = '/auth/unlock';

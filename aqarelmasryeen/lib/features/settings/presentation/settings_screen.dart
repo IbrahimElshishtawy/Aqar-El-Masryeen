@@ -22,7 +22,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() => _signingOut = true);
     try {
       await ref.read(authRepositoryProvider).signOut();
-      ref.read(phoneRegistrationControllerProvider.notifier).reset();
       if (mounted) {
         context.go(AppRoutes.login);
       }
@@ -86,7 +85,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               onTap: () async {
                 final router = GoRouter.of(context);
-                await ref.read(sessionLockControllerProvider.notifier).forceLock();
+                await ref
+                    .read(sessionLockControllerProvider.notifier)
+                    .forceLock();
                 if (context.mounted) {
                   router.go(AppRoutes.unlock);
                 }

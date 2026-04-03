@@ -34,7 +34,7 @@ class BiometricAvailability {
       }
     }
     labels.add('Device passcode/PIN');
-    return labels.join(' • ');
+    return labels.join(' / ');
   }
 }
 

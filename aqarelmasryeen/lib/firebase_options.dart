@@ -66,5 +66,4 @@ class DefaultFirebaseOptions {
     storageBucket: 'aqarr-cfd58.firebasestorage.app',
     measurementId: 'G-Z9TYBD0Y47',
   );
-
 }

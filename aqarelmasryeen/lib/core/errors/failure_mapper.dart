@@ -7,22 +7,12 @@ AppException mapException(Object error) {
     return error;
   }
   if (error is FirebaseAuthException) {
+    final message = error.message ?? '';
     switch (error.code) {
-      case 'invalid-verification-code':
-      case 'invalid-verification-id':
+      case 'invalid-email':
         return const AppException(
-          'The verification code is invalid or has expired. Request a new code and try again.',
-          code: 'invalid_otp',
-        );
-      case 'session-expired':
-        return const AppException(
-          'The verification session expired. Request a new code.',
-          code: 'otp_expired',
-        );
-      case 'invalid-phone-number':
-        return const AppException(
-          'Enter a valid phone number with country code.',
-          code: 'invalid_phone',
+          'Enter a valid email address.',
+          code: 'invalid_email',
         );
       case 'too-many-requests':
         return const AppException(
@@ -33,12 +23,12 @@ AppException mapException(Object error) {
       case 'invalid-credential':
       case 'user-not-found':
         return const AppException(
-          'Incorrect credentials. Check your email or phone and password.',
+          'Incorrect email or password. Check your credentials and try again.',
           code: 'invalid_credentials',
         );
       case 'email-already-in-use':
         return const AppException(
-          'This email is already linked to another account.',
+          'This email is already in use.',
           code: 'email_in_use',
         );
       case 'weak-password':
@@ -53,12 +43,22 @@ AppException mapException(Object error) {
         );
       case 'operation-not-allowed':
         return const AppException(
-          'This sign-in method is not enabled in Firebase.',
+          'Email/password sign-in is not enabled in Firebase Authentication.',
           code: 'operation_not_allowed',
+        );
+      case 'network-request-failed':
+        return const AppException(
+          'Network error. Check your connection and try again.',
+          code: 'network_error',
+        );
+      case 'requires-recent-login':
+        return const AppException(
+          'Please sign in again before changing sensitive account details.',
+          code: 'requires_recent_login',
         );
       default:
         return AppException(
-          error.message ?? 'Authentication failed.',
+          message.isEmpty ? 'Authentication failed.' : message,
           code: error.code,
         );
     }

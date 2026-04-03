@@ -26,16 +26,31 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt;
     }
 
+    function validUserProfile(userId) {
+      return request.resource.data.uid == userId
+        && request.resource.data.role == 'partner'
+        && request.resource.data.fullName is string
+        && request.resource.data.email is string
+        && request.resource.data.biometricEnabled is bool
+        && request.resource.data.appLockEnabled is bool
+        && (request.resource.data.trustedDeviceEnabled == null
+          || request.resource.data.trustedDeviceEnabled is bool)
+        && request.resource.data.isActive is bool
+        && request.resource.data.inactivityTimeoutSeconds is int
+        && request.resource.data.inactivityTimeoutSeconds >= 30
+        && request.resource.data.inactivityTimeoutSeconds <= 300;
+    }
+
     match /users/{userId} {
       allow create: if isOwner(userId)
-        && request.resource.data.uid == userId
-        && request.resource.data.role == 'partner'
+        && validUserProfile(userId)
         && request.resource.data.isActive == true;
 
       allow read: if isOwner(userId);
 
       allow update: if isOwner(userId)
-        && immutableUserCore(userId);
+        && immutableUserCore(userId)
+        && validUserProfile(userId);
 
       allow delete: if false;
     }

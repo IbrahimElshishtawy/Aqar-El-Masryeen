@@ -37,7 +37,7 @@ final authBootstrapControllerProvider = FutureProvider<AuthBootstrapDecision>((
       return const AuthBootstrapDecision(AppRoutes.login);
     }
 
-    if (!session.isProfileComplete) {
+    if (session.needsProfileCompletion) {
       return const AuthBootstrapDecision(AppRoutes.profile);
     }
 
@@ -59,11 +59,7 @@ final authBootstrapControllerProvider = FutureProvider<AuthBootstrapDecision>((
 Future<AuthBootstrapDecision> _decisionFromLocalState(
   SecureStorageService storage,
 ) async {
-  final hasOpenedApp = await storage.hasOpenedAppBefore();
-  final lastUid = await storage.readLastKnownUid();
-  return AuthBootstrapDecision(
-    !hasOpenedApp || (lastUid == null || lastUid.isEmpty)
-        ? AppRoutes.register
-        : AppRoutes.login,
-  );
+  await storage.hasOpenedAppBefore();
+  await storage.readLastKnownUid();
+  return const AuthBootstrapDecision(AppRoutes.login);
 }

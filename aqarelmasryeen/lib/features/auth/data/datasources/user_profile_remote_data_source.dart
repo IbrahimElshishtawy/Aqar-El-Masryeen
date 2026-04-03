@@ -27,48 +27,36 @@ class UserProfileRemoteDataSource {
     return AppUser.fromMap(uid, snapshot.data());
   }
 
-  Future<AppUser?> findByPhone(String phone) async {
-    final query = await _users.where('phone', isEqualTo: phone).limit(1).get();
-    if (query.docs.isEmpty) return null;
-    final doc = query.docs.first;
-    return AppUser.fromMap(doc.id, doc.data());
-  }
-
-  Future<void> ensurePlaceholderProfile({
-    required User user,
+  Future<void> createOrMergeProfile({
+    required String uid,
+    required String fullName,
+    required String email,
     required AuthDeviceInfo deviceInfo,
+    bool biometricEnabled = false,
+    bool appLockEnabled = true,
+    bool trustedDeviceEnabled = false,
+    bool isActive = true,
+    String role = 'partner',
   }) async {
-    final now = DateTime.now();
-    final existing = await fetchProfile(user.uid);
-    if (existing != null) {
-      await _users.doc(user.uid).set({
-        'uid': user.uid,
-        'phone': user.phoneNumber ?? existing.phone,
-        'updatedAt': now,
-        'lastLoginAt': now,
-        'deviceInfo': deviceInfo.toMap(),
-      }, SetOptions(merge: true));
-      return;
-    }
-
-    await _users.doc(user.uid).set({
-      'uid': user.uid,
-      'phone': user.phoneNumber ?? '',
-      'fullName': user.displayName ?? '',
-      'name': user.displayName ?? '',
-      'email': user.email ?? '',
-      'role': UserRole.partner.name,
-      'createdAt': now,
-      'updatedAt': now,
-      'lastLoginAt': now,
-      'trustedDeviceEnabled': false,
-      'biometricEnabled': false,
-      'appLockEnabled': true,
+    final existing = await fetchProfile(uid);
+    await _users.doc(uid).set({
+      'uid': uid,
+      'phone': '',
+      'fullName': fullName,
+      'name': fullName,
+      'email': email,
+      'role': role,
+      'isActive': isActive,
+      'trustedDeviceEnabled': trustedDeviceEnabled,
+      'biometricEnabled': biometricEnabled,
+      'appLockEnabled': appLockEnabled,
       'inactivityTimeoutSeconds': AppConfig.defaultInactivityTimeoutSeconds,
+      'createdAt': existing?.createdAt ?? FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'lastLoginAt': FieldValue.serverTimestamp(),
       'deviceInfo': deviceInfo.toMap(),
-      'isActive': true,
-      'securitySetupCompletedAt': null,
-    });
+      'securitySetupCompletedAt': existing?.securitySetupCompletedAt,
+    }, SetOptions(merge: true));
   }
 
   Future<void> completeProfile({
@@ -77,7 +65,21 @@ class UserProfileRemoteDataSource {
     required String email,
     required AuthDeviceInfo deviceInfo,
   }) {
-    final now = DateTime.now();
+    return _writeCompletedProfile(
+      user: user,
+      fullName: fullName,
+      email: email,
+      deviceInfo: deviceInfo,
+    );
+  }
+
+  Future<void> _writeCompletedProfile({
+    required User user,
+    required String fullName,
+    required String email,
+    required AuthDeviceInfo deviceInfo,
+  }) async {
+    final existing = await fetchProfile(user.uid);
     return _users.doc(user.uid).set({
       'uid': user.uid,
       'phone': user.phoneNumber ?? '',
@@ -85,14 +87,18 @@ class UserProfileRemoteDataSource {
       'name': fullName,
       'email': email,
       'role': UserRole.partner.name,
-      'updatedAt': now,
-      'lastLoginAt': now,
+      'createdAt': existing?.createdAt ?? FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'lastLoginAt': FieldValue.serverTimestamp(),
       'deviceInfo': deviceInfo.toMap(),
-      'isActive': true,
-      'trustedDeviceEnabled': false,
-      'biometricEnabled': false,
-      'appLockEnabled': true,
-      'inactivityTimeoutSeconds': AppConfig.defaultInactivityTimeoutSeconds,
+      'isActive': existing?.isActive ?? true,
+      'trustedDeviceEnabled': existing?.trustedDeviceEnabled ?? false,
+      'biometricEnabled': existing?.biometricEnabled ?? false,
+      'appLockEnabled': existing?.appLockEnabled ?? true,
+      'inactivityTimeoutSeconds':
+          existing?.inactivityTimeoutSeconds ??
+          AppConfig.defaultInactivityTimeoutSeconds,
+      'securitySetupCompletedAt': existing?.securitySetupCompletedAt,
     }, SetOptions(merge: true));
   }
 
@@ -110,8 +116,8 @@ class UserProfileRemoteDataSource {
       'appLockEnabled': appLockEnabled,
       'inactivityTimeoutSeconds': inactivityTimeoutSeconds,
       'deviceInfo': deviceInfo.toMap(),
-      'securitySetupCompletedAt': DateTime.now(),
-      'updatedAt': DateTime.now(),
+      'securitySetupCompletedAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
@@ -120,8 +126,8 @@ class UserProfileRemoteDataSource {
     required AuthDeviceInfo deviceInfo,
   }) {
     return _users.doc(uid).set({
-      'lastLoginAt': DateTime.now(),
-      'updatedAt': DateTime.now(),
+      'lastLoginAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
       'deviceInfo': deviceInfo.toMap(),
     }, SetOptions(merge: true));
   }
@@ -132,7 +138,7 @@ class UserProfileRemoteDataSource {
   }) {
     return _users.doc(uid).set({
       'biometricEnabled': biometricEnabled,
-      'updatedAt': DateTime.now(),
+      'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 }

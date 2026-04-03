@@ -6,9 +6,8 @@ import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart'
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/screens/biometric_setup_screen.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/screens/login_screen.dart';
-import 'package:aqarelmasryeen/features/auth/presentation/screens/otp_screen.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/screens/profile_completion_screen.dart';
-import 'package:aqarelmasryeen/features/auth/presentation/screens/register_phone_screen.dart';
+import 'package:aqarelmasryeen/features/auth/presentation/screens/register_screen.dart';
 import 'package:aqarelmasryeen/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:aqarelmasryeen/features/notifications/presentation/notifications_center_screen.dart';
 import 'package:aqarelmasryeen/features/partners/presentation/partners_screen.dart';
@@ -50,11 +49,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.register,
-        builder: (context, state) => const RegisterPhoneScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.otp,
-        builder: (context, state) => const OtpScreen(),
+        builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
         path: AppRoutes.profile,
@@ -139,17 +134,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return AppRoutes.login;
       }
 
-      if (!session.isProfileComplete) {
-        if (location == AppRoutes.profile || location == AppRoutes.otp) {
+      if (session.needsProfileCompletion) {
+        if (location == AppRoutes.profile) {
           return null;
         }
         return AppRoutes.profile;
       }
 
-      if (session.needsSecuritySetup) {
-        if (location == AppRoutes.securitySetup) {
-          return null;
-        }
+      if (session.needsSecuritySetup && location != AppRoutes.securitySetup) {
         return AppRoutes.securitySetup;
       }
 
@@ -162,7 +154,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
 
       if (location == AppRoutes.securitySetup) {
-        return AppRoutes.dashboard;
+        return null;
       }
 
       if (isSplashRoute || isAuthRoute) {

@@ -17,6 +17,7 @@ class BiometricSetupScreen extends ConsumerStatefulWidget {
 
 class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
   bool _seeded = false;
+  bool _cameFromOnboarding = false;
   bool _trustedDeviceEnabled = true;
   bool _biometricEnabled = true;
   bool _appLockEnabled = true;
@@ -30,12 +31,14 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
     final session = ref.watch(authSessionProvider).valueOrNull;
 
     if (!_seeded && session?.profile != null) {
+      final profile = session!.profile!;
       _seeded = true;
-      _trustedDeviceEnabled = session!.profile!.trustedDeviceEnabled;
-      _biometricEnabled = session.profile!.biometricEnabled;
-      _appLockEnabled = session.profile!.appLockEnabled;
-      _timeoutSeconds = session.profile!.inactivityTimeoutSeconds;
-      if (!_trustedDeviceEnabled && !session.profile!.isSecuritySetupComplete) {
+      _cameFromOnboarding = session.needsSecuritySetup;
+      _trustedDeviceEnabled = profile.trustedDeviceEnabled;
+      _biometricEnabled = profile.biometricEnabled;
+      _appLockEnabled = profile.appLockEnabled;
+      _timeoutSeconds = profile.inactivityTimeoutSeconds;
+      if (!_trustedDeviceEnabled && !profile.isSecuritySetupComplete) {
         _trustedDeviceEnabled = true;
         _biometricEnabled = true;
       }
@@ -52,23 +55,31 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
         );
       }
       if ((previous?.isLoading ?? false) && next.hasValue && mounted) {
-        context.go(AppRoutes.dashboard);
+        if (_cameFromOnboarding) {
+          context.go(AppRoutes.dashboard);
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Security settings updated.')),
+          );
+        }
       }
     });
 
     Future<void> submit() {
-      return ref.read(securitySetupControllerProvider.notifier).submit(
-        trustedDeviceEnabled: _trustedDeviceEnabled,
-        biometricEnabled: _biometricEnabled,
-        appLockEnabled: _appLockEnabled,
-        inactivityTimeoutSeconds: _timeoutSeconds,
-      );
+      return ref
+          .read(securitySetupControllerProvider.notifier)
+          .submit(
+            trustedDeviceEnabled: _trustedDeviceEnabled,
+            biometricEnabled: _biometricEnabled,
+            appLockEnabled: _appLockEnabled,
+            inactivityTimeoutSeconds: _timeoutSeconds,
+          );
     }
 
     return AuthScaffold(
       title: 'Secure this device',
       subtitle:
-          'Configure trusted-device unlock, operating-system credentials, and automatic app locking for this finance workspace.',
+          'Configure biometric or device-credential unlock and automatic app locking for this finance workspace.',
       leading: Container(
         width: 64,
         height: 64,

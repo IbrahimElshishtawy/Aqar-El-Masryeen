@@ -8,10 +8,14 @@ class AppSession extends Equatable {
   final User firebaseUser;
   final AppUser? profile;
 
+  bool get hasProfile => profile != null;
+
   bool get isProfileComplete => profile?.isProfileComplete ?? false;
 
+  bool get needsProfileCompletion => !hasProfile || !isProfileComplete;
+
   bool get needsSecuritySetup =>
-      isProfileComplete && !(profile?.isSecuritySetupComplete ?? false);
+      !needsProfileCompletion && !(profile?.isSecuritySetupComplete ?? false);
 
   bool get isActive => profile?.isActive ?? true;
 

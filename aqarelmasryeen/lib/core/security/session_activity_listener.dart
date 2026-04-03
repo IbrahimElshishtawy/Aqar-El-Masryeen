@@ -20,7 +20,8 @@ class _SessionActivityListenerState
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     Future.microtask(
-      () => ref.read(sessionLockControllerProvider.notifier).ensureInitialized(),
+      () =>
+          ref.read(sessionLockControllerProvider.notifier).ensureInitialized(),
     );
   }
 

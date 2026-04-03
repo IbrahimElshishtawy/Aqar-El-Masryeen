@@ -70,17 +70,18 @@ class AppUser extends Equatable {
 
   factory AppUser.fromMap(String id, Map<String, dynamic>? map) {
     final data = map ?? <String, dynamic>{};
+    final createdAt = parseDate(data['createdAt'], fallback: DateTime.now());
+    final updatedAt = parseDate(data['updatedAt'], fallback: createdAt);
     return AppUser(
       uid: data['uid'] as String? ?? id,
       phone: data['phone'] as String? ?? '',
-      fullName:
-          data['fullName'] as String? ?? data['name'] as String? ?? '',
+      fullName: data['fullName'] as String? ?? data['name'] as String? ?? '',
       email: data['email'] as String? ?? '',
-      createdAt: parseDate(data['createdAt']),
-      updatedAt: parseDate(data['updatedAt']),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
       lastLoginAt: data['lastLoginAt'] == null
           ? null
-          : parseDate(data['lastLoginAt']),
+          : parseDate(data['lastLoginAt'], fallback: updatedAt),
       role: UserRole.values.firstWhere(
         (value) => value.name == data['role'],
         orElse: () => UserRole.partner,
@@ -88,8 +89,7 @@ class AppUser extends Equatable {
       trustedDeviceEnabled: data['trustedDeviceEnabled'] as bool? ?? false,
       biometricEnabled: data['biometricEnabled'] as bool? ?? false,
       appLockEnabled: data['appLockEnabled'] as bool? ?? true,
-      inactivityTimeoutSeconds:
-          data['inactivityTimeoutSeconds'] as int? ?? 90,
+      inactivityTimeoutSeconds: data['inactivityTimeoutSeconds'] as int? ?? 90,
       deviceInfo: data['deviceInfo'] is Map<String, dynamic>
           ? AuthDeviceInfo.fromMap(data['deviceInfo'] as Map<String, dynamic>)
           : null,
