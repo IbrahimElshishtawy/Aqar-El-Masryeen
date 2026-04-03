@@ -26,43 +26,52 @@ class DefaultFirebaseOptions {
     appId: '1:55493381725:android:514946b81ac7baf516c7b4',
     messagingSenderId: '55493381725',
     projectId: 'aqar-146b6',
+    databaseURL: 'https://aqar-146b6-default-rtdb.firebaseio.com',
     storageBucket: 'aqar-146b6.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_IOS_API_KEY',
+    apiKey: 'AIzaSyDkJbmkj-oqIz4rhAWh1Ysvrbs9SZY27vg',
     appId: '1:55493381725:ios:aea3632d8f9017b716c7b4',
     messagingSenderId: '55493381725',
     projectId: 'aqar-146b6',
+    databaseURL: 'https://aqar-146b6-default-rtdb.firebaseio.com',
     storageBucket: 'aqar-146b6.firebasestorage.app',
+    androidClientId: '55493381725-g0sgvd57e28g7ratafqb95jkhcfkbm4s.apps.googleusercontent.com',
     iosBundleId: 'com.example.aqarelmasryeen',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_MACOS_API_KEY',
+    apiKey: 'AIzaSyDkJbmkj-oqIz4rhAWh1Ysvrbs9SZY27vg',
     appId: '1:55493381725:ios:aea3632d8f9017b716c7b4',
     messagingSenderId: '55493381725',
     projectId: 'aqar-146b6',
+    databaseURL: 'https://aqar-146b6-default-rtdb.firebaseio.com',
     storageBucket: 'aqar-146b6.firebasestorage.app',
+    androidClientId: '55493381725-g0sgvd57e28g7ratafqb95jkhcfkbm4s.apps.googleusercontent.com',
     iosBundleId: 'com.example.aqarelmasryeen',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_WINDOWS_API_KEY',
+    apiKey: 'AIzaSyCmKvs7tLjTLUk194h8jMrvXu0PhKZnc8A',
     appId: '1:55493381725:web:edfe77f4718f699416c7b4',
     messagingSenderId: '55493381725',
     projectId: 'aqar-146b6',
-    storageBucket: 'aqar-146b6.firebasestorage.app',
     authDomain: 'aqar-146b6.firebaseapp.com',
+    databaseURL: 'https://aqar-146b6-default-rtdb.firebaseio.com',
+    storageBucket: 'aqar-146b6.firebasestorage.app',
+    measurementId: 'G-HKB4DCG4CX',
   );
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'REPLACE_WITH_WEB_API_KEY',
+    apiKey: 'AIzaSyCmKvs7tLjTLUk194h8jMrvXu0PhKZnc8A',
     appId: '1:55493381725:web:36b87d058fc9e81f16c7b4',
     messagingSenderId: '55493381725',
     projectId: 'aqar-146b6',
-    storageBucket: 'aqar-146b6.firebasestorage.app',
     authDomain: 'aqar-146b6.firebaseapp.com',
-    measurementId: 'G-REPLACE_ME',
+    databaseURL: 'https://aqar-146b6-default-rtdb.firebaseio.com',
+    storageBucket: 'aqar-146b6.firebasestorage.app',
+    measurementId: 'G-SSHGZ9YYJR',
   );
+
 }
