@@ -46,6 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       previous,
       next,
     ) {
+      if (!mounted) return;
       if (next.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(mapException(next.error!).message)),

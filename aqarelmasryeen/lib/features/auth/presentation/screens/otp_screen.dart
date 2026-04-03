@@ -42,6 +42,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
             : AppRoutes.profile,
       );
     } catch (error) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(mapException(error).message)));
@@ -56,6 +57,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         const SnackBar(content: Text('A fresh verification code was sent.')),
       );
     } catch (error) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(mapException(error).message)));

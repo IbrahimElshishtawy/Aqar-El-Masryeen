@@ -37,6 +37,7 @@ class _RegisterPhoneScreenState extends ConsumerState<RegisterPhoneScreen> {
       if (!mounted) return;
       context.go(session != null ? AppRoutes.profile : AppRoutes.otp);
     } catch (error) {
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(mapException(error).message)));
