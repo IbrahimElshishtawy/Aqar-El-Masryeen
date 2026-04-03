@@ -1,5 +1,3 @@
-import 'package:aqarelmasryeen/app/providers.dart';
-import 'package:aqarelmasryeen/core/errors/app_exception.dart';
 import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/security/session_lock_controller.dart';
@@ -18,65 +16,32 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _updatingBiometrics = false;
   bool _signingOut = false;
-
-  Future<void> _setBiometrics(bool enabled) async {
-    setState(() => _updatingBiometrics = true);
-    try {
-      if (enabled) {
-        final service = ref.read(biometricServiceProvider);
-        final isSupported = await service.canCheckBiometrics();
-        if (!isSupported) {
-          throw const AppException(
-            'Biometric or device-credential unlock is not available on this device.',
-          );
-        }
-        final isAuthenticated = await service.authenticate();
-        if (!isAuthenticated) {
-          throw const AppException('Security verification was canceled.');
-        }
-      }
-      await ref.read(authRepositoryProvider).setBiometrics(enabled);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            enabled
-                ? 'Secure unlock was enabled.'
-                : 'Secure unlock was disabled.',
-          ),
-        ),
-      );
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(mapException(error).message)));
-    } finally {
-      if (mounted) setState(() => _updatingBiometrics = false);
-    }
-  }
 
   Future<void> _signOut() async {
     setState(() => _signingOut = true);
     try {
       await ref.read(authRepositoryProvider).signOut();
-      ref.read(otpFlowControllerProvider.notifier).reset();
-      if (mounted) context.go(AppRoutes.login);
+      ref.read(phoneRegistrationControllerProvider.notifier).reset();
+      if (mounted) {
+        context.go(AppRoutes.login);
+      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(mapException(error).message)));
     } finally {
-      if (mounted) setState(() => _signingOut = false);
+      if (mounted) {
+        setState(() => _signingOut = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(authSessionProvider).valueOrNull;
+    final profile = session?.profile;
 
     return AppShellScaffold(
       title: 'Settings',
@@ -88,35 +53,27 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: ListTile(
               leading: const Icon(Icons.person_outline),
               title: Text(
-                session?.profile?.name.isNotEmpty == true
-                    ? session!.profile!.name
+                profile?.fullName.isNotEmpty == true
+                    ? profile!.fullName
                     : 'Partner account',
               ),
               subtitle: Text(
-                session?.profile?.email ??
-                    session?.firebaseUser.phoneNumber ??
-                    '',
+                profile?.email.isNotEmpty == true
+                    ? profile!.email
+                    : session?.firebaseUser.phoneNumber ?? '',
               ),
             ),
           ),
           const SizedBox(height: 12),
           Card(
-            child: SwitchListTile(
-              value: session?.profile?.biometricEnabled ?? false,
-              onChanged: _updatingBiometrics ? null : _setBiometrics,
-              title: const Text('Secure unlock'),
+            child: ListTile(
+              leading: const Icon(Icons.shield_outlined),
+              title: const Text('Security & trusted device'),
               subtitle: Text(
-                _updatingBiometrics
-                    ? 'Updating security preference...'
-                    : 'Use fingerprint, Face ID, or device passcode after inactivity',
+                'Quick unlock: ${profile?.trustedDeviceEnabled == true ? 'enabled' : 'disabled'} • App lock: ${profile?.appLockEnabled == true ? '${profile?.inactivityTimeoutSeconds ?? 0}s timeout' : 'off'}',
               ),
-              secondary: _updatingBiometrics
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.fingerprint_outlined),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go(AppRoutes.securitySetup),
             ),
           ),
           const SizedBox(height: 12),
@@ -124,27 +81,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             child: ListTile(
               leading: const Icon(Icons.lock_clock_outlined),
               title: const Text('Lock now'),
-              subtitle: const Text('Require authentication immediately'),
-              onTap: () =>
-                  ref.read(sessionLockControllerProvider.notifier).forceLock(),
+              subtitle: const Text(
+                'Require biometric or device credential authentication immediately.',
+              ),
+              onTap: () async {
+                await ref.read(sessionLockControllerProvider.notifier).forceLock();
+                if (mounted) {
+                  context.go(AppRoutes.unlock);
+                }
+              },
             ),
           ),
           const SizedBox(height: 12),
           Card(
-            child: ExpansionTile(
-              title: const Text('Expense categories'),
-              children: const [
-                ListTile(title: Text('Construction')),
-                ListTile(title: Text('Legal')),
-                ListTile(title: Text('Permits')),
-                ListTile(title: Text('Utilities')),
-                ListTile(title: Text('Marketing')),
-                ListTile(title: Text('Maintenance')),
-                ListTile(title: Text('Brokerage')),
-              ],
+            child: ListTile(
+              leading: const Icon(Icons.phone_android_outlined),
+              title: const Text('Current trusted device'),
+              subtitle: Text(
+                profile?.deviceInfo?.deviceName.isNotEmpty == true
+                    ? '${profile!.deviceInfo!.deviceName} • ${profile.deviceInfo!.platform}'
+                    : 'No device metadata available yet.',
+              ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 20),
           FilledButton.tonalIcon(
             onPressed: _signingOut ? null : _signOut,
             icon: _signingOut

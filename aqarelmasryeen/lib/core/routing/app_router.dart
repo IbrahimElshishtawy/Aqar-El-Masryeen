@@ -1,13 +1,14 @@
 import 'dart:async';
 
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
+import 'package:aqarelmasryeen/core/security/session_lock_controller.dart';
 import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/screens/biometric_setup_screen.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/screens/login_screen.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/screens/otp_screen.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/screens/profile_completion_screen.dart';
-import 'package:aqarelmasryeen/features/auth/presentation/screens/splash_screen.dart';
+import 'package:aqarelmasryeen/features/auth/presentation/screens/register_phone_screen.dart';
 import 'package:aqarelmasryeen/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:aqarelmasryeen/features/notifications/presentation/notifications_center_screen.dart';
 import 'package:aqarelmasryeen/features/partners/presentation/partners_screen.dart';
@@ -15,7 +16,9 @@ import 'package:aqarelmasryeen/features/properties/presentation/properties_scree
 import 'package:aqarelmasryeen/features/properties/presentation/property_detail_screen.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/property_form_screen.dart';
 import 'package:aqarelmasryeen/features/reports/presentation/reports_screen.dart';
+import 'package:aqarelmasryeen/features/security/presentation/screens/unlock_screen.dart';
 import 'package:aqarelmasryeen/features/settings/presentation/settings_screen.dart';
+import 'package:aqarelmasryeen/features/splash/presentation/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,6 +30,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ref.watch(authRepositoryProvider).watchSession(),
   );
   ref.onDispose(refreshListenable.dispose);
+
+  final sessionState = ref.watch(authSessionProvider);
+  final session = sessionState.valueOrNull;
+  final lockState = ref.watch(sessionLockControllerProvider);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
@@ -42,6 +49,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const LoginScreen(),
       ),
       GoRoute(
+        path: AppRoutes.register,
+        builder: (context, state) => const RegisterPhoneScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.otp,
         builder: (context, state) => const OtpScreen(),
       ),
@@ -50,8 +61,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ProfileCompletionScreen(),
       ),
       GoRoute(
-        path: AppRoutes.biometrics,
+        path: AppRoutes.securitySetup,
         builder: (context, state) => const BiometricSetupScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.unlock,
+        builder: (context, state) => const UnlockScreen(),
       ),
       GoRoute(
         path: AppRoutes.dashboard,
@@ -99,32 +114,54 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) {
-      final sessionState = ref.read(authSessionProvider);
-      final session = sessionState.valueOrNull;
       final location = state.matchedLocation;
+      final isSplashRoute = location == AppRoutes.splash;
       final isAuthRoute = location.startsWith('/auth');
-      final isPublicRoute = location == AppRoutes.splash || isAuthRoute;
+      final isPublicRoute =
+          isSplashRoute || isAuthRoute || location == AppRoutes.unlock;
 
-      if (sessionState.isLoading) {
-        return location == AppRoutes.splash ? null : AppRoutes.splash;
+      if (sessionState.isLoading || !lockState.isInitialized) {
+        return isSplashRoute ? null : AppRoutes.splash;
       }
 
       if (session == null) {
+        if (location == AppRoutes.unlock) {
+          return AppRoutes.login;
+        }
         return isPublicRoute ? null : AppRoutes.login;
       }
 
+      if (!session.isActive) {
+        return AppRoutes.login;
+      }
+
       if (!session.isProfileComplete) {
-        if (location == AppRoutes.profile || location == AppRoutes.biometrics) {
+        if (location == AppRoutes.profile || location == AppRoutes.otp) {
           return null;
         }
         return AppRoutes.profile;
       }
 
-      if (location == AppRoutes.biometrics) {
-        return null;
+      if (session.needsSecuritySetup) {
+        if (location == AppRoutes.securitySetup) {
+          return null;
+        }
+        return AppRoutes.securitySetup;
       }
 
-      if (location == AppRoutes.splash || isAuthRoute) {
+      if (lockState.shouldPresentUnlock) {
+        return location == AppRoutes.unlock ? null : AppRoutes.unlock;
+      }
+
+      if (location == AppRoutes.unlock) {
+        return AppRoutes.dashboard;
+      }
+
+      if (location == AppRoutes.securitySetup) {
+        return AppRoutes.dashboard;
+      }
+
+      if (isSplashRoute || isAuthRoute) {
         return AppRoutes.dashboard;
       }
 

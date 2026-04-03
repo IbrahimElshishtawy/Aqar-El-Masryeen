@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/controllers/auth_bootstrap_controller.dart';
