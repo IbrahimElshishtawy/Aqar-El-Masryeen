@@ -1,5 +1,4 @@
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:local_auth/local_auth.dart';
 

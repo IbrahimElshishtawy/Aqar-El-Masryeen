@@ -14,7 +14,6 @@ import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/models/app_user.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -49,7 +48,9 @@ class FirebaseAuthRepository implements AuthRepository {
         continue;
       }
 
-      yield* _profileDataSource.watchProfile(user.uid).asyncMap((profile) async {
+      yield* _profileDataSource.watchProfile(user.uid).asyncMap((
+        profile,
+      ) async {
         await _syncLocalSession(
           profile ?? await _profileDataSource.fetchProfile(user.uid),
           user.uid,
@@ -165,7 +166,10 @@ class FirebaseAuthRepository implements AuthRepository {
         );
       }
 
-      await _profileDataSource.touchLogin(uid: user.uid, deviceInfo: deviceInfo);
+      await _profileDataSource.touchLogin(
+        uid: user.uid,
+        deviceInfo: deviceInfo,
+      );
       await _syncLocalSession(profile, user.uid);
       await _logSecurityEvent(
         actorId: user.uid,
@@ -290,9 +294,7 @@ class FirebaseAuthRepository implements AuthRepository {
         ) ??
         90;
     final trustedDeviceEnabled =
-        await _secureStorage.readBool(
-          SecureStorageKeys.trustedDeviceEnabled,
-        ) ??
+        await _secureStorage.readBool(SecureStorageKeys.trustedDeviceEnabled) ??
         enabled;
     await _secureStorage.persistSecurityPreferences(
       trustedDeviceEnabled: trustedDeviceEnabled,
