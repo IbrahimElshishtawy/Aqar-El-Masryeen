@@ -70,7 +70,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               leading: const Icon(Icons.shield_outlined),
               title: const Text('Security & trusted device'),
               subtitle: Text(
-                'Quick unlock: ${profile?.trustedDeviceEnabled == true ? 'enabled' : 'disabled'} • App lock: ${profile?.appLockEnabled == true ? '${profile?.inactivityTimeoutSeconds ?? 0}s timeout' : 'off'}',
+                'Quick unlock: ${profile?.trustedDeviceEnabled == true ? 'enabled' : 'disabled'} | App lock: ${profile?.appLockEnabled == true ? '${profile?.inactivityTimeoutSeconds ?? 0}s timeout' : 'off'}',
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go(AppRoutes.securitySetup),
@@ -85,9 +85,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 'Require biometric or device credential authentication immediately.',
               ),
               onTap: () async {
+                final router = GoRouter.of(context);
                 await ref.read(sessionLockControllerProvider.notifier).forceLock();
-                if (mounted) {
-                  context.go(AppRoutes.unlock);
+                if (context.mounted) {
+                  router.go(AppRoutes.unlock);
                 }
               },
             ),
@@ -99,7 +100,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: const Text('Current trusted device'),
               subtitle: Text(
                 profile?.deviceInfo?.deviceName.isNotEmpty == true
-                    ? '${profile!.deviceInfo!.deviceName} • ${profile.deviceInfo!.platform}'
+                    ? '${profile!.deviceInfo!.deviceName} | ${profile.deviceInfo!.platform}'
                     : 'No device metadata available yet.',
               ),
             ),

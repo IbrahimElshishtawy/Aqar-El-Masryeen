@@ -3,7 +3,6 @@ import 'package:aqarelmasryeen/core/errors/app_exception.dart';
 import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/security/session_lock_controller.dart';
 import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
-import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
