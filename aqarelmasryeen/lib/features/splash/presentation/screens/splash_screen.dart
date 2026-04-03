@@ -14,6 +14,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   bool _notificationReady = false;
+  String? _pendingRoute;
 
   @override
   void initState() {
@@ -33,16 +34,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     );
   }
 
+  void _scheduleNavigation(String route) {
+    if (_pendingRoute == route) return;
+    _pendingRoute = route;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _pendingRoute != route) return;
+      context.go(route);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    ref.listen(authBootstrapControllerProvider, (previous, next) {
-      next.whenData((decision) {
-        if (mounted) {
-          context.go(decision.route);
-        }
-      });
-    });
-
     final decision = ref.watch(authBootstrapControllerProvider);
 
     return Scaffold(
@@ -96,7 +98,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   ),
                   const SizedBox(height: 20),
                   decision.when(
-                    data: (_) => const CircularProgressIndicator(),
+                    data: (decision) {
+                      _scheduleNavigation(decision.route);
+                      return const CircularProgressIndicator();
+                    },
                     loading: () => const CircularProgressIndicator(),
                     error: (error, stackTrace) => Text(
                       error.toString(),
