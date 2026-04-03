@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/services/firebase_initializer.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -13,6 +15,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 void reportToCrashlytics(Object error, StackTrace stackTrace) {
+  if (Firebase.apps.isEmpty) {
+    return;
+  }
   FirebaseCrashlytics.instance.recordError(error, stackTrace, fatal: true);
 }
 
@@ -46,14 +51,32 @@ class FirebaseMessagingService {
   final FirebaseMessaging _messaging;
   final FlutterLocalNotificationsPlugin _localNotifications;
   final FirebaseAnalytics _analytics;
+  static bool _backgroundHandlerRegistered = false;
+  Future<void>? _initializationFuture;
+  StreamSubscription<RemoteMessage>? _onMessageSubscription;
+  StreamSubscription<RemoteMessage>? _onMessageOpenedSubscription;
+  StreamSubscription<String>? _tokenRefreshSubscription;
 
   static void registerBackgroundHandler() {
+    if (_backgroundHandlerRegistered) {
+      return;
+    }
+    _backgroundHandlerRegistered = true;
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   }
 
   Future<void> initialize({
     required void Function(NotificationRoutePayload payload) onNotificationTap,
   }) async {
+    await initializeFirebase();
+    _initializationFuture ??= _initializeCore(onNotificationTap);
+    await _initializationFuture;
+    unawaited(_warmUpToken());
+  }
+
+  Future<void> _initializeCore(
+    void Function(NotificationRoutePayload payload) onNotificationTap,
+  ) async {
     await _requestPermissions();
     await _initializeLocalNotifications(onNotificationTap: onNotificationTap);
 
@@ -63,26 +86,40 @@ class FirebaseMessagingService {
       sound: true,
     );
 
-    FirebaseMessaging.onMessage.listen(_showForegroundNotification);
-    FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      final payload = NotificationRoutePayload.tryDecode(
-        message.data['payload'] as String?,
-      );
-      if (payload != null) onNotificationTap(payload);
-    });
+    _onMessageSubscription ??= FirebaseMessaging.onMessage.listen(
+      _showForegroundNotification,
+    );
+    _onMessageOpenedSubscription ??= FirebaseMessaging.onMessageOpenedApp
+        .listen((message) {
+          final payload = NotificationRoutePayload.tryDecode(
+            message.data['payload'] as String?,
+          );
+          if (payload != null) {
+            onNotificationTap(payload);
+          }
+        });
 
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       final payload = NotificationRoutePayload.tryDecode(
         initialMessage.data['payload'] as String?,
       );
-      if (payload != null) onNotificationTap(payload);
+      if (payload != null) {
+        onNotificationTap(payload);
+      }
     }
 
-    await _messaging.getToken();
-    _messaging.onTokenRefresh.listen((_) {
-      _analytics.logEvent(name: 'fcm_token_refreshed');
+    _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen((_) {
+      unawaited(_analytics.logEvent(name: 'fcm_token_refreshed'));
     });
+  }
+
+  Future<void> _warmUpToken() async {
+    try {
+      await _messaging.getToken();
+    } catch (_) {
+      // Token warm-up should never block app startup.
+    }
   }
 
   Future<NotificationSettings> _requestPermissions() {

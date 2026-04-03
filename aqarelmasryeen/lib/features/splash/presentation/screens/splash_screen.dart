@@ -19,7 +19,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(_initializeNotifications);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _initializeNotifications();
+      }
+    });
   }
 
   Future<void> _initializeNotifications() async {
