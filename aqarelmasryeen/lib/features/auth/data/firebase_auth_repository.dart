@@ -11,6 +11,7 @@ import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/models/app_user.dart';
+import 'package:aqarelmasryeen/shared/models/auth_device_info.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -119,7 +120,7 @@ class FirebaseAuthRepository implements AuthRepository {
       }
 
       final deviceInfo = await _deviceInfoService.currentDeviceInfo();
-      final profile = await _profileDataSource.fetchProfile(user.uid);
+      var profile = await _profileDataSource.fetchProfile(user.uid);
       if (profile != null && !profile.isActive) {
         await _authDataSource.signOut();
         throw const AppException(
@@ -128,8 +129,15 @@ class FirebaseAuthRepository implements AuthRepository {
         );
       }
 
+      final previousDeviceId = profile?.deviceInfo?.deviceId ?? '';
+      profile = await _ensureProfileForSignedInUser(
+        user: user,
+        fallbackEmail: normalizedEmail,
+        deviceInfo: deviceInfo,
+        existingProfile: profile,
+      );
+
       if (profile != null) {
-        final previousDeviceId = profile.deviceInfo?.deviceId ?? '';
         final isNewDevice =
             previousDeviceId.isNotEmpty &&
             previousDeviceId != deviceInfo.deviceId;
@@ -159,6 +167,37 @@ class FirebaseAuthRepository implements AuthRepository {
       _recordError(error, stackTrace);
       rethrow;
     }
+  }
+
+  Future<AppUser?> _ensureProfileForSignedInUser({
+    required User user,
+    required String fallbackEmail,
+    required AuthDeviceInfo deviceInfo,
+    required AppUser? existingProfile,
+  }) async {
+    final normalizedDisplayName = user.displayName?.trim() ?? '';
+    final existingName = existingProfile?.fullName.trim() ?? '';
+    final resolvedName = normalizedDisplayName.isNotEmpty
+        ? normalizedDisplayName
+        : existingName.isNotEmpty
+        ? existingName
+        : fallbackEmail.split('@').first;
+    final userEmail = user.email?.trim().toLowerCase() ?? '';
+    final resolvedEmail = userEmail.isNotEmpty ? userEmail : fallbackEmail;
+
+    await _profileDataSource.createOrMergeProfile(
+      uid: user.uid,
+      fullName: resolvedName,
+      email: resolvedEmail,
+      deviceInfo: deviceInfo,
+      biometricEnabled: existingProfile?.biometricEnabled ?? false,
+      appLockEnabled: existingProfile?.appLockEnabled ?? true,
+      trustedDeviceEnabled: existingProfile?.trustedDeviceEnabled ?? false,
+      isActive: existingProfile?.isActive ?? true,
+      role: existingProfile?.role.name ?? 'partner',
+    );
+
+    return _profileDataSource.fetchProfile(user.uid);
   }
 
   @override

@@ -12,6 +12,14 @@
       "collectionGroup": "expenses",
       "queryScope": "COLLECTION",
       "fields": [
+        { "fieldPath": "archived", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "expenses",
+      "queryScope": "COLLECTION",
+      "fields": [
         { "fieldPath": "propertyId", "order": "ASCENDING" },
         { "fieldPath": "archived", "order": "ASCENDING" },
         { "fieldPath": "date", "order": "DESCENDING" }
@@ -54,13 +62,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "userId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "activity_logs",
-      "queryScope": "COLLECTION",
-      "fields": [
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }

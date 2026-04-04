@@ -13,9 +13,13 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
+    function currentUserExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     function isActivePartner() {
       return isSignedIn()
-        && currentUserDoc().exists()
+        && currentUserExists()
         && currentUserDoc().data.role == 'partner'
         && currentUserDoc().data.isActive == true;
     }
