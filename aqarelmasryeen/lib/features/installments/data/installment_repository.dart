@@ -1,5 +1,7 @@
 import 'package:aqarelmasryeen/app/providers.dart';
+import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
+import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/features/installments/domain/installment_plan_generator.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
@@ -15,6 +17,11 @@ class InstallmentRepository {
   final InstallmentPlanGenerator _generator;
 
   Stream<List<Installment>> watchAllInstallments() {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.watch(
+        MockWorkspaceStore.instance.allInstallments,
+      );
+    }
     return _firestore
         .collection(FirestorePaths.installments)
         .orderBy('dueDate')
@@ -27,6 +34,11 @@ class InstallmentRepository {
   }
 
   Stream<List<InstallmentPlan>> watchPlansByProperty(String propertyId) {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.watch(
+        () => MockWorkspaceStore.instance.plansByProperty(propertyId),
+      );
+    }
     return _firestore
         .collection(FirestorePaths.installmentPlans)
         .where('propertyId', isEqualTo: propertyId)
@@ -40,6 +52,11 @@ class InstallmentRepository {
   }
 
   Stream<List<Installment>> watchInstallmentsByProperty(String propertyId) {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.watch(
+        () => MockWorkspaceStore.instance.installmentsByProperty(propertyId),
+      );
+    }
     return _firestore
         .collection(FirestorePaths.installments)
         .where('propertyId', isEqualTo: propertyId)
@@ -72,6 +89,36 @@ class InstallmentRepository {
       updatedBy: actorId,
     );
 
+    if (AppConfig.useMockData) {
+      await MockWorkspaceStore.instance.savePlan(planWithId);
+      if (generateInstallments) {
+        final generated = _generator.generate(
+          plan: planWithId,
+          actorId: actorId,
+        );
+        for (final installment in generated) {
+          await MockWorkspaceStore.instance.saveInstallment(
+            Installment(
+              id: _uuid.v4(),
+              planId: planId,
+              propertyId: installment.propertyId,
+              unitId: installment.unitId,
+              sequence: installment.sequence,
+              amount: installment.amount,
+              paidAmount: installment.paidAmount,
+              dueDate: installment.dueDate,
+              status: installment.status,
+              createdAt: installment.createdAt,
+              updatedAt: installment.updatedAt,
+              createdBy: installment.createdBy,
+              updatedBy: installment.updatedBy,
+            ),
+          );
+        }
+      }
+      return;
+    }
+
     final batch = _firestore.batch();
     batch.set(
       _firestore.collection(FirestorePaths.installmentPlans).doc(planId),
@@ -99,6 +146,12 @@ class InstallmentRepository {
     required String installmentId,
     required double paidAmount,
   }) async {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.updateInstallmentPayment(
+        installmentId: installmentId,
+        paidAmount: paidAmount,
+      );
+    }
     final ref = _firestore
         .collection(FirestorePaths.installments)
         .doc(installmentId);
@@ -121,6 +174,25 @@ class InstallmentRepository {
 
   Future<void> saveInstallment(Installment installment) {
     final id = installment.id.isEmpty ? _uuid.v4() : installment.id;
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.saveInstallment(
+        Installment(
+          id: id,
+          planId: installment.planId,
+          propertyId: installment.propertyId,
+          unitId: installment.unitId,
+          sequence: installment.sequence,
+          amount: installment.amount,
+          paidAmount: installment.paidAmount,
+          dueDate: installment.dueDate,
+          status: installment.status,
+          createdAt: installment.createdAt,
+          updatedAt: DateTime.now(),
+          createdBy: installment.createdBy,
+          updatedBy: installment.updatedBy,
+        ),
+      );
+    }
     return _firestore
         .collection(FirestorePaths.installments)
         .doc(id)

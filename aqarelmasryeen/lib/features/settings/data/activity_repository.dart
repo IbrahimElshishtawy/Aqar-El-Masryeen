@@ -1,5 +1,7 @@
 import 'package:aqarelmasryeen/app/providers.dart';
+import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
+import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +14,12 @@ class ActivityRepository {
   final Uuid _uuid;
 
   Stream<List<ActivityLogEntry>> watchRecent({String? propertyId}) {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.watch(
+        () =>
+            MockWorkspaceStore.instance.recentActivity(propertyId: propertyId),
+      );
+    }
     Query<Map<String, dynamic>> query = _firestore
         .collection(FirestorePaths.activityLogs)
         .orderBy('createdAt', descending: true)
@@ -36,6 +44,20 @@ class ActivityRepository {
     Map<String, dynamic> metadata = const {},
   }) {
     final id = _uuid.v4();
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.logActivity(
+        ActivityLogEntry(
+          id: id,
+          actorId: actorId,
+          actorName: actorName,
+          action: action,
+          entityType: entityType,
+          entityId: entityId,
+          createdAt: DateTime.now(),
+          metadata: metadata,
+        ),
+      );
+    }
     return _firestore.collection(FirestorePaths.activityLogs).doc(id).set({
       'actorId': actorId,
       'actorName': actorName,

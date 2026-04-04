@@ -2,6 +2,7 @@ class AppConfig {
   const AppConfig._();
 
   static const appName = 'عقار المصريين';
+  static const useMockData = true;
   static const defaultInactivityTimeoutSeconds = 90;
   static const minPasswordLength = 10;
   static const notificationChannelId = 'finance_alerts';

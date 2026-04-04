@@ -29,6 +29,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Future<void> _initializeNotifications() async {
     if (_notificationReady) return;
     _notificationReady = true;
+    if (AppConfig.useMockData) {
+      return;
+    }
     try {
       await ref
           .read(notificationServiceProvider)

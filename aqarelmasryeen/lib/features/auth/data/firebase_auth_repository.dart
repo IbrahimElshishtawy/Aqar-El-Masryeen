@@ -1,10 +1,13 @@
 import 'package:aqarelmasryeen/app/providers.dart';
+import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/secure_storage_keys.dart';
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
+import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/services/device_info_service.dart';
 import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/firebase_auth_remote_data_source.dart';
+import 'package:aqarelmasryeen/features/auth/data/mock_auth_repository.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/user_profile_remote_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
@@ -416,6 +419,12 @@ final userProfileRemoteDataSourceProvider =
     });
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
+  if (AppConfig.useMockData) {
+    return MockAuthRepository(
+      ref.watch(firebaseAuthProvider),
+      MockWorkspaceStore.instance,
+    );
+  }
   return FirebaseAuthRepository(
     ref.watch(firebaseAuthRemoteDataSourceProvider),
     ref.watch(userProfileRemoteDataSourceProvider),

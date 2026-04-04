@@ -1,5 +1,7 @@
 import 'package:aqarelmasryeen/app/providers.dart';
+import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
+import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,6 +15,11 @@ class NotificationRepository {
   final Uuid _uuid;
 
   Stream<List<AppNotificationItem>> watchNotifications(String userId) {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.watch(
+        () => MockWorkspaceStore.instance.notificationsFor(userId),
+      );
+    }
     return _firestore
         .collection(FirestorePaths.notifications)
         .where('userId', isEqualTo: userId)
@@ -34,6 +41,20 @@ class NotificationRepository {
     required String route,
   }) {
     final id = _uuid.v4();
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.createNotification(
+        AppNotificationItem(
+          id: id,
+          userId: userId,
+          title: title,
+          body: body,
+          type: type,
+          route: route,
+          isRead: false,
+          createdAt: DateTime.now(),
+        ),
+      );
+    }
     return _firestore.collection(FirestorePaths.notifications).doc(id).set({
       'userId': userId,
       'title': title,
@@ -61,6 +82,9 @@ class NotificationRepository {
   }
 
   Future<void> markRead(String notificationId) {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.markNotificationRead(notificationId);
+    }
     return _firestore
         .collection(FirestorePaths.notifications)
         .doc(notificationId)

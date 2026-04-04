@@ -26,6 +26,9 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
 
   Future<void> _initializeServices() async {
     await initializeFirebase();
+    if (AppConfig.useMockData) {
+      return;
+    }
     FirebaseMessagingService.registerBackgroundHandler();
   }
 

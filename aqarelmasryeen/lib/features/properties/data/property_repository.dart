@@ -1,5 +1,7 @@
 import 'package:aqarelmasryeen/app/providers.dart';
+import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
+import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +14,11 @@ class PropertyRepository {
   final Uuid _uuid;
 
   Stream<List<PropertyProject>> watchProperties() {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.watch(
+        MockWorkspaceStore.instance.activeProperties,
+      );
+    }
     return _firestore
         .collection(FirestorePaths.properties)
         .where('archived', isEqualTo: false)
@@ -25,6 +32,11 @@ class PropertyRepository {
   }
 
   Stream<PropertyProject?> watchProperty(String propertyId) {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.watch(
+        () => MockWorkspaceStore.instance.propertyById(propertyId),
+      );
+    }
     return _firestore
         .collection(FirestorePaths.properties)
         .doc(propertyId)
@@ -37,6 +49,25 @@ class PropertyRepository {
 
   Future<String> save(PropertyProject property) async {
     final id = property.id.isEmpty ? _uuid.v4() : property.id;
+    if (AppConfig.useMockData) {
+      await MockWorkspaceStore.instance.saveProperty(
+        PropertyProject(
+          id: id,
+          name: property.name,
+          location: property.location,
+          description: property.description,
+          status: property.status,
+          totalBudget: property.totalBudget,
+          totalSalesTarget: property.totalSalesTarget,
+          createdAt: property.createdAt,
+          updatedAt: DateTime.now(),
+          createdBy: property.createdBy,
+          updatedBy: property.updatedBy,
+          archived: property.archived,
+        ),
+      );
+      return id;
+    }
     await _firestore
         .collection(FirestorePaths.properties)
         .doc(id)
@@ -53,6 +84,12 @@ class PropertyRepository {
   }
 
   Future<void> archive(String propertyId, {required String actorId}) {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.archiveProperty(
+        propertyId,
+        actorId: actorId,
+      );
+    }
     return _firestore
         .collection(FirestorePaths.properties)
         .doc(propertyId)

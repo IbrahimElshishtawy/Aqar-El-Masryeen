@@ -1,5 +1,7 @@
 import 'package:aqarelmasryeen/app/providers.dart';
+import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
+import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -14,6 +16,11 @@ class PaymentRepository {
   final InstallmentRepository _installmentRepository;
 
   Stream<List<PaymentRecord>> watchAll() {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.watch(
+        MockWorkspaceStore.instance.allPayments,
+      );
+    }
     return _firestore
         .collection(FirestorePaths.payments)
         .orderBy('receivedAt', descending: true)
@@ -26,6 +33,11 @@ class PaymentRepository {
   }
 
   Stream<List<PaymentRecord>> watchByProperty(String propertyId) {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.watch(
+        () => MockWorkspaceStore.instance.paymentsByProperty(propertyId),
+      );
+    }
     return _firestore
         .collection(FirestorePaths.payments)
         .where('propertyId', isEqualTo: propertyId)
@@ -40,6 +52,31 @@ class PaymentRepository {
 
   Future<void> record(PaymentRecord payment) async {
     final id = payment.id.isEmpty ? _uuid.v4() : payment.id;
+    if (AppConfig.useMockData) {
+      await MockWorkspaceStore.instance.recordPayment(
+        PaymentRecord(
+          id: id,
+          propertyId: payment.propertyId,
+          unitId: payment.unitId,
+          installmentId: payment.installmentId,
+          amount: payment.amount,
+          receivedAt: payment.receivedAt,
+          paymentMethod: payment.paymentMethod,
+          notes: payment.notes,
+          createdAt: payment.createdAt,
+          updatedAt: DateTime.now(),
+          createdBy: payment.createdBy,
+          updatedBy: payment.updatedBy,
+        ),
+      );
+      if (payment.installmentId != null && payment.installmentId!.isNotEmpty) {
+        await MockWorkspaceStore.instance.updateInstallmentPayment(
+          installmentId: payment.installmentId!,
+          paidAmount: payment.amount,
+        );
+      }
+      return;
+    }
     await _firestore
         .collection(FirestorePaths.payments)
         .doc(id)
