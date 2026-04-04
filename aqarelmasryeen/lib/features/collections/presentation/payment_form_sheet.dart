@@ -94,7 +94,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
         .read(activityRepositoryProvider)
         .log(
           actorId: session.firebaseUser.uid,
-          actorName: session.profile?.name ?? 'Partner',
+          actorName: session.profile?.name ?? 'شريك',
           action: 'payment_recorded',
           entityType: 'payment',
           entityId: payment.unitId,
@@ -108,8 +108,8 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
         .read(notificationRepositoryProvider)
         .create(
           userId: session.firebaseUser.uid,
-          title: 'Payment received',
-          body: 'EGP ${payment.amount.toStringAsFixed(0)} was recorded',
+          title: 'تم تسجيل تحصيل',
+          body: 'تم تسجيل مبلغ ${payment.amount.toStringAsFixed(0)} جنيه',
           type: NotificationType.paymentReceived,
           route: '/properties/${widget.propertyId}',
         );
@@ -120,7 +120,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: 'Record collection',
+      title: 'تسجيل تحصيل',
       child: Form(
         key: _formKey,
         child: Column(
@@ -141,9 +141,9 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
                   _installmentId = null;
                 });
               },
-              decoration: const InputDecoration(labelText: 'Unit'),
+              decoration: const InputDecoration(labelText: 'الوحدة'),
               validator: (value) =>
-                  (value ?? '').isEmpty ? 'Select a unit.' : null,
+                  (value ?? '').isEmpty ? 'اختر الوحدة.' : null,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String?>(
@@ -151,18 +151,18 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
               items: [
                 const DropdownMenuItem<String?>(
                   value: null,
-                  child: Text('General collection'),
+                  child: Text('تحصيل عام'),
                 ),
                 ..._matchingInstallments.map(
                   (item) => DropdownMenuItem<String?>(
                     value: item.id,
-                    child: Text('Installment ${item.sequence}'),
+                    child: Text('قسط ${item.sequence}'),
                   ),
                 ),
               ],
               onChanged: (value) => setState(() => _installmentId = value),
               decoration: const InputDecoration(
-                labelText: 'Apply to installment',
+                labelText: 'ربط بالقسط',
               ),
             ),
             const SizedBox(height: 12),
@@ -171,10 +171,10 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'Amount'),
+              decoration: const InputDecoration(labelText: 'المبلغ'),
               validator: (value) {
                 if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                  return 'Enter a valid amount.';
+                  return 'أدخل مبلغًا صحيحًا.';
                 }
                 return null;
               },
@@ -190,14 +190,14 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
                   .toList(),
               onChanged: (value) =>
                   setState(() => _paymentMethod = value ?? _paymentMethod),
-              decoration: const InputDecoration(labelText: 'Payment method'),
+              decoration: const InputDecoration(labelText: 'طريقة السداد'),
             ),
             const SizedBox(height: 12),
             InkWell(
               onTap: _pickDate,
               borderRadius: BorderRadius.circular(20),
               child: InputDecorator(
-                decoration: const InputDecoration(labelText: 'Received date'),
+                decoration: const InputDecoration(labelText: 'تاريخ التحصيل'),
                 child: Row(
                   children: [
                     Expanded(child: Text(_receivedAt.formatShort())),
@@ -211,14 +211,14 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
               controller: _notesController,
               minLines: 2,
               maxLines: 4,
-              decoration: const InputDecoration(labelText: 'Notes'),
+              decoration: const InputDecoration(labelText: 'ملاحظات'),
             ),
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'Saving...' : 'Save payment'),
+                child: Text(_saving ? 'جار الحفظ...' : 'حفظ التحصيل'),
               ),
             ),
           ],

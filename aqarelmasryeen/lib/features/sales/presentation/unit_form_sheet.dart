@@ -125,7 +125,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: widget.unit == null ? 'Add unit or sale' : 'Edit unit or sale',
+      title: widget.unit == null ? 'إضافة وحدة أو عملية بيع' : 'تعديل الوحدة أو البيع',
       child: Form(
         key: _formKey,
         child: Column(
@@ -133,10 +133,10 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
             TextFormField(
               controller: _unitController,
               decoration: const InputDecoration(
-                labelText: 'Unit name or number',
+                labelText: 'اسم أو رقم الوحدة',
               ),
               validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'Enter the unit name.' : null,
+                  (value ?? '').trim().isEmpty ? 'أدخل اسم الوحدة.' : null,
             ),
             const SizedBox(height: 12),
             Row(
@@ -145,7 +145,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                   child: TextFormField(
                     controller: _floorController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Floor'),
+                    decoration: const InputDecoration(labelText: 'الدور'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -155,7 +155,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'Area m2'),
+                    decoration: const InputDecoration(labelText: 'المساحة م²'),
                   ),
                 ),
               ],
@@ -171,18 +171,18 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                   .toList(),
               onChanged: (value) =>
                   setState(() => _unitType = value ?? _unitType),
-              decoration: const InputDecoration(labelText: 'Unit type'),
+              decoration: const InputDecoration(labelText: 'نوع الوحدة'),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _customerNameController,
-              decoration: const InputDecoration(labelText: 'Customer name'),
+              decoration: const InputDecoration(labelText: 'اسم العميل'),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _customerPhoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Customer phone'),
+              decoration: const InputDecoration(labelText: 'هاتف العميل'),
             ),
             const SizedBox(height: 12),
             Row(
@@ -193,10 +193,10 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'Total price'),
+                    decoration: const InputDecoration(labelText: 'السعر الإجمالي'),
                     validator: (value) {
                       if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'Enter a price.';
+                        return 'أدخل السعر.';
                       }
                       return null;
                     },
@@ -210,7 +210,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                       decimal: true,
                     ),
                     decoration: const InputDecoration(
-                      labelText: 'Down payment',
+                      labelText: 'المقدم',
                     ),
                   ),
                 ),
@@ -227,7 +227,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                   .toList(),
               onChanged: (value) =>
                   setState(() => _paymentPlanType = value ?? _paymentPlanType),
-              decoration: const InputDecoration(labelText: 'Payment plan'),
+              decoration: const InputDecoration(labelText: 'نظام السداد'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<UnitStatus>(
@@ -239,14 +239,14 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                   )
                   .toList(),
               onChanged: (value) => setState(() => _status = value ?? _status),
-              decoration: const InputDecoration(labelText: 'Status'),
+              decoration: const InputDecoration(labelText: 'الحالة'),
             ),
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'Saving...' : 'Save unit'),
+                child: Text(_saving ? 'جار الحفظ...' : 'حفظ الوحدة'),
               ),
             ),
           ],

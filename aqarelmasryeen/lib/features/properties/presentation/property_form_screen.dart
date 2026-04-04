@@ -83,7 +83,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
           action: existing == null ? 'property_created' : 'property_updated',
           entityType: 'property',
           entityId: propertyId,
-          metadata: {'name': property.name, 'status': property.status.name},
+          metadata: {'name': property.name, 'status': property.status.label},
         );
     if (mounted) {
       setState(() => _saving = false);
@@ -106,7 +106,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.propertyId == null ? 'Add property' : 'Edit property',
+          widget.propertyId == null ? 'إضافة عقار' : 'تعديل العقار',
         ),
       ),
       body: SafeArea(
@@ -129,20 +129,20 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                         TextFormField(
                           controller: _nameController,
                           decoration: const InputDecoration(
-                            labelText: 'Project name',
+                            labelText: 'اسم المشروع',
                           ),
                           validator: (value) => (value ?? '').trim().isEmpty
-                              ? 'Enter the property name.'
+                              ? 'أدخل اسم العقار.'
                               : null,
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
                           controller: _locationController,
                           decoration: const InputDecoration(
-                            labelText: 'Location',
+                            labelText: 'الموقع',
                           ),
                           validator: (value) => (value ?? '').trim().isEmpty
-                              ? 'Enter the project location.'
+                              ? 'أدخل موقع المشروع.'
                               : null,
                         ),
                         const SizedBox(height: 14),
@@ -150,7 +150,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                           controller: _descriptionController,
                           maxLines: 3,
                           decoration: const InputDecoration(
-                            labelText: 'Description',
+                            labelText: 'الوصف',
                           ),
                         ),
                         const SizedBox(height: 14),
@@ -168,7 +168,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                             () => _status = value ?? PropertyStatus.active,
                           ),
                           decoration: const InputDecoration(
-                            labelText: 'Status',
+                            labelText: 'الحالة',
                           ),
                         ),
                         const SizedBox(height: 14),
@@ -178,7 +178,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                             decimal: true,
                           ),
                           decoration: const InputDecoration(
-                            labelText: 'Budget',
+                            labelText: 'الميزانية',
                           ),
                         ),
                         const SizedBox(height: 14),
@@ -188,7 +188,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                             decimal: true,
                           ),
                           decoration: const InputDecoration(
-                            labelText: 'Sales target',
+                            labelText: 'المستهدف البيعي',
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -198,10 +198,10 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                             onPressed: _saving ? null : () => _save(existing),
                             child: Text(
                               _saving
-                                  ? 'Saving...'
+                                  ? 'جار الحفظ...'
                                   : widget.propertyId == null
-                                  ? 'Create property'
-                                  : 'Save changes',
+                                  ? 'إنشاء العقار'
+                                  : 'حفظ التعديلات',
                             ),
                           ),
                         ),

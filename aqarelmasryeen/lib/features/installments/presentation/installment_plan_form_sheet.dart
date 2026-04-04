@@ -121,7 +121,7 @@ class _InstallmentPlanFormSheetState
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: 'Create installment plan',
+      title: 'إنشاء خطة أقساط',
       child: Form(
         key: _formKey,
         child: Column(
@@ -142,9 +142,9 @@ class _InstallmentPlanFormSheetState
                 setState(() => _unitId = value ?? '');
                 _prefillAmount();
               },
-              decoration: const InputDecoration(labelText: 'Unit'),
+              decoration: const InputDecoration(labelText: 'الوحدة'),
               validator: (value) =>
-                  (value ?? '').isEmpty ? 'Select a unit first.' : null,
+                  (value ?? '').isEmpty ? 'اختر الوحدة أولًا.' : null,
             ),
             const SizedBox(height: 12),
             Row(
@@ -154,12 +154,12 @@ class _InstallmentPlanFormSheetState
                     controller: _countController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'Installments',
+                      labelText: 'عدد الأقساط',
                     ),
                     onChanged: (_) => _prefillAmount(),
                     validator: (value) {
                       if ((int.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'Required';
+                        return 'مطلوب';
                       }
                       return null;
                     },
@@ -171,11 +171,11 @@ class _InstallmentPlanFormSheetState
                     controller: _intervalController,
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      labelText: 'Interval days',
+                      labelText: 'الفاصل بالأيام',
                     ),
                     validator: (value) {
                       if ((int.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'Required';
+                        return 'مطلوب';
                       }
                       return null;
                     },
@@ -188,7 +188,7 @@ class _InstallmentPlanFormSheetState
               onTap: _pickDate,
               borderRadius: BorderRadius.circular(20),
               child: InputDecorator(
-                decoration: const InputDecoration(labelText: 'Start date'),
+                decoration: const InputDecoration(labelText: 'تاريخ البداية'),
                 child: Row(
                   children: [
                     Expanded(child: Text(_startDate.formatShort())),
@@ -204,11 +204,11 @@ class _InstallmentPlanFormSheetState
                 decimal: true,
               ),
               decoration: const InputDecoration(
-                labelText: 'Installment amount',
+                labelText: 'قيمة القسط',
               ),
               validator: (value) {
                 if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                  return 'Enter an amount.';
+                  return 'أدخل قيمة القسط.';
                 }
                 return null;
               },
@@ -218,7 +218,7 @@ class _InstallmentPlanFormSheetState
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'Generating...' : 'Generate plan'),
+                child: Text(_saving ? 'جار الإنشاء...' : 'إنشاء الخطة'),
               ),
             ),
           ],

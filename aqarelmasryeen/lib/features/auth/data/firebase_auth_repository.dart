@@ -72,7 +72,7 @@ class FirebaseAuthRepository implements AuthRepository {
       );
       final user = credential.user;
       if (user == null) {
-        throw const AppException('Account creation did not return a user.');
+        throw const AppException('لم يتم إرجاع مستخدم بعد إنشاء الحساب.');
       }
 
       await _authDataSource.updateDisplayName(user, normalizedName);
@@ -123,7 +123,7 @@ class FirebaseAuthRepository implements AuthRepository {
       if (profile != null && !profile.isActive) {
         await _authDataSource.signOut();
         throw const AppException(
-          'This account is disabled. Contact the administrator.',
+          'هذا الحساب معطل. تواصل مع المسؤول.',
           code: 'account_disabled',
         );
       }
@@ -140,8 +140,8 @@ class FirebaseAuthRepository implements AuthRepository {
         if (isNewDevice) {
           await _notificationRepository.createSecurityNotification(
             userId: user.uid,
-            title: 'New trusted device detected',
-            body: 'A sign-in attempt used ${deviceInfo.deviceName}.',
+            title: 'تم اكتشاف جهاز موثوق جديد',
+            body: 'تم استخدام ${deviceInfo.deviceName} لتسجيل الدخول.',
             route: AppRoutes.settings,
           );
         }
@@ -169,7 +169,7 @@ class FirebaseAuthRepository implements AuthRepository {
   }) async {
     final user = _authDataSource.currentUser;
     if (user == null) {
-      throw const AppException('No authenticated user found.');
+      throw const AppException('لا يوجد مستخدم مسجل حاليًا.');
     }
 
     final normalizedName = fullName.trim();
@@ -187,7 +187,7 @@ class FirebaseAuthRepository implements AuthRepository {
       if (!hasEmailProvider || authEmail == null || authEmail.isEmpty) {
         if ((password ?? '').isEmpty) {
           throw const AppException(
-            'Create a password to finish migrating this account.',
+            'أنشئ كلمة مرور لإكمال ترحيل هذا الحساب.',
             code: 'password_required',
           );
         }
@@ -198,7 +198,7 @@ class FirebaseAuthRepository implements AuthRepository {
         );
       } else if (requestedEmail.isNotEmpty && requestedEmail != profileEmail) {
         throw const AppException(
-          'Use the signed-in email address to complete the profile.',
+          'استخدم البريد الإلكتروني الحالي لإكمال الملف الشخصي.',
           code: 'email_mismatch',
         );
       }
@@ -238,7 +238,7 @@ class FirebaseAuthRepository implements AuthRepository {
   }) async {
     final user = _authDataSource.currentUser;
     if (user == null) {
-      throw const AppException('No authenticated user found.');
+      throw const AppException('لا يوجد مستخدم مسجل حاليًا.');
     }
 
     try {
@@ -259,7 +259,7 @@ class FirebaseAuthRepository implements AuthRepository {
       );
       await _logSecurityEvent(
         actorId: user.uid,
-        actorName: user.displayName ?? user.email ?? 'Partner',
+        actorName: user.displayName ?? user.email ?? 'شريك',
         action: 'security_preferences_updated',
         metadata: {
           'trustedDeviceEnabled': trustedDeviceEnabled,

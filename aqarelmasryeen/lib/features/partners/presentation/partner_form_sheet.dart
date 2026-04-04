@@ -87,16 +87,16 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: widget.partner == null ? 'Add partner record' : 'Edit partner',
+      title: widget.partner == null ? 'إضافة شريك' : 'تعديل الشريك',
       child: Form(
         key: _formKey,
         child: Column(
           children: [
             TextFormField(
               controller: _nameController,
-              decoration: const InputDecoration(labelText: 'Partner name'),
+              decoration: const InputDecoration(labelText: 'اسم الشريك'),
               validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'Enter a partner name.' : null,
+                  (value ?? '').trim().isEmpty ? 'أدخل اسم الشريك.' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -104,11 +104,11 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'Share ratio %'),
+              decoration: const InputDecoration(labelText: 'نسبة الشراكة %'),
               validator: (value) {
                 final share = double.tryParse((value ?? '').trim()) ?? -1;
                 if (share <= 0 || share > 100) {
-                  return 'Enter a value between 0 and 100.';
+                  return 'أدخل قيمة بين 0 و100.';
                 }
                 return null;
               },
@@ -120,7 +120,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
                 decimal: true,
               ),
               decoration: const InputDecoration(
-                labelText: 'Capital contributions',
+                labelText: 'المساهمات الرأسمالية',
               ),
             ),
             const SizedBox(height: 18),
@@ -128,7 +128,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'Saving...' : 'Save partner'),
+                child: Text(_saving ? 'جار الحفظ...' : 'حفظ الشريك'),
               ),
             ),
           ],
