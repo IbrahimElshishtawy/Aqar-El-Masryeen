@@ -48,6 +48,8 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 400;
     final properties = ref.watch(dashboardPropertiesProvider);
     final expenses = ref.watch(dashboardExpensesProvider);
     final units = ref.watch(dashboardUnitsProvider);
@@ -95,27 +97,31 @@ class DashboardScreen extends ConsumerWidget {
         ),
       ],
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isCompact ? 12 : 16),
         children: [
           Text(
             'مرحبًا ${session?.profile?.name.isNotEmpty == true ? session!.profile!.name : 'شريك'}',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            style:
+                (isCompact
+                        ? Theme.of(context).textTheme.titleLarge
+                        : Theme.of(context).textTheme.headlineSmall)
+                    ?.copyWith(fontWeight: FontWeight.w800),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: isCompact ? 4 : 6),
           Text(
             'نظرة سريعة على العقارات والتحصيلات والمصروفات ومراكز الشركاء.',
-            style: Theme.of(context).textTheme.bodyLarge,
+            style: isCompact
+                ? Theme.of(context).textTheme.bodyMedium
+                : Theme.of(context).textTheme.bodyLarge,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isCompact ? 12 : 16),
           GridView.count(
             shrinkWrap: true,
-            crossAxisCount: MediaQuery.sizeOf(context).width < 500 ? 2 : 3,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
+            crossAxisCount: screenWidth < 500 ? 2 : 3,
+            mainAxisSpacing: isCompact ? 10 : 12,
+            crossAxisSpacing: isCompact ? 10 : 12,
             physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: 1.2,
+            childAspectRatio: isCompact ? 1.38 : 1.28,
             children: [
               MetricCard(
                 label: 'العقارات',
@@ -200,10 +206,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
             ],
-          Text(
-            'أحدث الأنشطة',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text('أحدث الأنشطة', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           for (final item in activity.value!) ...[
             Card(

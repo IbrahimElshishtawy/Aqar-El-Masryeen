@@ -37,14 +37,11 @@ class _ProfileCompletionScreenState
 
   bool _requiresPassword(WidgetRef ref) {
     final session = ref.watch(authSessionProvider).valueOrNull;
-    final user = session?.firebaseUser;
-    if (user == null) {
+    if (session == null) {
       return false;
     }
-    final hasEmailProvider = user.providerData.any(
-      (provider) => provider.providerId == 'password',
-    );
-    return !hasEmailProvider || (user.email?.trim().isEmpty ?? true);
+    final hasEmailProvider = session.providerIds.contains('password');
+    return !hasEmailProvider || (session.email?.trim().isEmpty ?? true);
   }
 
   Future<void> _submit(bool requiresPassword) async {
@@ -68,12 +65,12 @@ class _ProfileCompletionScreenState
     final session = ref.watch(authSessionProvider).valueOrNull;
     final theme = Theme.of(context);
     final requiresPassword = _requiresPassword(ref);
-    final authEmail = session?.firebaseUser.email?.trim() ?? '';
+    final authEmail = session?.email?.trim() ?? '';
 
     if (!_seeded && session != null) {
       _seeded = true;
       _nameController.text =
-          session.profile?.fullName ?? session.firebaseUser.displayName ?? '';
+          session.profile?.fullName ?? session.displayName ?? '';
       _emailController.text = session.profile?.email.isNotEmpty == true
           ? session.profile!.email
           : authEmail;

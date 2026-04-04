@@ -99,15 +99,15 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
       status: _status,
       createdAt: widget.unit?.createdAt ?? now,
       updatedAt: now,
-      createdBy: widget.unit?.createdBy ?? session.firebaseUser.uid,
-      updatedBy: session.firebaseUser.uid,
+      createdBy: widget.unit?.createdBy ?? session.userId,
+      updatedBy: session.userId,
     );
 
     await ref.read(salesRepositoryProvider).save(unit);
     await ref
         .read(activityRepositoryProvider)
         .log(
-          actorId: session.firebaseUser.uid,
+          actorId: session.userId,
           actorName: session.profile?.name ?? 'شريك',
           action: widget.unit == null ? 'unit_created' : 'unit_updated',
           entityType: 'unit',
@@ -125,16 +125,16 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: widget.unit == null ? 'إضافة وحدة أو عملية بيع' : 'تعديل الوحدة أو البيع',
+      title: widget.unit == null
+          ? 'إضافة وحدة أو عملية بيع'
+          : 'تعديل الوحدة أو البيع',
       child: Form(
         key: _formKey,
         child: Column(
           children: [
             TextFormField(
               controller: _unitController,
-              decoration: const InputDecoration(
-                labelText: 'اسم أو رقم الوحدة',
-              ),
+              decoration: const InputDecoration(labelText: 'اسم أو رقم الوحدة'),
               validator: (value) =>
                   (value ?? '').trim().isEmpty ? 'أدخل اسم الوحدة.' : null,
             ),
@@ -193,7 +193,9 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'السعر الإجمالي'),
+                    decoration: const InputDecoration(
+                      labelText: 'السعر الإجمالي',
+                    ),
                     validator: (value) {
                       if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
                         return 'أدخل السعر.';
@@ -209,9 +211,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'المقدم',
-                    ),
+                    decoration: const InputDecoration(labelText: 'المقدم'),
                   ),
                 ),
               ],

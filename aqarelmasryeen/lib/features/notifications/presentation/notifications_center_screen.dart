@@ -12,7 +12,7 @@ final userNotificationsProvider = StreamProvider.autoDispose((ref) async* {
   }
   yield* ref
       .watch(notificationRepositoryProvider)
-      .watchNotifications(session.firebaseUser.uid);
+      .watchNotifications(session.userId);
 });
 
 class NotificationsCenterScreen extends ConsumerWidget {

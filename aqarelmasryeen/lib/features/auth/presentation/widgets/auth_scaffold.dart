@@ -57,48 +57,70 @@ class AuthScaffold extends StatelessWidget {
                 ),
                 LayoutBuilder(
                   builder: (context, constraints) {
+                    final height = constraints.maxHeight;
+                    final isCompact = height < 720;
+                    final isVeryCompact = height < 640;
+                    final horizontalPadding = isVeryCompact ? 16.0 : 20.0;
+                    final verticalPadding = isVeryCompact ? 16.0 : 20.0;
+                    final bottomPadding = isVeryCompact ? 20.0 : 28.0;
+                    final cardPadding = isVeryCompact ? 18.0 : 24.0;
+                    final leadingSpacing = isVeryCompact ? 12.0 : 18.0;
+                    final subtitleSpacing = isVeryCompact ? 8.0 : 10.0;
+                    final sectionSpacing = isCompact ? 18.0 : 24.0;
+                    final footerSpacing = isCompact ? 14.0 : 20.0;
+                    final titleStyle =
+                        (isCompact
+                                ? theme.textTheme.headlineSmall
+                                : theme.textTheme.headlineMedium)
+                            ?.copyWith(fontWeight: FontWeight.w800);
+                    final subtitleStyle =
+                        (isCompact
+                                ? theme.textTheme.bodyMedium
+                                : theme.textTheme.bodyLarge)
+                            ?.copyWith(
+                              color: theme.colorScheme.onSurface.withValues(
+                                alpha: 0.78,
+                              ),
+                              height: 1.4,
+                            );
+
                     return SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 28),
+                      padding: EdgeInsets.fromLTRB(
+                        horizontalPadding,
+                        verticalPadding,
+                        horizontalPadding,
+                        bottomPadding,
+                      ),
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
                       child: ConstrainedBox(
                         constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight - 48,
+                          minHeight: constraints.maxHeight - bottomPadding,
                         ),
-                        child: Center(
+                        child: Align(
+                          alignment: isCompact
+                              ? Alignment.topCenter
+                              : Alignment.center,
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 480),
                             child: Card(
                               child: Padding(
-                                padding: const EdgeInsets.all(24),
+                                padding: EdgeInsets.all(cardPadding),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
                                   children: [
                                     if (leading != null) ...[
                                       leading!,
-                                      const SizedBox(height: 18),
+                                      SizedBox(height: leadingSpacing),
                                     ],
-                                    Text(
-                                      title,
-                                      style: theme.textTheme.headlineMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Text(
-                                      subtitle,
-                                      style: theme.textTheme.bodyLarge
-                                          ?.copyWith(
-                                            color: theme.colorScheme.onSurface
-                                                .withValues(alpha: 0.78),
-                                            height: 1.45,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 24),
+                                    Text(title, style: titleStyle),
+                                    SizedBox(height: subtitleSpacing),
+                                    Text(subtitle, style: subtitleStyle),
+                                    SizedBox(height: sectionSpacing),
                                     child,
                                     if (footer != null) ...[
-                                      const SizedBox(height: 20),
+                                      SizedBox(height: footerSpacing),
                                       footer!,
                                     ],
                                   ],

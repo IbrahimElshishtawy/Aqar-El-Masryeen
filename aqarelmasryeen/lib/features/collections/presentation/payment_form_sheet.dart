@@ -85,15 +85,15 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
       notes: _notesController.text.trim(),
       createdAt: now,
       updatedAt: now,
-      createdBy: session.firebaseUser.uid,
-      updatedBy: session.firebaseUser.uid,
+      createdBy: session.userId,
+      updatedBy: session.userId,
     );
 
     await ref.read(paymentRepositoryProvider).record(payment);
     await ref
         .read(activityRepositoryProvider)
         .log(
-          actorId: session.firebaseUser.uid,
+          actorId: session.userId,
           actorName: session.profile?.name ?? 'شريك',
           action: 'payment_recorded',
           entityType: 'payment',
@@ -107,7 +107,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
     await ref
         .read(notificationRepositoryProvider)
         .create(
-          userId: session.firebaseUser.uid,
+          userId: session.userId,
           title: 'تم تسجيل تحصيل',
           body: 'تم تسجيل مبلغ ${payment.amount.toStringAsFixed(0)} جنيه',
           type: NotificationType.paymentReceived,
@@ -161,9 +161,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
                 ),
               ],
               onChanged: (value) => setState(() => _installmentId = value),
-              decoration: const InputDecoration(
-                labelText: 'ربط بالقسط',
-              ),
+              decoration: const InputDecoration(labelText: 'ربط بالقسط'),
             ),
             const SizedBox(height: 12),
             TextFormField(

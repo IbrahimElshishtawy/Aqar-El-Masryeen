@@ -93,17 +93,17 @@ class _InstallmentPlanFormSheetState
       installmentAmount: double.tryParse(_amountController.text.trim()) ?? 0,
       createdAt: now,
       updatedAt: now,
-      createdBy: session.firebaseUser.uid,
-      updatedBy: session.firebaseUser.uid,
+      createdBy: session.userId,
+      updatedBy: session.userId,
     );
 
     await ref
         .read(installmentRepositoryProvider)
-        .savePlan(plan, actorId: session.firebaseUser.uid);
+        .savePlan(plan, actorId: session.userId);
     await ref
         .read(activityRepositoryProvider)
         .log(
-          actorId: session.firebaseUser.uid,
+          actorId: session.userId,
           actorName: session.profile?.name ?? 'شريك',
           action: 'installment_plan_created',
           entityType: 'installment_plan',
@@ -153,9 +153,7 @@ class _InstallmentPlanFormSheetState
                   child: TextFormField(
                     controller: _countController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'عدد الأقساط',
-                    ),
+                    decoration: const InputDecoration(labelText: 'عدد الأقساط'),
                     onChanged: (_) => _prefillAmount(),
                     validator: (value) {
                       if ((int.tryParse((value ?? '').trim()) ?? 0) <= 0) {
@@ -203,9 +201,7 @@ class _InstallmentPlanFormSheetState
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(
-                labelText: 'قيمة القسط',
-              ),
+              decoration: const InputDecoration(labelText: 'قيمة القسط'),
               validator: (value) {
                 if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
                   return 'أدخل قيمة القسط.';

@@ -65,26 +65,35 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.dashboard,
-        builder: (context, state) => const DashboardScreen(),
+        pageBuilder: (context, state) =>
+            _buildAppPage(state: state, child: const DashboardScreen()),
       ),
       GoRoute(
         path: AppRoutes.properties,
-        builder: (context, state) => const PropertiesScreen(),
+        pageBuilder: (context, state) =>
+            _buildAppPage(state: state, child: const PropertiesScreen()),
         routes: [
           GoRoute(
             path: 'new',
-            builder: (context, state) => const PropertyFormScreen(),
+            pageBuilder: (context, state) =>
+                _buildAppPage(state: state, child: const PropertyFormScreen()),
           ),
           GoRoute(
             path: ':propertyId',
-            builder: (context, state) => PropertyDetailScreen(
-              propertyId: state.pathParameters['propertyId'] ?? '',
+            pageBuilder: (context, state) => _buildAppPage(
+              state: state,
+              child: PropertyDetailScreen(
+                propertyId: state.pathParameters['propertyId'] ?? '',
+              ),
             ),
             routes: [
               GoRoute(
                 path: 'edit',
-                builder: (context, state) => PropertyFormScreen(
-                  propertyId: state.pathParameters['propertyId'],
+                pageBuilder: (context, state) => _buildAppPage(
+                  state: state,
+                  child: PropertyFormScreen(
+                    propertyId: state.pathParameters['propertyId'],
+                  ),
                 ),
               ),
             ],
@@ -93,19 +102,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: AppRoutes.partners,
-        builder: (context, state) => const PartnersScreen(),
+        pageBuilder: (context, state) =>
+            _buildAppPage(state: state, child: const PartnersScreen()),
       ),
       GoRoute(
         path: AppRoutes.reports,
-        builder: (context, state) => const ReportsScreen(),
+        pageBuilder: (context, state) =>
+            _buildAppPage(state: state, child: const ReportsScreen()),
       ),
       GoRoute(
         path: AppRoutes.settings,
-        builder: (context, state) => const SettingsScreen(),
+        pageBuilder: (context, state) =>
+            _buildAppPage(state: state, child: const SettingsScreen()),
       ),
       GoRoute(
         path: AppRoutes.notifications,
-        builder: (context, state) => const NotificationsCenterScreen(),
+        pageBuilder: (context, state) => _buildAppPage(
+          state: state,
+          child: const NotificationsCenterScreen(),
+        ),
       ),
     ],
     redirect: (context, state) {
@@ -193,6 +208,36 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ),
   );
 });
+
+CustomTransitionPage<void> _buildAppPage({
+  required GoRouterState state,
+  required Widget child,
+}) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 260),
+    reverseTransitionDuration: const Duration(milliseconds: 220),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curvedAnimation = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      );
+
+      return FadeTransition(
+        opacity: curvedAnimation,
+        child: SlideTransition(
+          position:
+              Tween<Offset>(
+                begin: const Offset(0, 0.03),
+                end: Offset.zero,
+              ).animate(curvedAnimation),
+          child: child,
+        ),
+      );
+    },
+  );
+}
 
 class GoRouterRefreshStream extends ChangeNotifier {
   GoRouterRefreshStream(Stream<dynamic> stream) {

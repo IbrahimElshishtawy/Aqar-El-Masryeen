@@ -101,9 +101,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('حذف المصروف'),
-            content: const Text(
-              'سيتم إخفاء هذا المصروف من القوائم النشطة.',
-            ),
+            content: const Text('سيتم إخفاء هذا المصروف من القوائم النشطة.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
@@ -125,7 +123,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     await ref
         .read(activityRepositoryProvider)
         .log(
-          actorId: session.firebaseUser.uid,
+          actorId: session.userId,
           actorName: session.profile?.name ?? 'شريك',
           action: 'expense_deleted',
           entityType: 'expense',
@@ -176,13 +174,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(labelText: 'المبلغ المدفوع'),
+                  decoration: const InputDecoration(
+                    labelText: 'المبلغ المدفوع',
+                  ),
                 ),
                 const SizedBox(height: 12),
                 InkWell(
                   onTap: pickDate,
                   child: InputDecorator(
-                    decoration: const InputDecoration(labelText: 'تاريخ الاستحقاق'),
+                    decoration: const InputDecoration(
+                      labelText: 'تاريخ الاستحقاق',
+                    ),
                     child: Row(
                       children: [
                         Expanded(child: Text(dueDate.formatShort())),
@@ -235,7 +237,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                               createdAt: installment.createdAt,
                               updatedAt: DateTime.now(),
                               createdBy: installment.createdBy,
-                              updatedBy: session.firebaseUser.uid,
+                              updatedBy: session.userId,
                             ),
                           );
                       if (context.mounted) Navigator.of(context).pop();
@@ -307,11 +309,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         if (session == null) return;
         await ref
             .read(propertyRepositoryProvider)
-            .archive(widget.propertyId, actorId: session.firebaseUser.uid);
+            .archive(widget.propertyId, actorId: session.userId);
         await ref
             .read(activityRepositoryProvider)
             .log(
-              actorId: session.firebaseUser.uid,
+              actorId: session.userId,
               actorName: session.profile?.name ?? 'شريك',
               action: 'property_archived',
               entityType: 'property',
@@ -487,7 +489,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         children: [
                           Chip(label: Text(property.status.label)),
                           Chip(
-                            label: Text('الميزانية ${property.totalBudget.egp}'),
+                            label: Text(
+                              'الميزانية ${property.totalBudget.egp}',
+                            ),
                           ),
                           Chip(
                             label: Text(
@@ -870,8 +874,7 @@ class _InstallmentsTab extends StatelessWidget {
         if (plans.isEmpty)
           const EmptyStateView(
             title: 'لا توجد خطط أقساط',
-            message:
-                'أنشئ خطة سداد لوحدة مباعة لبدء جدول الأقساط.',
+            message: 'أنشئ خطة سداد لوحدة مباعة لبدء جدول الأقساط.',
           ),
         for (final plan in plans) ...[
           Card(
@@ -1048,8 +1051,7 @@ class _FilesTab extends StatelessWidget {
     if (files.isEmpty) {
       return const EmptyStateView(
         title: 'لا توجد ملفات مرفوعة',
-        message:
-            'ستظهر هنا ملفات العقار بعد رفعها إلى Firebase Storage.',
+        message: 'ستظهر هنا ملفات العقار بعد رفعها إلى Firebase Storage.',
       );
     }
 

@@ -3,10 +3,37 @@ import 'package:aqarelmasryeen/shared/models/app_user.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AppSession extends Equatable {
-  const AppSession({required this.firebaseUser, required this.profile});
+  const AppSession({
+    required this.userId,
+    required this.profile,
+    this.email,
+    this.displayName,
+    this.phoneNumber,
+    this.providerIds = const [],
+  });
 
-  final User firebaseUser;
+  factory AppSession.fromFirebaseUser({
+    required User firebaseUser,
+    required AppUser? profile,
+  }) {
+    return AppSession(
+      userId: firebaseUser.uid,
+      profile: profile,
+      email: firebaseUser.email,
+      displayName: firebaseUser.displayName,
+      phoneNumber: firebaseUser.phoneNumber,
+      providerIds: firebaseUser.providerData
+          .map((provider) => provider.providerId)
+          .toList(growable: false),
+    );
+  }
+
+  final String userId;
   final AppUser? profile;
+  final String? email;
+  final String? displayName;
+  final String? phoneNumber;
+  final List<String> providerIds;
 
   bool get hasProfile => profile != null;
 
@@ -20,5 +47,12 @@ class AppSession extends Equatable {
   bool get isActive => profile?.isActive ?? true;
 
   @override
-  List<Object?> get props => [firebaseUser.uid, profile];
+  List<Object?> get props => [
+    userId,
+    email,
+    displayName,
+    phoneNumber,
+    providerIds,
+    profile,
+  ];
 }

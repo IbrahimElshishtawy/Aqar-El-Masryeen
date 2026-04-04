@@ -60,11 +60,24 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.transparent,
+        height: 76,
+        indicatorColor: accent.withValues(alpha: 0.14),
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => TextStyle(
             fontWeight: states.contains(WidgetState.selected)
-                ? FontWeight.w700
+                ? FontWeight.w800
                 : FontWeight.w600,
+            color: states.contains(WidgetState.selected)
+                ? accent
+                : const Color(0xFF4B5563),
+          ),
+        ),
+        iconTheme: WidgetStateProperty.resolveWith(
+          (states) => IconThemeData(
+            color: states.contains(WidgetState.selected)
+                ? accent
+                : const Color(0xFF6B7280),
           ),
         ),
       ),
@@ -89,6 +102,17 @@ class AppTheme {
       colorScheme: scheme,
       scaffoldBackgroundColor: const Color(0xFF020617),
       textTheme: GoogleFonts.cairoTextTheme(ThemeData.dark().textTheme),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: Colors.transparent,
+        indicatorColor: scheme.primary.withValues(alpha: 0.18),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (states) => TextStyle(
+            fontWeight: states.contains(WidgetState.selected)
+                ? FontWeight.w800
+                : FontWeight.w600,
+          ),
+        ),
+      ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFF0F172A),

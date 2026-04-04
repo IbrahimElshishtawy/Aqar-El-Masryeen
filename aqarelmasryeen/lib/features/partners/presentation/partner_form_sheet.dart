@@ -68,7 +68,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
     await ref
         .read(activityRepositoryProvider)
         .log(
-          actorId: session.firebaseUser.uid,
+          actorId: session.userId,
           actorName: session.profile?.name ?? 'شريك',
           action: widget.partner == null
               ? 'partner_created'

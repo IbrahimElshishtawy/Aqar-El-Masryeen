@@ -53,8 +53,8 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
   Future<void> _save(PropertyProject? existing) async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
-    final user = ref.read(authSessionProvider).value?.firebaseUser;
-    if (user == null) return;
+    final session = ref.read(authSessionProvider).value;
+    if (session == null) return;
 
     final property = PropertyProject(
       id: existing?.id ?? '',
@@ -66,8 +66,8 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       totalSalesTarget: double.tryParse(_salesTargetController.text) ?? 0,
       createdAt: existing?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
-      createdBy: existing?.createdBy ?? user.uid,
-      updatedBy: user.uid,
+      createdBy: existing?.createdBy ?? session.userId,
+      updatedBy: session.userId,
       archived: false,
     );
 
@@ -77,7 +77,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
     await ref
         .read(activityRepositoryProvider)
         .log(
-          actorId: user.uid,
+          actorId: session.userId,
           actorName:
               ref.read(authSessionProvider).value?.profile?.name ?? 'شريك',
           action: existing == null ? 'property_created' : 'property_updated',
@@ -105,9 +105,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          widget.propertyId == null ? 'إضافة عقار' : 'تعديل العقار',
-        ),
+        title: Text(widget.propertyId == null ? 'إضافة عقار' : 'تعديل العقار'),
       ),
       body: SafeArea(
         child: AsyncValueView<PropertyProject?>(
@@ -149,9 +147,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                         TextFormField(
                           controller: _descriptionController,
                           maxLines: 3,
-                          decoration: const InputDecoration(
-                            labelText: 'الوصف',
-                          ),
+                          decoration: const InputDecoration(labelText: 'الوصف'),
                         ),
                         const SizedBox(height: 14),
                         DropdownButtonFormField<PropertyStatus>(

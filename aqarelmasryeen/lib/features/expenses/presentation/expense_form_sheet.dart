@@ -101,8 +101,8 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
           ? null
           : _attachmentController.text.trim(),
       notes: _notesController.text.trim(),
-      createdBy: widget.expense?.createdBy ?? session.firebaseUser.uid,
-      updatedBy: session.firebaseUser.uid,
+      createdBy: widget.expense?.createdBy ?? session.userId,
+      updatedBy: session.userId,
       createdAt: widget.expense?.createdAt ?? now,
       updatedAt: now,
       archived: false,
@@ -112,7 +112,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     await ref
         .read(activityRepositoryProvider)
         .log(
-          actorId: session.firebaseUser.uid,
+          actorId: session.userId,
           actorName: session.profile?.name ?? 'شريك',
           action: widget.expense == null
               ? 'expense_created'
@@ -128,7 +128,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     await ref
         .read(notificationRepositoryProvider)
         .create(
-          userId: session.firebaseUser.uid,
+          userId: session.userId,
           title: widget.expense == null
               ? 'تمت إضافة مصروف'
               : 'تم تحديث المصروف',
@@ -195,9 +195,8 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
                   .toList(),
               onChanged: (value) => setState(() => _partnerId = value ?? ''),
               decoration: const InputDecoration(labelText: 'تم الدفع بواسطة'),
-              validator: (value) => (value ?? '').isEmpty
-                  ? 'اختر الشريك الذي قام بالدفع.'
-                  : null,
+              validator: (value) =>
+                  (value ?? '').isEmpty ? 'اختر الشريك الذي قام بالدفع.' : null,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<PaymentMethod>(

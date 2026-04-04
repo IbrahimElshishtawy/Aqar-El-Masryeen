@@ -1,15 +1,14 @@
 import 'dart:async';
 
+import 'package:aqarelmasryeen/core/config/app_config.dart';
+import 'package:aqarelmasryeen/core/errors/app_exception.dart';
 import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
-import 'package:aqarelmasryeen/core/services/firebase_initializer.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class MockAuthRepository implements AuthRepository {
-  MockAuthRepository(this._auth, this._store);
+  MockAuthRepository(this._store);
 
-  final FirebaseAuth _auth;
   final MockWorkspaceStore _store;
   final StreamController<AppSession?> _controller =
       StreamController<AppSession?>.broadcast();
@@ -30,7 +29,8 @@ class MockAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    await _ensureMockSession(fullName: fullName, email: email);
+    _store.updateProfile(fullName: fullName, email: email.trim().toLowerCase());
+    await _ensureMockSession();
   }
 
   @override
@@ -38,7 +38,16 @@ class MockAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    await _ensureMockSession(email: email);
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail != AppConfig.mockPartnerEmail ||
+        password != AppConfig.mockPartnerPassword) {
+      throw AppException(
+        'استخدم بيانات الموك: ${AppConfig.mockPartnerEmail} / ${AppConfig.mockPartnerPassword}',
+        code: 'mock_invalid_credentials',
+      );
+    }
+    _store.updateProfile(email: AppConfig.mockPartnerEmail);
+    await _ensureMockSession();
   }
 
   @override
@@ -47,7 +56,8 @@ class MockAuthRepository implements AuthRepository {
     required String email,
     String? password,
   }) async {
-    await _ensureMockSession(fullName: fullName, email: email);
+    _store.updateProfile(fullName: fullName, email: email.trim().toLowerCase());
+    await _ensureMockSession();
   }
 
   @override
@@ -77,7 +87,6 @@ class MockAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() async {
     await _ensureInitialized();
-    await _auth.signOut();
     _currentSession = null;
     _controller.add(null);
   }
@@ -85,49 +94,24 @@ class MockAuthRepository implements AuthRepository {
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
     _initialized = true;
-    await initializeFirebase();
-    _auth.authStateChanges().listen((user) async {
-      if (user == null) {
-        _currentSession = null;
-        _controller.add(null);
-        return;
-      }
-      _currentSession = AppSession(
-        firebaseUser: user,
-        profile: _store.profileForUid(user.uid),
-      );
-      _controller.add(_currentSession);
-    });
-    await _ensureAnonymousUser();
+    _store.updateProfile(email: AppConfig.mockPartnerEmail);
     await _emitCurrentSession();
   }
 
-  Future<void> _ensureMockSession({String? fullName, String? email}) async {
+  Future<void> _ensureMockSession() async {
     await _ensureInitialized();
-    final user = await _ensureAnonymousUser();
-    _store.updateProfile(uid: user.uid, fullName: fullName, email: email);
     await _emitCurrentSession();
-  }
-
-  Future<User> _ensureAnonymousUser() async {
-    final current = _auth.currentUser;
-    if (current != null) {
-      return current;
-    }
-    final credential = await _auth.signInAnonymously();
-    return credential.user!;
   }
 
   Future<void> _emitCurrentSession() async {
-    final user = _auth.currentUser;
-    if (user == null) {
-      _currentSession = null;
-    } else {
-      _currentSession = AppSession(
-        firebaseUser: user,
-        profile: _store.profileForUid(user.uid),
-      );
-    }
+    _currentSession = AppSession(
+      userId: 'mock-user',
+      profile: _store.profileForUid('mock-user'),
+      email: _store.profileForUid('mock-user').email,
+      displayName: _store.profileForUid('mock-user').fullName,
+      phoneNumber: _store.profileForUid('mock-user').phone,
+      providerIds: const ['password'],
+    );
     _controller.add(_currentSession);
   }
 }

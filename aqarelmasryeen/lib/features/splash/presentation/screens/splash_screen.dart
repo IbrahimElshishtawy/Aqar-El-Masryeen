@@ -60,69 +60,95 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final decision = ref.watch(authBootstrapControllerProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              Theme.of(context).colorScheme.primary.withValues(alpha: 0.18),
-              Theme.of(context).scaffoldBackgroundColor,
-              Theme.of(context).colorScheme.secondary.withValues(alpha: 0.10),
+              theme.colorScheme.primary.withValues(alpha: 0.18),
+              theme.scaffoldBackgroundColor,
+              theme.colorScheme.secondary.withValues(alpha: 0.10),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 88,
-                    height: 88,
-                    decoration: BoxDecoration(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(28),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final height = constraints.maxHeight;
+              final isCompact = height < 700;
+              final isVeryCompact = height < 620;
+              final screenPadding = isVeryCompact ? 16.0 : 24.0;
+              final logoSize = isVeryCompact ? 72.0 : 88.0;
+              final logoRadius = isVeryCompact ? 22.0 : 28.0;
+              final logoIconSize = isVeryCompact ? 34.0 : 40.0;
+              final largeSpacing = isCompact ? 14.0 : 20.0;
+              final smallSpacing = isCompact ? 6.0 : 8.0;
+
+              return SingleChildScrollView(
+                padding: EdgeInsets.all(screenPadding),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight - (screenPadding * 2),
+                  ),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: logoSize,
+                          height: logoSize,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary.withValues(
+                              alpha: 0.12,
+                            ),
+                            borderRadius: BorderRadius.circular(logoRadius),
+                          ),
+                          child: Icon(
+                            Icons.account_balance_wallet_outlined,
+                            size: logoIconSize,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        SizedBox(height: largeSpacing),
+                        Text(
+                          AppConfig.appName,
+                          textAlign: TextAlign.center,
+                          style:
+                              (isCompact
+                                      ? theme.textTheme.titleLarge
+                                      : theme.textTheme.headlineSmall)
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        SizedBox(height: smallSpacing),
+                        Text(
+                          'مساحة عمل آمنة لإدارة الحسابات العقارية',
+                          textAlign: TextAlign.center,
+                          style: isCompact
+                              ? theme.textTheme.bodyMedium
+                              : theme.textTheme.bodyLarge,
+                        ),
+                        SizedBox(height: largeSpacing),
+                        decision.when(
+                          data: (decision) {
+                            _scheduleNavigation(decision.route);
+                            return const CircularProgressIndicator();
+                          },
+                          loading: () => const CircularProgressIndicator(),
+                          error: (error, stackTrace) => Text(
+                            error.toString(),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ],
                     ),
-                    child: Icon(
-                      Icons.account_balance_wallet_outlined,
-                      size: 40,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
                   ),
-                  const SizedBox(height: 20),
-                  Text(
-                    AppConfig.appName,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'مساحة عمل آمنة لإدارة الحسابات العقارية',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 20),
-                  decision.when(
-                    data: (decision) {
-                      _scheduleNavigation(decision.route);
-                      return const CircularProgressIndicator();
-                    },
-                    loading: () => const CircularProgressIndicator(),
-                    error: (error, stackTrace) =>
-                        Text(error.toString(), textAlign: TextAlign.center),
-                  ),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),

@@ -55,7 +55,10 @@ class FirebaseAuthRepository implements AuthRepository {
         final resolvedProfile =
             profile ?? await _profileDataSource.fetchProfile(user.uid);
         await _syncLocalSession(resolvedProfile, user.uid);
-        return AppSession(firebaseUser: user, profile: resolvedProfile);
+        return AppSession.fromFirebaseUser(
+          firebaseUser: user,
+          profile: resolvedProfile,
+        );
       });
     }
   }
@@ -420,10 +423,7 @@ final userProfileRemoteDataSourceProvider =
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   if (AppConfig.useMockData) {
-    return MockAuthRepository(
-      ref.watch(firebaseAuthProvider),
-      MockWorkspaceStore.instance,
-    );
+    return MockAuthRepository(MockWorkspaceStore.instance);
   }
   return FirebaseAuthRepository(
     ref.watch(firebaseAuthRemoteDataSourceProvider),

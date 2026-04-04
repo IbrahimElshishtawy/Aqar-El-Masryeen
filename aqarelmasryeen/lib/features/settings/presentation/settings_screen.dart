@@ -59,7 +59,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               subtitle: Text(
                 profile?.email.isNotEmpty == true
                     ? profile!.email
-                    : session?.firebaseUser.phoneNumber ?? '',
+                    : session?.phoneNumber ?? '',
               ),
             ),
           ),
