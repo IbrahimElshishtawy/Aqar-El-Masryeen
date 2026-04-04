@@ -11,54 +11,54 @@ AppException mapException(Object error) {
     switch (error.code) {
       case 'invalid-email':
         return const AppException(
-          'Enter a valid email address.',
+          'أدخل بريدًا إلكترونيًا صحيحًا.',
           code: 'invalid_email',
         );
       case 'too-many-requests':
         return const AppException(
-          'Too many attempts were detected. Wait a moment and try again.',
+          'تم رصد عدد كبير من المحاولات. انتظر قليلًا ثم حاول مرة أخرى.',
           code: 'rate_limited',
         );
       case 'wrong-password':
       case 'invalid-credential':
       case 'user-not-found':
         return const AppException(
-          'Incorrect email or password. Check your credentials and try again.',
+          'البريد الإلكتروني أو كلمة المرور غير صحيحة. راجع البيانات وحاول مرة أخرى.',
           code: 'invalid_credentials',
         );
       case 'email-already-in-use':
         return const AppException(
-          'This email is already in use.',
+          'هذا البريد الإلكتروني مستخدم بالفعل.',
           code: 'email_in_use',
         );
       case 'weak-password':
         return const AppException(
-          'Use a stronger password with upper and lower case letters, numbers, and symbols.',
+          'استخدم كلمة مرور أقوى تحتوي على حروف كبيرة وصغيرة وأرقام ورموز.',
           code: 'weak_password',
         );
       case 'user-disabled':
         return const AppException(
-          'This account is disabled. Contact the administrator.',
+          'هذا الحساب معطل. تواصل مع المسؤول.',
           code: 'account_disabled',
         );
       case 'operation-not-allowed':
         return const AppException(
-          'Email/password sign-in is not enabled in Firebase Authentication.',
+          'تسجيل الدخول بالبريد الإلكتروني وكلمة المرور غير مفعّل في Firebase Authentication.',
           code: 'operation_not_allowed',
         );
       case 'network-request-failed':
         return const AppException(
-          'Network error. Check your connection and try again.',
+          'حدث خطأ في الشبكة. تحقق من الاتصال ثم حاول مرة أخرى.',
           code: 'network_error',
         );
       case 'requires-recent-login':
         return const AppException(
-          'Please sign in again before changing sensitive account details.',
+          'يرجى تسجيل الدخول مرة أخرى قبل تعديل بيانات الحساب الحساسة.',
           code: 'requires_recent_login',
         );
       default:
         return AppException(
-          message.isEmpty ? 'Authentication failed.' : message,
+          message.isEmpty ? 'فشلت عملية التحقق.' : message,
           code: error.code,
         );
     }
@@ -67,24 +67,24 @@ AppException mapException(Object error) {
     switch (error.code) {
       case LocalAuthExceptionCode.userCanceled:
         return const AppException(
-          'Authentication was canceled.',
+          'تم إلغاء عملية التحقق.',
           code: 'local_auth_canceled',
         );
       case LocalAuthExceptionCode.noBiometricsEnrolled:
       case LocalAuthExceptionCode.noCredentialsSet:
         return const AppException(
-          'Set up biometrics or a device passcode to enable secure unlock.',
+          'قم بإعداد البصمة أو رمز قفل الجهاز لتفعيل الفتح الآمن.',
           code: 'local_auth_not_configured',
         );
       case LocalAuthExceptionCode.temporaryLockout:
       case LocalAuthExceptionCode.biometricLockout:
         return const AppException(
-          'Biometric authentication is temporarily locked. Use device credentials or try again later.',
+          'التحقق بالبصمة مقفل مؤقتًا. استخدم بيانات قفل الجهاز أو حاول لاحقًا.',
           code: 'local_auth_lockout',
         );
       default:
         return AppException(
-          error.description ?? 'Secure authentication failed.',
+          error.description ?? 'فشل التحقق الآمن.',
           code: error.code.name,
         );
     }
@@ -94,25 +94,25 @@ AppException mapException(Object error) {
       final message = error.message ?? '';
       if (message.contains('database (default) does not exist')) {
         return const AppException(
-          'Cloud Firestore is not set up for this Firebase project yet. Create the default Firestore database in Firebase Console, then try again.',
+          'لم يتم إعداد Cloud Firestore لهذا المشروع بعد. أنشئ قاعدة البيانات الافتراضية من Firebase Console ثم حاول مرة أخرى.',
           code: 'firestore_not_configured',
         );
       }
       switch (error.code) {
         case 'unavailable':
           return const AppException(
-            'Cloud Firestore is unavailable right now. If this is a new project, create the default Firestore database first.',
+            'خدمة Cloud Firestore غير متاحة الآن. إذا كان المشروع جديدًا فأنشئ قاعدة البيانات الافتراضية أولًا.',
             code: 'firestore_unavailable',
           );
         case 'permission-denied':
           return const AppException(
-            'Firestore access was denied. Check your Firebase App Check and Firestore security rules.',
+            'تم رفض الوصول إلى Firestore. راجع App Check وقواعد الحماية في Firestore.',
             code: 'firestore_permission_denied',
           );
       }
     }
     return AppException(
-      error.message ?? 'Firebase request failed.',
+      error.message ?? 'فشل طلب Firebase.',
       code: error.code,
     );
   }

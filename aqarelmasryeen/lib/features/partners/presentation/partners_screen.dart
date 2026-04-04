@@ -25,7 +25,7 @@ class PartnersScreen extends ConsumerWidget {
     );
 
     return AppShellScaffold(
-      title: 'Partners',
+      title: 'الشركاء',
       currentIndex: 2,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showModalBottomSheet<void>(
@@ -35,16 +35,15 @@ class PartnersScreen extends ConsumerWidget {
           builder: (_) => const PartnerFormSheet(),
         ),
         icon: const Icon(Icons.add),
-        label: const Text('Add partner'),
+        label: const Text('إضافة شريك'),
       ),
       child: partners.when(
         data: (partnerItems) => expenses.when(
           data: (expenseItems) {
             if (partnerItems.isEmpty) {
               return const EmptyStateView(
-                title: 'No partner records',
-                message:
-                    'Create the two partner records to start settlement tracking.',
+                title: 'لا توجد سجلات للشركاء',
+                message: 'أضف بيانات الشركاء للبدء في متابعة التسويات.',
               );
             }
             final settlements = const PartnerSettlementCalculator().build(
@@ -61,7 +60,7 @@ class PartnersScreen extends ConsumerWidget {
               children: [
                 Card(
                   child: ListTile(
-                    title: const Text('Tracked capital contributions'),
+                    title: const Text('إجمالي المساهمات الرأسمالية'),
                     trailing: Text(totalCapital.egp),
                   ),
                 ),
@@ -81,7 +80,7 @@ class PartnersScreen extends ConsumerWidget {
                       ),
                       title: Text(item.partnerName),
                       subtitle: Text(
-                        'Expected ${item.expectedContribution.egp} • Contributed ${item.contributedAmount.egp}',
+                        'المتوقع ${item.expectedContribution.egp} • المدفوع ${item.contributedAmount.egp}',
                       ),
                       trailing: Text(
                         item.balanceDelta.egp,

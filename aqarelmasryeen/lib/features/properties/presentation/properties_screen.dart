@@ -18,20 +18,20 @@ class PropertiesScreen extends ConsumerWidget {
     );
 
     return AppShellScaffold(
-      title: 'Properties',
+      title: 'العقارات',
       currentIndex: 1,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/properties/new'),
         icon: const Icon(Icons.add),
-        label: const Text('Add property'),
+        label: const Text('إضافة عقار'),
       ),
       child: properties.when(
         data: (items) {
           if (items.isEmpty) {
             return const EmptyStateView(
-              title: 'No properties yet',
+              title: 'لا توجد عقارات بعد',
               message:
-                  'Create the first real-estate project to start tracking expenses, sales, collections, and partner settlements.',
+                  'أنشئ أول مشروع عقاري للبدء في متابعة المصروفات والمبيعات والتحصيلات وتسويات الشركاء.',
             );
           }
           return ListView.separated(

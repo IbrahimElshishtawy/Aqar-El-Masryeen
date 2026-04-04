@@ -62,9 +62,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     return AuthScaffold(
-      title: 'Create partner account',
+      title: 'إنشاء حساب شريك',
       subtitle:
-          'Provision a Firebase email account, create the Firestore profile, and continue into security setup for this device.',
+          'أنشئ حسابًا جديدًا، ثم أكمل ملفك الشخصي وتابع إعداد الحماية لهذا الجهاز.',
       leading: Container(
         width: 64,
         height: 64,
@@ -83,7 +83,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.name],
               decoration: const InputDecoration(
-                labelText: 'Full name',
+                labelText: 'الاسم الكامل',
                 prefixIcon: Icon(Icons.person_outline_rounded),
               ),
               validator: AuthValidators.name,
@@ -95,7 +95,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.newUsername],
               decoration: const InputDecoration(
-                labelText: 'Email',
+                labelText: 'البريد الإلكتروني',
                 prefixIcon: Icon(Icons.alternate_email_rounded),
               ),
               validator: AuthValidators.email,
@@ -107,7 +107,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.newPassword],
               decoration: InputDecoration(
-                labelText: 'Password',
+                labelText: 'كلمة المرور',
                 prefixIcon: const Icon(Icons.lock_outline_rounded),
                 suffixIcon: IconButton(
                   onPressed: () {
@@ -128,7 +128,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               obscureText: _obscureConfirmPassword,
               textInputAction: TextInputAction.done,
               decoration: InputDecoration(
-                labelText: 'Confirm password',
+                labelText: 'تأكيد كلمة المرور',
                 prefixIcon: const Icon(Icons.lock_person_outlined),
                 suffixIcon: IconButton(
                   onPressed: () {
@@ -162,14 +162,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       )
                     : const Icon(Icons.arrow_forward_rounded),
                 label: Text(
-                  state.isLoading ? 'Creating account...' : 'Create account',
+                  state.isLoading ? 'جار إنشاء الحساب...' : 'إنشاء الحساب',
                 ),
               ),
             ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => context.go(AppRoutes.login),
-              child: const Text('Already have an account? Sign in'),
+              child: const Text('لديك حساب بالفعل؟ سجل الدخول'),
             ),
           ],
         ),

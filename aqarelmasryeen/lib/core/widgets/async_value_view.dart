@@ -33,9 +33,9 @@ class AsyncValueView<T> extends StatelessWidget {
         ),
       ),
       error: (error, _) => EmptyStateView(
-        title: 'Something went wrong',
+        title: 'حدث خطأ ما',
         message: error.toString(),
-        actionLabel: onRetry == null ? null : 'Retry',
+        actionLabel: onRetry == null ? null : 'إعادة المحاولة',
         onAction: onRetry,
       ),
     );

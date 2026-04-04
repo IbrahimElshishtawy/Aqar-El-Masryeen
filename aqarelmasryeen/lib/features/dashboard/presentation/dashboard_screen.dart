@@ -1,6 +1,7 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
+import 'package:aqarelmasryeen/core/utils/ui_labels.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/core/widgets/metric_card.dart';
@@ -68,7 +69,7 @@ class DashboardScreen extends ConsumerWidget {
 
     if (!allReady) {
       return const AppShellScaffold(
-        title: 'Dashboard',
+        title: 'الرئيسية',
         currentIndex: 0,
         child: Center(child: CircularProgressIndicator()),
       );
@@ -85,7 +86,7 @@ class DashboardScreen extends ConsumerWidget {
     final topProperties = properties.value!.take(3).toList();
 
     return AppShellScaffold(
-      title: 'Dashboard',
+      title: 'الرئيسية',
       currentIndex: 0,
       actions: [
         IconButton(
@@ -97,14 +98,14 @@ class DashboardScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Welcome ${session?.profile?.name.isNotEmpty == true ? session!.profile!.name : 'Partner'}',
+            'مرحبًا ${session?.profile?.name.isNotEmpty == true ? session!.profile!.name : 'شريك'}',
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           Text(
-            'Live accounting snapshot across properties, collections, and partner settlement exposure.',
+            'نظرة سريعة على العقارات والتحصيلات والمصروفات ومراكز الشركاء.',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
@@ -117,32 +118,32 @@ class DashboardScreen extends ConsumerWidget {
             childAspectRatio: 1.2,
             children: [
               MetricCard(
-                label: 'Properties',
+                label: 'العقارات',
                 value: '${summary.totalProperties}',
                 icon: Icons.apartment_outlined,
               ),
               MetricCard(
-                label: 'Expenses',
+                label: 'المصروفات',
                 value: summary.totalExpenses.egp,
                 icon: Icons.account_balance_wallet_outlined,
               ),
               MetricCard(
-                label: 'Sales',
+                label: 'المبيعات',
                 value: summary.totalSalesValue.egp,
                 icon: Icons.trending_up_outlined,
               ),
               MetricCard(
-                label: 'Collected',
+                label: 'المحصّل',
                 value: summary.totalCollected.egp,
                 icon: Icons.payments_outlined,
               ),
               MetricCard(
-                label: 'Remaining',
+                label: 'المتبقي',
                 value: summary.totalRemaining.egp,
                 icon: Icons.hourglass_bottom_outlined,
               ),
               MetricCard(
-                label: 'Overdue',
+                label: 'المتأخر',
                 value: '${summary.overdueInstallmentsCount}',
                 icon: Icons.warning_amber_outlined,
                 color: Colors.orange,
@@ -157,30 +158,30 @@ class DashboardScreen extends ConsumerWidget {
               FilledButton.icon(
                 onPressed: () => context.go(AppRoutes.properties),
                 icon: const Icon(Icons.add_business_outlined),
-                label: const Text('Manage properties'),
+                label: const Text('إدارة العقارات'),
               ),
               OutlinedButton.icon(
                 onPressed: () => context.go(AppRoutes.partners),
                 icon: const Icon(Icons.group_outlined),
-                label: const Text('Partner balances'),
+                label: const Text('أرصدة الشركاء'),
               ),
               OutlinedButton.icon(
                 onPressed: () => context.go(AppRoutes.reports),
                 icon: const Icon(Icons.summarize_outlined),
-                label: const Text('Open reports'),
+                label: const Text('فتح التقارير'),
               ),
             ],
           ),
           const SizedBox(height: 20),
           Text(
-            'Priority properties',
+            'العقارات المهمة',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 12),
           if (topProperties.isEmpty)
             const EmptyStateView(
-              title: 'No active properties',
-              message: 'Create a project to start the accounting workflow.',
+              title: 'لا توجد عقارات نشطة',
+              message: 'أنشئ مشروعًا للبدء في دورة العمل المحاسبية.',
             )
           else
             for (final property in topProperties) ...[
@@ -193,14 +194,14 @@ class DashboardScreen extends ConsumerWidget {
                   trailing: TextButton(
                     onPressed: () =>
                         context.push(AppRoutes.propertyDetails(property.id)),
-                    child: const Text('Open'),
+                    child: const Text('فتح'),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
             ],
           Text(
-            'Recent activity',
+            'أحدث الأنشطة',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 12),
@@ -209,10 +210,10 @@ class DashboardScreen extends ConsumerWidget {
               child: ListTile(
                 dense: true,
                 title: Text(
-                  '${item.actorName} ${item.action.replaceAll('_', ' ')}',
+                  '${item.actorName} ${activityActionLabel(item.action)}',
                 ),
                 subtitle: Text(item.createdAt.formatWithTime()),
-                trailing: Text(item.entityType),
+                trailing: Text(entityTypeLabel(item.entityType)),
               ),
             ),
             const SizedBox(height: 8),

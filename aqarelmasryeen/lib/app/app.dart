@@ -1,4 +1,5 @@
 import 'package:aqarelmasryeen/core/security/session_activity_listener.dart';
+import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/routing/app_router.dart';
 import 'package:aqarelmasryeen/core/services/firebase_initializer.dart';
 import 'package:aqarelmasryeen/core/services/notification_service.dart';
@@ -72,14 +73,15 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
 
     if (routerConfig != null) {
       return MaterialApp.router(
-        title: 'Aqar El Masryeen',
+        title: AppConfig.appName,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
         themeMode: ThemeMode.system,
         routerConfig: routerConfig,
         builder: builder,
-        supportedLocales: const [Locale('en'), Locale('ar')],
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar'), Locale('en')],
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
@@ -89,14 +91,15 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
     }
 
     return MaterialApp(
-      title: 'Aqar El Masryeen',
+      title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.system,
       home: home,
       builder: builder,
-      supportedLocales: const [Locale('en'), Locale('ar')],
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -133,7 +136,7 @@ class _AppBootstrapScreen extends StatelessWidget {
               children: [
                 CircularProgressIndicator(),
                 SizedBox(height: 16),
-                Text('Initializing secure workspace...'),
+                Text('جار تهيئة مساحة العمل الآمنة...'),
               ],
             ),
           ),
@@ -161,7 +164,7 @@ class _AppBootstrapErrorScreen extends StatelessWidget {
                 const Icon(Icons.error_outline, size: 48),
                 const SizedBox(height: 12),
                 Text(
-                  'Firebase initialization failed',
+                  'تعذر تهيئة Firebase',
                   style: Theme.of(context).textTheme.titleLarge,
                   textAlign: TextAlign.center,
                 ),

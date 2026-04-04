@@ -52,23 +52,23 @@ class _AppShellScaffoldState extends ConsumerState<AppShellScaffold> {
                 destinations: const [
                   NavigationRailDestination(
                     icon: Icon(Icons.dashboard_outlined),
-                    label: Text('Dashboard'),
+                    label: Text('الرئيسية'),
                   ),
                   NavigationRailDestination(
                     icon: Icon(Icons.apartment_outlined),
-                    label: Text('Properties'),
+                    label: Text('العقارات'),
                   ),
                   NavigationRailDestination(
                     icon: Icon(Icons.group_outlined),
-                    label: Text('Partners'),
+                    label: Text('الشركاء'),
                   ),
                   NavigationRailDestination(
                     icon: Icon(Icons.summarize_outlined),
-                    label: Text('Reports'),
+                    label: Text('التقارير'),
                   ),
                   NavigationRailDestination(
                     icon: Icon(Icons.settings_outlined),
-                    label: Text('Settings'),
+                    label: Text('الإعدادات'),
                   ),
                 ],
               ),
@@ -93,23 +93,23 @@ class _AppShellScaffoldState extends ConsumerState<AppShellScaffold> {
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.dashboard_outlined),
-                  label: 'Dashboard',
+                  label: 'الرئيسية',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.apartment_outlined),
-                  label: 'Properties',
+                  label: 'العقارات',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.group_outlined),
-                  label: 'Partners',
+                  label: 'الشركاء',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.summarize_outlined),
-                  label: 'Reports',
+                  label: 'التقارير',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.settings_outlined),
-                  label: 'Settings',
+                  label: 'الإعدادات',
                 ),
               ],
             ),

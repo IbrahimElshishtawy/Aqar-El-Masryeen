@@ -23,11 +23,11 @@ class NotificationsCenterScreen extends ConsumerWidget {
     final notifications = ref.watch(userNotificationsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications')),
+      appBar: AppBar(title: const Text('التنبيهات')),
       body: notifications.when(
         data: (items) {
           if (items.isEmpty) {
-            return const Center(child: Text('No alerts yet'));
+            return const Center(child: Text('لا توجد تنبيهات حتى الآن'));
           }
           return ListView.builder(
             padding: const EdgeInsets.all(16),

@@ -33,9 +33,9 @@ class UnlockScreen extends ConsumerWidget {
     final displayName = session?.profile?.fullName;
 
     return AuthScaffold(
-      title: 'Unlock workspace',
+      title: 'فتح مساحة العمل',
       subtitle:
-          'The session for ${displayName?.isNotEmpty == true ? displayName : 'the partner account'} is locked. Authenticate with biometrics or device credentials to continue.',
+          'جلسة ${displayName?.isNotEmpty == true ? displayName : 'حساب الشريك'} مقفلة. تحقق بالبصمة أو ببيانات قفل الجهاز للمتابعة.',
       leading: Container(
         width: 64,
         height: 64,
@@ -60,7 +60,7 @@ class UnlockScreen extends ConsumerWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.fingerprint),
-              label: Text(state.isUnlocking ? 'Unlocking...' : 'Unlock now'),
+              label: Text(state.isUnlocking ? 'جار الفتح...' : 'فتح الآن'),
             ),
           ),
           const SizedBox(height: 12),
@@ -84,7 +84,7 @@ class UnlockScreen extends ConsumerWidget {
                     }
                   }
                 },
-                child: const Text('Use full login instead'),
+                child: const Text('الرجوع لتسجيل الدخول الكامل'),
               ),
             ),
         ],

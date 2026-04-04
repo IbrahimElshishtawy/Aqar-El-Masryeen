@@ -47,7 +47,7 @@ class ReportsScreen extends ConsumerWidget {
         !payments.hasValue ||
         !installments.hasValue) {
       return const AppShellScaffold(
-        title: 'Reports',
+        title: 'التقارير',
         currentIndex: 3,
         child: Center(child: CircularProgressIndicator()),
       );
@@ -69,7 +69,7 @@ class ReportsScreen extends ConsumerWidget {
     final overdue = installments.value!.where((item) => item.isOverdue).length;
 
     return AppShellScaffold(
-      title: 'Reports',
+      title: 'التقارير',
       currentIndex: 3,
       child: ListView(
         padding: const EdgeInsets.all(16),
@@ -83,22 +83,22 @@ class ReportsScreen extends ConsumerWidget {
             childAspectRatio: 1.2,
             children: [
               MetricCard(
-                label: 'Projects',
+                label: 'المشروعات',
                 value: '$propertyCount',
                 icon: Icons.business_outlined,
               ),
               MetricCard(
-                label: 'Expenses',
+                label: 'المصروفات',
                 value: totalExpenses.egp,
                 icon: Icons.money_off_csred_outlined,
               ),
               MetricCard(
-                label: 'Collections',
+                label: 'التحصيلات',
                 value: totalCollected.egp,
                 icon: Icons.payments_outlined,
               ),
               MetricCard(
-                label: 'Overdue',
+                label: 'المتأخر',
                 value: '$overdue',
                 icon: Icons.warning_amber_outlined,
                 color: Colors.orange,
@@ -107,7 +107,7 @@ class ReportsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Property performance',
+            'أداء العقارات',
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 12),
@@ -123,7 +123,7 @@ class ReportsScreen extends ConsumerWidget {
           ],
           Card(
             child: ListTile(
-              title: const Text('Net remaining across the portfolio'),
+              title: const Text('صافي المتبقي على مستوى المحفظة'),
               trailing: Text((totalSales - totalCollected).egp),
             ),
           ),

@@ -97,9 +97,9 @@ class _ProfileCompletionScreenState
     });
 
     return AuthScaffold(
-      title: 'Complete profile',
+      title: 'استكمال الملف الشخصي',
       subtitle:
-          'Finish the partner identity record in Firestore so routing, app lock, and audit logging can continue normally.',
+          'أكمل بيانات الملف الشخصي حتى يعمل التوجيه وقفل التطبيق وسجل الأنشطة بشكل طبيعي.',
       leading: Container(
         width: 64,
         height: 64,
@@ -111,8 +111,8 @@ class _ProfileCompletionScreenState
       ),
       footer: Text(
         requiresPassword
-            ? 'This account still needs an email credential. Set a strong password to migrate it to the new sign-in flow.'
-            : 'The signed-in email is used as the canonical login identifier for this partner account.',
+            ? 'هذا الحساب ما زال يحتاج إلى ربط كلمة مرور بالبريد الإلكتروني. اختر كلمة مرور قوية لإكمال الترحيل إلى نظام الدخول الجديد.'
+            : 'سيتم استخدام البريد الإلكتروني الحالي كمعرّف تسجيل الدخول الأساسي لهذا الحساب.',
         style: theme.textTheme.bodyMedium,
       ),
       child: Form(
@@ -124,7 +124,7 @@ class _ProfileCompletionScreenState
               textInputAction: TextInputAction.next,
               autofillHints: const [AutofillHints.name],
               decoration: const InputDecoration(
-                labelText: 'Full name',
+                labelText: 'الاسم الكامل',
                 prefixIcon: Icon(Icons.person_outline_rounded),
               ),
               validator: AuthValidators.name,
@@ -139,7 +139,7 @@ class _ProfileCompletionScreenState
                   : TextInputAction.done,
               autofillHints: const [AutofillHints.username],
               decoration: const InputDecoration(
-                labelText: 'Email',
+                labelText: 'البريد الإلكتروني',
                 prefixIcon: Icon(Icons.alternate_email_rounded),
               ),
               validator: AuthValidators.email,
@@ -152,7 +152,7 @@ class _ProfileCompletionScreenState
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.newPassword],
                 decoration: InputDecoration(
-                  labelText: 'Password',
+                  labelText: 'كلمة المرور',
                   prefixIcon: const Icon(Icons.lock_outline_rounded),
                   suffixIcon: IconButton(
                     onPressed: () {
@@ -173,7 +173,7 @@ class _ProfileCompletionScreenState
                 obscureText: _obscureConfirmPassword,
                 textInputAction: TextInputAction.done,
                 decoration: InputDecoration(
-                  labelText: 'Confirm password',
+                  labelText: 'تأكيد كلمة المرور',
                   prefixIcon: const Icon(Icons.lock_person_outlined),
                   suffixIcon: IconButton(
                     onPressed: () {
@@ -210,7 +210,7 @@ class _ProfileCompletionScreenState
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.arrow_forward_rounded),
-                label: Text(state.isLoading ? 'Saving...' : 'Continue'),
+                label: Text(state.isLoading ? 'جار الحفظ...' : 'متابعة'),
               ),
             ),
           ],

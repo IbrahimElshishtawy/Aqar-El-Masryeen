@@ -59,7 +59,7 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
           context.go(AppRoutes.dashboard);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Security settings updated.')),
+            const SnackBar(content: Text('تم تحديث إعدادات الأمان.')),
           );
         }
       }
@@ -77,9 +77,9 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
     }
 
     return AuthScaffold(
-      title: 'Secure this device',
+      title: 'تأمين هذا الجهاز',
       subtitle:
-          'Configure biometric or device-credential unlock and automatic app locking for this finance workspace.',
+          'اضبط فتح التطبيق بالبصمة أو ببيانات قفل الجهاز مع القفل التلقائي لمساحة العمل.',
       leading: Container(
         width: 64,
         height: 64,
@@ -106,11 +106,11 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
                   }
                 });
               },
-              title: const Text('Enable trusted-device quick unlock'),
+              title: const Text('تفعيل الفتح السريع للجهاز الموثوق'),
               subtitle: Text(
                 data.canUseSecureUnlock
-                    ? 'Uses: ${data.methodsLabel}'
-                    : 'This device cannot use biometrics or device credentials.',
+                    ? 'طريقة الفتح: ${data.methodsLabel}'
+                    : 'هذا الجهاز لا يدعم البصمة أو بيانات قفل الجهاز.',
               ),
             ),
             SwitchListTile.adaptive(
@@ -119,9 +119,9 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
                   _trustedDeviceEnabled && data.availableBiometrics.isNotEmpty
                   ? (value) => setState(() => _biometricEnabled = value)
                   : null,
-              title: const Text('Prefer biometrics when available'),
+              title: const Text('استخدام البصمة عند توفرها'),
               subtitle: const Text(
-                'Device passcode/PIN remains available when the operating system allows it.',
+                'سيظل رمز الجهاز أو كلمة المرور متاحين إذا كان نظام التشغيل يسمح بذلك.',
               ),
             ),
             SwitchListTile.adaptive(
@@ -129,24 +129,24 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
               onChanged: _trustedDeviceEnabled
                   ? (value) => setState(() => _appLockEnabled = value)
                   : null,
-              title: const Text('Lock app after inactivity'),
+              title: const Text('قفل التطبيق بعد عدم النشاط'),
               subtitle: const Text(
-                'The session also locks when the app remains in the background beyond the timeout.',
+                'يتم قفل الجلسة أيضًا إذا بقي التطبيق في الخلفية لمدة تتجاوز المهلة المحددة.',
               ),
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<int>(
               initialValue: _timeoutSeconds,
               decoration: const InputDecoration(
-                labelText: 'Inactivity timeout',
+                labelText: 'مهلة عدم النشاط',
                 prefixIcon: Icon(Icons.timer_outlined),
               ),
               items: const [
-                DropdownMenuItem(value: 30, child: Text('30 seconds')),
-                DropdownMenuItem(value: 60, child: Text('1 minute')),
-                DropdownMenuItem(value: 90, child: Text('90 seconds')),
-                DropdownMenuItem(value: 180, child: Text('3 minutes')),
-                DropdownMenuItem(value: 300, child: Text('5 minutes')),
+                DropdownMenuItem(value: 30, child: Text('30 ثانية')),
+                DropdownMenuItem(value: 60, child: Text('دقيقة واحدة')),
+                DropdownMenuItem(value: 90, child: Text('90 ثانية')),
+                DropdownMenuItem(value: 180, child: Text('3 دقائق')),
+                DropdownMenuItem(value: 300, child: Text('5 دقائق')),
               ],
               onChanged: _trustedDeviceEnabled && _appLockEnabled
                   ? (value) {
@@ -168,7 +168,7 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.shield_outlined),
-                label: Text(state.isLoading ? 'Saving...' : 'Finish setup'),
+                label: Text(state.isLoading ? 'جار الحفظ...' : 'إنهاء الإعداد'),
               ),
             ),
             const SizedBox(height: 10),
@@ -185,7 +185,7 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
                         });
                         submit();
                       },
-                child: const Text('Skip quick unlock for now'),
+                child: const Text('تخطي الفتح السريع الآن'),
               ),
             ),
           ],

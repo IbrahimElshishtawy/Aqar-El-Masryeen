@@ -6,7 +6,7 @@ class AuthValidators {
   static String? email(String? value) {
     final input = (value ?? '').trim();
     if (input.isEmpty) {
-      return 'Email is required.';
+      return 'البريد الإلكتروني مطلوب.';
     }
     final email = (value ?? '').trim();
     final isValid = RegExp(
@@ -14,7 +14,7 @@ class AuthValidators {
       caseSensitive: false,
     ).hasMatch(email);
     if (!isValid) {
-      return 'Enter a valid email address.';
+      return 'أدخل بريدًا إلكترونيًا صحيحًا.';
     }
     return null;
   }
@@ -22,13 +22,13 @@ class AuthValidators {
   static String? name(String? value) {
     final input = (value ?? '').trim();
     if (input.isEmpty) {
-      return 'Full name is required.';
+      return 'الاسم الكامل مطلوب.';
     }
     if (input.length < 3) {
-      return 'Enter the full partner name.';
+      return 'أدخل الاسم الكامل للشريك.';
     }
     if (!RegExp(r"^[A-Za-z\u0600-\u06FF\s'.-]+$").hasMatch(input)) {
-      return 'Use letters only for the partner name.';
+      return 'استخدم الحروف فقط في اسم الشريك.';
     }
     return null;
   }
@@ -36,10 +36,10 @@ class AuthValidators {
   static String? password(String? value) {
     final password = value ?? '';
     if (password.isEmpty) {
-      return 'Password is required.';
+      return 'كلمة المرور مطلوبة.';
     }
     if (password.length < AppConfig.minPasswordLength) {
-      return 'Use at least ${AppConfig.minPasswordLength} characters.';
+      return 'استخدم ${AppConfig.minPasswordLength} أحرف على الأقل.';
     }
     final hasUpper = RegExp(r'[A-Z]').hasMatch(password);
     final hasLower = RegExp(r'[a-z]').hasMatch(password);
@@ -48,27 +48,27 @@ class AuthValidators {
       r'[!@#$%^&*(),.?":{}|<>_\-+=/\[\]\\;]',
     ).hasMatch(password);
     if (password.contains(' ')) {
-      return 'Password must not contain spaces.';
+      return 'يجب ألا تحتوي كلمة المرور على مسافات.';
     }
     if (!hasUpper || !hasLower || !hasNumber || !hasSymbol) {
-      return 'Use upper and lower case letters, numbers, and symbols.';
+      return 'استخدم حروفًا كبيرة وصغيرة وأرقامًا ورموزًا.';
     }
     return null;
   }
 
   static String? loginPassword(String? value) {
     if ((value ?? '').trim().isEmpty) {
-      return 'Enter your password.';
+      return 'أدخل كلمة المرور.';
     }
     return null;
   }
 
   static String? confirmPassword(String? value, String password) {
     if ((value ?? '').isEmpty) {
-      return 'Confirm your password.';
+      return 'أكد كلمة المرور.';
     }
     if ((value ?? '') != password) {
-      return 'Passwords do not match.';
+      return 'كلمتا المرور غير متطابقتين.';
     }
     return null;
   }

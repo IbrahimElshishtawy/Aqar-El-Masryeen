@@ -43,7 +43,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final profile = session?.profile;
 
     return AppShellScaffold(
-      title: 'Settings',
+      title: 'الإعدادات',
       currentIndex: 4,
       child: ListView(
         padding: const EdgeInsets.all(16),
@@ -54,7 +54,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: Text(
                 profile?.fullName.isNotEmpty == true
                     ? profile!.fullName
-                    : 'Partner account',
+                    : 'حساب الشريك',
               ),
               subtitle: Text(
                 profile?.email.isNotEmpty == true
@@ -67,9 +67,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.shield_outlined),
-              title: const Text('Security & trusted device'),
+              title: const Text('الأمان والجهاز الموثوق'),
               subtitle: Text(
-                'Quick unlock: ${profile?.trustedDeviceEnabled == true ? 'enabled' : 'disabled'} | App lock: ${profile?.appLockEnabled == true ? '${profile?.inactivityTimeoutSeconds ?? 0}s timeout' : 'off'}',
+                'الفتح السريع: ${profile?.trustedDeviceEnabled == true ? 'مفعّل' : 'غير مفعّل'} | قفل التطبيق: ${profile?.appLockEnabled == true ? 'مهلة ${profile?.inactivityTimeoutSeconds ?? 0} ثانية' : 'متوقف'}',
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go(AppRoutes.securitySetup),
@@ -79,9 +79,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.lock_clock_outlined),
-              title: const Text('Lock now'),
+              title: const Text('قفل الآن'),
               subtitle: const Text(
-                'Require biometric or device credential authentication immediately.',
+                'اطلب التحقق بالبصمة أو ببيانات قفل الجهاز فورًا.',
               ),
               onTap: () async {
                 final router = GoRouter.of(context);
@@ -98,11 +98,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Card(
             child: ListTile(
               leading: const Icon(Icons.phone_android_outlined),
-              title: const Text('Current trusted device'),
+              title: const Text('الجهاز الموثوق الحالي'),
               subtitle: Text(
                 profile?.deviceInfo?.deviceName.isNotEmpty == true
                     ? '${profile!.deviceInfo!.deviceName} | ${profile.deviceInfo!.platform}'
-                    : 'No device metadata available yet.',
+                    : 'لا توجد بيانات جهاز متاحة حتى الآن.',
               ),
             ),
           ),
@@ -116,7 +116,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.logout_outlined),
-            label: Text(_signingOut ? 'Signing out...' : 'Secure logout'),
+            label: Text(_signingOut ? 'جار تسجيل الخروج...' : 'تسجيل الخروج'),
           ),
         ],
       ),

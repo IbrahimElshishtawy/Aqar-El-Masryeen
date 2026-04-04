@@ -59,9 +59,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     return AuthScaffold(
-      title: 'Partner sign in',
+      title: 'تسجيل دخول الشريك',
       subtitle:
-          'Access the accounting workspace with your Firebase email credentials. Returning partners can unlock with device biometrics after setup.',
+          'ادخل إلى مساحة العمل المحاسبية باستخدام البريد الإلكتروني وكلمة المرور. ويمكنك لاحقًا فتح التطبيق بالبصمة أو قفل الجهاز بعد الإعداد.',
       leading: Container(
         width: 64,
         height: 64,
@@ -82,7 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           borderRadius: BorderRadius.circular(18),
         ),
         child: const Text(
-          'Passwords are never stored on device. Only security flags for quick unlock and app lock are kept in secure storage.',
+          'لا يتم حفظ كلمات المرور على الجهاز. يتم فقط حفظ إعدادات الفتح السريع وقفل التطبيق داخل التخزين الآمن.',
         ),
       ),
       child: Column(
@@ -106,7 +106,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     textInputAction: TextInputAction.next,
                     autofillHints: const [AutofillHints.username],
                     decoration: const InputDecoration(
-                      labelText: 'Email',
+                      labelText: 'البريد الإلكتروني',
                       prefixIcon: Icon(Icons.alternate_email_rounded),
                     ),
                     validator: AuthValidators.email,
@@ -118,7 +118,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     textInputAction: TextInputAction.done,
                     autofillHints: const [AutofillHints.password],
                     decoration: InputDecoration(
-                      labelText: 'Password',
+                      labelText: 'كلمة المرور',
                       prefixIcon: const Icon(Icons.lock_outline_rounded),
                       suffixIcon: IconButton(
                         onPressed: () {
@@ -147,7 +147,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             )
                           : const Icon(Icons.login_rounded),
                       label: Text(
-                        state.isLoading ? 'Signing in...' : 'Secure sign in',
+                        state.isLoading ? 'جار تسجيل الدخول...' : 'تسجيل الدخول',
                       ),
                     ),
                   ),
@@ -158,7 +158,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           const SizedBox(height: 16),
           TextButton(
             onPressed: () => context.go(AppRoutes.register),
-            child: const Text('Create a partner account'),
+            child: const Text('إنشاء حساب جديد'),
           ),
         ],
       ),

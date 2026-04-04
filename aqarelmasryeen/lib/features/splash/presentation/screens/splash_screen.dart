@@ -103,7 +103,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Secure real-estate accounting workspace',
+                    'مساحة عمل آمنة لإدارة الحسابات العقارية',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),

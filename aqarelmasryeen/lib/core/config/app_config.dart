@@ -1,11 +1,11 @@
 class AppConfig {
   const AppConfig._();
 
-  static const appName = 'Aqar El Masryeen';
+  static const appName = 'عقار المصريين';
   static const defaultInactivityTimeoutSeconds = 90;
   static const minPasswordLength = 10;
   static const notificationChannelId = 'finance_alerts';
-  static const notificationChannelName = 'Finance Alerts';
+  static const notificationChannelName = 'تنبيهات مالية';
   static const notificationChannelDescription =
-      'Installments, collections, expenses, and security notifications.';
+      'تنبيهات الأقساط والتحصيلات والمصروفات والأمان.';
 }
