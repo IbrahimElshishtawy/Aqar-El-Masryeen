@@ -173,18 +173,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               const Icon(Icons.warning_amber_rounded, size: 48),
               const SizedBox(height: 12),
               Text(
-                'Unable to open this screen',
+                'تعذر فتح هذه الشاشة',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
               Text(
-                state.error?.toString() ?? 'Route not found.',
+                state.error?.toString() ?? 'المسار غير موجود.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: () => context.go(AppRoutes.dashboard),
-                child: const Text('Back to dashboard'),
+                child: const Text('العودة إلى الرئيسية'),
               ),
             ],
           ),

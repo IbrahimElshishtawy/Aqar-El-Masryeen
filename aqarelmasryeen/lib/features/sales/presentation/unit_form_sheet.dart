@@ -108,7 +108,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
         .read(activityRepositoryProvider)
         .log(
           actorId: session.firebaseUser.uid,
-          actorName: session.profile?.name ?? 'Partner',
+          actorName: session.profile?.name ?? 'شريك',
           action: widget.unit == null ? 'unit_created' : 'unit_updated',
           entityType: 'unit',
           entityId: unit.id.isEmpty ? unit.unitNumber : unit.id,

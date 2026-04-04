@@ -1,6 +1,7 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
+import 'package:aqarelmasryeen/core/utils/ui_labels.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/async_value_view.dart';
@@ -99,18 +100,18 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Delete expense'),
+            title: const Text('حذف المصروف'),
             content: const Text(
-              'This expense will be archived from active views.',
+              'سيتم إخفاء هذا المصروف من القوائم النشطة.',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: const Text('إلغاء'),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Delete'),
+                child: const Text('حذف'),
               ),
             ],
           ),
@@ -125,7 +126,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         .read(activityRepositoryProvider)
         .log(
           actorId: session.firebaseUser.uid,
-          actorName: session.profile?.name ?? 'Partner',
+          actorName: session.profile?.name ?? 'شريك',
           action: 'expense_deleted',
           entityType: 'expense',
           entityId: expense.id,
@@ -159,7 +160,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           }
 
           return AppFormSheet(
-            title: 'Edit installment',
+            title: 'تعديل القسط',
             child: Column(
               children: [
                 TextFormField(
@@ -167,7 +168,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(labelText: 'Amount'),
+                  decoration: const InputDecoration(labelText: 'المبلغ'),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
@@ -175,13 +176,13 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   keyboardType: const TextInputType.numberWithOptions(
                     decimal: true,
                   ),
-                  decoration: const InputDecoration(labelText: 'Paid amount'),
+                  decoration: const InputDecoration(labelText: 'المبلغ المدفوع'),
                 ),
                 const SizedBox(height: 12),
                 InkWell(
                   onTap: pickDate,
                   child: InputDecorator(
-                    decoration: const InputDecoration(labelText: 'Due date'),
+                    decoration: const InputDecoration(labelText: 'تاريخ الاستحقاق'),
                     child: Row(
                       children: [
                         Expanded(child: Text(dueDate.formatShort())),
@@ -203,7 +204,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                       .toList(),
                   onChanged: (value) =>
                       setModalState(() => status = value ?? status),
-                  decoration: const InputDecoration(labelText: 'Status'),
+                  decoration: const InputDecoration(labelText: 'الحالة'),
                 ),
                 const SizedBox(height: 18),
                 SizedBox(
@@ -239,7 +240,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                           );
                       if (context.mounted) Navigator.of(context).pop();
                     },
-                    child: const Text('Save installment'),
+                    child: const Text('حفظ القسط'),
                   ),
                 ),
               ],
@@ -286,16 +287,16 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             await showDialog<bool>(
               context: context,
               builder: (context) => AlertDialog(
-                title: const Text('Archive property'),
-                content: Text('Archive ${property.name}?'),
+                title: const Text('أرشفة العقار'),
+                content: Text('هل تريد أرشفة ${property.name}؟'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('Cancel'),
+                    child: const Text('إلغاء'),
                   ),
                   FilledButton(
                     onPressed: () => Navigator.of(context).pop(true),
-                    child: const Text('Archive'),
+                    child: const Text('أرشفة'),
                   ),
                 ],
               ),
@@ -311,7 +312,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             .read(activityRepositoryProvider)
             .log(
               actorId: session.firebaseUser.uid,
-              actorName: session.profile?.name ?? 'Partner',
+              actorName: session.profile?.name ?? 'شريك',
               action: 'property_archived',
               entityType: 'property',
               entityId: widget.propertyId,
@@ -361,10 +362,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
 
     if (firstError != null) {
       return AppShellScaffold(
-        title: 'Property details',
+        title: 'تفاصيل العقار',
         currentIndex: 1,
         child: EmptyStateView(
-          title: 'Unable to load property',
+          title: 'تعذر تحميل العقار',
           message: firstError.toString(),
         ),
       );
@@ -372,7 +373,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
 
     if (allAsync.any((item) => !item.hasValue)) {
       return const AppShellScaffold(
-        title: 'Property details',
+        title: 'تفاصيل العقار',
         currentIndex: 1,
         child: Center(child: CircularProgressIndicator()),
       );
@@ -389,11 +390,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
 
     if (property == null) {
       return const AppShellScaffold(
-        title: 'Property details',
+        title: 'تفاصيل العقار',
         currentIndex: 1,
         child: EmptyStateView(
-          title: 'Property not found',
-          message: 'This project may have been removed or archived.',
+          title: 'العقار غير موجود',
+          message: 'قد يكون هذا المشروع قد تم حذفه أو أرشفته.',
         ),
       );
     }
@@ -439,28 +440,28 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             itemBuilder: (context) => const [
               PopupMenuItem(
                 value: _PropertyAction.edit,
-                child: Text('Edit property'),
+                child: Text('تعديل العقار'),
               ),
               PopupMenuItem(
                 value: _PropertyAction.addExpense,
-                child: Text('Add expense'),
+                child: Text('إضافة مصروف'),
               ),
               PopupMenuItem(
                 value: _PropertyAction.addUnit,
-                child: Text('Add unit'),
+                child: Text('إضافة وحدة'),
               ),
               PopupMenuItem(
                 value: _PropertyAction.addPlan,
-                child: Text('Create installment plan'),
+                child: Text('إنشاء خطة أقساط'),
               ),
               PopupMenuItem(
                 value: _PropertyAction.recordPayment,
-                child: Text('Record collection'),
+                child: Text('تسجيل تحصيل'),
               ),
               PopupMenuDivider(),
               PopupMenuItem(
                 value: _PropertyAction.archive,
-                child: Text('Archive property'),
+                child: Text('أرشفة العقار'),
               ),
             ],
           ),
@@ -486,14 +487,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         children: [
                           Chip(label: Text(property.status.label)),
                           Chip(
-                            label: Text('Budget ${property.totalBudget.egp}'),
+                            label: Text('الميزانية ${property.totalBudget.egp}'),
                           ),
                           Chip(
                             label: Text(
-                              'Target ${property.totalSalesTarget.egp}',
+                              'المستهدف ${property.totalSalesTarget.egp}',
                             ),
                           ),
-                          Chip(label: Text('Due soon $dueSoonCount')),
+                          Chip(label: Text('مستحق قريبًا $dueSoonCount')),
                         ],
                       ),
                     ],
@@ -504,14 +505,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             const TabBar(
               isScrollable: true,
               tabs: [
-                Tab(text: 'Overview'),
-                Tab(text: 'Expenses'),
-                Tab(text: 'Sales'),
-                Tab(text: 'Installments'),
-                Tab(text: 'Collections'),
-                Tab(text: 'Reports'),
-                Tab(text: 'Files'),
-                Tab(text: 'Activity'),
+                Tab(text: 'نظرة عامة'),
+                Tab(text: 'المصروفات'),
+                Tab(text: 'المبيعات'),
+                Tab(text: 'الأقساط'),
+                Tab(text: 'التحصيلات'),
+                Tab(text: 'التقارير'),
+                Tab(text: 'الملفات'),
+                Tab(text: 'النشاط'),
               ],
             ),
             Expanded(
@@ -633,22 +634,22 @@ class _OverviewTab extends StatelessWidget {
           childAspectRatio: 1.2,
           children: [
             MetricCard(
-              label: 'Expenses',
+              label: 'المصروفات',
               value: totalExpenses.egp,
               icon: Icons.wallet_outlined,
             ),
             MetricCard(
-              label: 'Sales value',
+              label: 'قيمة المبيعات',
               value: totalSales.egp,
               icon: Icons.trending_up_outlined,
             ),
             MetricCard(
-              label: 'Collected',
+              label: 'المحصّل',
               value: totalCollected.egp,
               icon: Icons.payments_outlined,
             ),
             MetricCard(
-              label: 'Overdue',
+              label: 'المتأخر',
               value: '$overdueCount',
               icon: Icons.warning_amber_outlined,
               color: Colors.orange,
@@ -713,7 +714,7 @@ class _ExpensesTabState extends State<_ExpensesTab> {
                 child: TextField(
                   controller: _searchController,
                   decoration: const InputDecoration(
-                    hintText: 'Search expenses',
+                    hintText: 'ابحث في المصروفات',
                     prefixIcon: Icon(Icons.search),
                   ),
                   onChanged: (_) => setState(() {}),
@@ -723,7 +724,7 @@ class _ExpensesTabState extends State<_ExpensesTab> {
               FilledButton.icon(
                 onPressed: widget.onAdd,
                 icon: const Icon(Icons.add),
-                label: const Text('Add'),
+                label: const Text('إضافة'),
               ),
             ],
           ),
@@ -731,8 +732,8 @@ class _ExpensesTabState extends State<_ExpensesTab> {
         Expanded(
           child: filtered.isEmpty
               ? const EmptyStateView(
-                  title: 'No expenses',
-                  message: 'Create the first expense for this property.',
+                  title: 'لا توجد مصروفات',
+                  message: 'أضف أول مصروف لهذا العقار.',
                 )
               : ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -745,7 +746,7 @@ class _ExpensesTabState extends State<_ExpensesTab> {
                         contentPadding: const EdgeInsets.all(18),
                         title: Text(item.description),
                         subtitle: Text(
-                          '${item.category.label} • ${partnerNames[item.paidByPartnerId] ?? 'Partner'} • ${item.date.formatShort()}',
+                          '${item.category.label} • ${partnerNames[item.paidByPartnerId] ?? 'شريك'} • ${item.date.formatShort()}',
                         ),
                         trailing: Wrap(
                           spacing: 8,
@@ -789,7 +790,7 @@ class _SalesTab extends StatelessWidget {
         child: FilledButton.icon(
           onPressed: onAdd,
           icon: const Icon(Icons.add),
-          label: const Text('Add first unit'),
+          label: const Text('إضافة أول وحدة'),
         ),
       );
     }
@@ -805,7 +806,7 @@ class _SalesTab extends StatelessWidget {
             child: FilledButton.icon(
               onPressed: onAdd,
               icon: const Icon(Icons.add),
-              label: const Text('Add unit'),
+              label: const Text('إضافة وحدة'),
             ),
           );
         }
@@ -815,7 +816,7 @@ class _SalesTab extends StatelessWidget {
             contentPadding: const EdgeInsets.all(18),
             title: Text(item.unitNumber),
             subtitle: Text(
-              '${item.unitType.label} • ${item.customerName.isEmpty ? 'No customer yet' : item.customerName}\n${item.status.label}',
+              '${item.unitType.label} • ${item.customerName.isEmpty ? 'لا يوجد عميل بعد' : item.customerName}\n${item.status.label}',
             ),
             trailing: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -824,7 +825,7 @@ class _SalesTab extends StatelessWidget {
                 Text(item.totalPrice.egp),
                 TextButton(
                   onPressed: () => onEdit(item),
-                  child: const Text('Edit'),
+                  child: const Text('تعديل'),
                 ),
               ],
             ),
@@ -868,16 +869,16 @@ class _InstallmentsTab extends StatelessWidget {
         const SizedBox(height: 12),
         if (plans.isEmpty)
           const EmptyStateView(
-            title: 'No installment plans',
+            title: 'لا توجد خطط أقساط',
             message:
-                'Generate a payment plan for a sold unit to create the schedule.',
+                'أنشئ خطة سداد لوحدة مباعة لبدء جدول الأقساط.',
           ),
         for (final plan in plans) ...[
           Card(
             child: ListTile(
-              title: Text('Unit ${unitLookup[plan.unitId] ?? plan.unitId}'),
+              title: Text('الوحدة ${unitLookup[plan.unitId] ?? plan.unitId}'),
               subtitle: Text(
-                '${plan.installmentCount} installments • every ${plan.intervalDays} days',
+                '${plan.installmentCount} أقساط • كل ${plan.intervalDays} يوم',
               ),
               trailing: Text(plan.installmentAmount.egp),
             ),
@@ -889,7 +890,7 @@ class _InstallmentsTab extends StatelessWidget {
           Card(
             child: ListTile(
               title: Text(
-                'Installment ${installment.sequence} • ${unitLookup[installment.unitId] ?? '-'}',
+                'القسط ${installment.sequence} • ${unitLookup[installment.unitId] ?? '-'}',
               ),
               subtitle: Text(
                 '${installment.dueDate.formatShort()} • ${installment.status.label}',
@@ -923,14 +924,14 @@ class _CollectionsTab extends StatelessWidget {
           child: FilledButton.icon(
             onPressed: onAdd,
             icon: const Icon(Icons.add),
-            label: const Text('Record payment'),
+            label: const Text('تسجيل دفعة'),
           ),
         ),
         const SizedBox(height: 12),
         if (payments.isEmpty)
           const EmptyStateView(
-            title: 'No collections yet',
-            message: 'Record the first payment received for this property.',
+            title: 'لا توجد تحصيلات بعد',
+            message: 'سجل أول دفعة تم تحصيلها لهذا العقار.',
           ),
         for (final payment in payments) ...[
           Card(
@@ -940,8 +941,8 @@ class _CollectionsTab extends StatelessWidget {
                 '${payment.paymentMethod.label} • ${payment.receivedAt.formatShort()}',
               ),
               trailing: payment.installmentId == null
-                  ? const Text('General')
-                  : const Text('Installment'),
+                  ? const Text('عام')
+                  : const Text('قسط'),
             ),
           ),
           const SizedBox(height: 8),
@@ -1002,7 +1003,7 @@ class _ReportsTab extends StatelessWidget {
               icon: Icons.timelapse_outlined,
             ),
             MetricCard(
-              label: 'Collected',
+              label: 'المحصّل',
               value: totalCollected.egp,
               icon: Icons.payments_outlined,
             ),
@@ -1012,7 +1013,7 @@ class _ReportsTab extends StatelessWidget {
               icon: Icons.home_work_outlined,
             ),
             MetricCard(
-              label: 'Overdue',
+              label: 'المتأخر',
               value: '$overdue',
               icon: Icons.warning_amber_outlined,
               color: Colors.orange,
@@ -1025,7 +1026,7 @@ class _ReportsTab extends StatelessWidget {
             child: ListTile(
               title: Text(partner.name),
               subtitle: Text(
-                'Share ${(partner.shareRatio * 100).toStringAsFixed(0)}%',
+                'نسبة الشراكة ${(partner.shareRatio * 100).toStringAsFixed(0)}%',
               ),
               trailing: Text((contributionByPartner[partner.id] ?? 0).egp),
             ),
@@ -1046,9 +1047,9 @@ class _FilesTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (files.isEmpty) {
       return const EmptyStateView(
-        title: 'No files uploaded',
+        title: 'لا توجد ملفات مرفوعة',
         message:
-            'Storage-backed property files will appear here once uploaded to Firebase Storage.',
+            'ستظهر هنا ملفات العقار بعد رفعها إلى Firebase Storage.',
       );
     }
 
@@ -1062,7 +1063,7 @@ class _FilesTab extends StatelessWidget {
           child: ListTile(
             title: Text(item.name),
             subtitle: Text(
-              '${item.contentType ?? 'file'} • ${(item.sizeBytes / 1024).toStringAsFixed(1)} KB',
+              '${item.contentType ?? 'ملف'} • ${(item.sizeBytes / 1024).toStringAsFixed(1)} KB',
             ),
             trailing: Text(item.updatedAt?.formatShort() ?? '-'),
           ),
@@ -1081,8 +1082,8 @@ class _ActivityTab extends StatelessWidget {
   Widget build(BuildContext context) {
     if (activity.isEmpty) {
       return const EmptyStateView(
-        title: 'No activity yet',
-        message: 'Property actions and security events will appear here.',
+        title: 'لا يوجد نشاط بعد',
+        message: 'ستظهر هنا عمليات العقار وأحداث الأمان.',
       );
     }
     return ListView.separated(
@@ -1094,10 +1095,10 @@ class _ActivityTab extends StatelessWidget {
         return Card(
           child: ListTile(
             title: Text(
-              '${item.actorName} ${item.action.replaceAll('_', ' ')}',
+              '${item.actorName} ${activityActionLabel(item.action)}',
             ),
             subtitle: Text(item.createdAt.formatWithTime()),
-            trailing: Text(item.entityType),
+            trailing: Text(entityTypeLabel(item.entityType)),
           ),
         );
       },

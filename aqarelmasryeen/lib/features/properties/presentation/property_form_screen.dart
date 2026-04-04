@@ -79,7 +79,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
         .log(
           actorId: user.uid,
           actorName:
-              ref.read(authSessionProvider).value?.profile?.name ?? 'Partner',
+              ref.read(authSessionProvider).value?.profile?.name ?? 'شريك',
           action: existing == null ? 'property_created' : 'property_updated',
           entityType: 'property',
           entityId: propertyId,

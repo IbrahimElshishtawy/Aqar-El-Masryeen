@@ -118,5 +118,6 @@ extension EnumLabelX on Enum {
       case NotificationType.systemAlert:
         return 'تنبيه نظام';
     }
+    return name;
   }
 }

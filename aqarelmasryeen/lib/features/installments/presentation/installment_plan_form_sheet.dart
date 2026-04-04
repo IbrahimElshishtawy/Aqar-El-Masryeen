@@ -104,7 +104,7 @@ class _InstallmentPlanFormSheetState
         .read(activityRepositoryProvider)
         .log(
           actorId: session.firebaseUser.uid,
-          actorName: session.profile?.name ?? 'Partner',
+          actorName: session.profile?.name ?? 'شريك',
           action: 'installment_plan_created',
           entityType: 'installment_plan',
           entityId: plan.unitId,

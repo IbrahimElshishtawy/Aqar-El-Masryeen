@@ -18,7 +18,7 @@ class SecuritySetupController extends Notifier<AsyncValue<void>> {
     state = await AsyncValue.guard(() async {
       if (appLockEnabled && !trustedDeviceEnabled) {
         throw const AppException(
-          'Trusted-device unlock must be enabled when automatic app lock is enabled.',
+          'يجب تفعيل الفتح للجهاز الموثوق عند تفعيل القفل التلقائي للتطبيق.',
         );
       }
 
@@ -28,17 +28,17 @@ class SecuritySetupController extends Notifier<AsyncValue<void>> {
             .getAvailability();
         if (!availability.canUseSecureUnlock) {
           throw const AppException(
-            'This device does not support secure device authentication.',
+            'هذا الجهاز لا يدعم التحقق الآمن.',
           );
         }
         final authenticated = await ref
             .read(biometricServiceProvider)
             .authenticate(
-              reason: 'Confirm secure unlock for this trusted device',
+              reason: 'أكد الفتح الآمن لهذا الجهاز الموثوق',
             );
         if (!authenticated) {
           throw const AppException(
-            'Device authentication was canceled. Security settings were not saved.',
+            'تم إلغاء التحقق من الجهاز. لم يتم حفظ إعدادات الأمان.',
           );
         }
       }

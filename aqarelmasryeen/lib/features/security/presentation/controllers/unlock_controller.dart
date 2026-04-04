@@ -43,7 +43,7 @@ class UnlockController extends Notifier<UnlockState> {
   Future<void> unlock() async {
     final lockState = ref.read(sessionLockControllerProvider);
     if (!lockState.shouldPresentUnlock) {
-      throw const AppException('This session is not currently locked.');
+      throw const AppException('هذه الجلسة ليست مقفلة حاليًا.');
     }
 
     state = state.copyWith(isUnlocking: true, clearError: true);
@@ -51,10 +51,10 @@ class UnlockController extends Notifier<UnlockState> {
       final authenticated = await ref
           .read(biometricServiceProvider)
           .authenticate(
-            reason: 'Authenticate to unlock the accounting workspace',
+            reason: 'تحقق لفتح مساحة العمل المحاسبية',
           );
       if (!authenticated) {
-        throw const AppException('Authentication was canceled.');
+        throw const AppException('تم إلغاء عملية التحقق.');
       }
       await ref.read(sessionLockControllerProvider.notifier).unlock();
       state = const UnlockState();

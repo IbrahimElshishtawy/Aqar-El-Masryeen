@@ -309,7 +309,7 @@ class FirebaseAuthRepository implements AuthRepository {
     if (user != null) {
       await _logSecurityEvent(
         actorId: user.uid,
-        actorName: user.displayName ?? user.email ?? 'Partner',
+        actorName: user.displayName ?? user.email ?? 'شريك',
         action: 'logout',
       );
       await _analytics.logEvent(name: 'secure_logout');

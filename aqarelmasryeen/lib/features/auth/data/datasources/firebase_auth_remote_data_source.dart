@@ -58,7 +58,7 @@ class FirebaseAuthRemoteDataSource {
     } on FirebaseAuthException catch (error) {
       if (error.code == 'requires-recent-login') {
         throw const AppException(
-          'Re-enter your credentials before changing the login email.',
+          'أعد إدخال بيانات الدخول قبل تغيير بريد تسجيل الدخول.',
           code: 'requires_recent_login',
         );
       }
