@@ -20,19 +20,12 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _firebaseInitializationFuture != null) {
-        return;
-      }
-      setState(() {
-        _firebaseInitializationFuture = _initializeServices();
-      });
-    });
+    _firebaseInitializationFuture = _initializeServices();
   }
 
   Future<void> _initializeServices() async {
-    FirebaseMessagingService.registerBackgroundHandler();
     await initializeFirebase();
+    FirebaseMessagingService.registerBackgroundHandler();
   }
 
   @override
