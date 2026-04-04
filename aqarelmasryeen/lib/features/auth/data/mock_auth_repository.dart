@@ -15,7 +15,6 @@ class MockAuthRepository implements AuthRepository {
       StreamController<AppSession?>.broadcast();
 
   bool _initialized = false;
-  StreamSubscription<User?>? _authSubscription;
   AppSession? _currentSession;
 
   @override
@@ -87,7 +86,7 @@ class MockAuthRepository implements AuthRepository {
     if (_initialized) return;
     _initialized = true;
     await initializeFirebase();
-    _authSubscription = _auth.authStateChanges().listen((user) async {
+    _auth.authStateChanges().listen((user) async {
       if (user == null) {
         _currentSession = null;
         _controller.add(null);
