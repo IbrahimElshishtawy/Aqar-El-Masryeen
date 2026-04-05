@@ -1,5 +1,5 @@
-import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
+import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:intl/intl.dart';
 
@@ -40,17 +40,23 @@ class DashboardRecentRecord {
 class DashboardSnapshot {
   const DashboardSnapshot({
     required this.propertyCount,
+    required this.totalSalesValue,
     required this.totalExpenses,
-    required this.totalPayments,
-    required this.netBalance,
+    required this.totalPaidInstallments,
+    required this.totalRemainingInstallments,
+    required this.pendingSupplierDues,
+    required this.partnerContributionTotal,
     required this.chart,
     required this.recentRecords,
   });
 
   final int propertyCount;
+  final double totalSalesValue;
   final double totalExpenses;
-  final double totalPayments;
-  final double netBalance;
+  final double totalPaidInstallments;
+  final double totalRemainingInstallments;
+  final double pendingSupplierDues;
+  final double partnerContributionTotal;
   final List<DashboardChartBucket> chart;
   final List<DashboardRecentRecord> recentRecords;
 }
@@ -60,29 +66,47 @@ class DashboardSnapshotBuilder {
 
   DashboardSnapshot build({
     required List<PropertyProject> properties,
-    required List<ExpenseRecord> expenses,
+    required List<UnitSale> units,
     required List<PaymentRecord> payments,
+    required List<MaterialExpenseEntry> materials,
+    required List<Partner> partners,
   }) {
     final propertyNames = {
       for (final property in properties) property.id: property.name,
     };
-    final totalExpenses = expenses.fold<double>(
+    final totalSalesValue = units.fold<double>(
+      0,
+      (sum, record) => sum + record.contractAmount,
+    );
+    final totalExpenses = materials.fold<double>(
+      0,
+      (sum, record) => sum + record.totalPrice,
+    );
+    final totalPaidInstallments = payments.fold<double>(
       0,
       (sum, record) => sum + record.amount,
     );
-    final totalPayments = payments.fold<double>(
+    final totalRemainingInstallments = units.fold<double>(
       0,
-      (sum, record) => sum + record.amount,
+      (sum, record) => sum + record.remainingAmount,
+    );
+    final pendingSupplierDues = materials.fold<double>(
+      0,
+      (sum, record) => sum + record.amountRemaining,
+    );
+    final partnerContributionTotal = partners.fold<double>(
+      0,
+      (sum, partner) => sum + partner.contributionTotal,
     );
 
     final recentRecords = <DashboardRecentRecord>[
-      ...expenses.map(
+      ...materials.map(
         (record) => DashboardRecentRecord(
           id: record.id,
           propertyName: propertyNames[record.propertyId] ?? 'Unknown property',
-          title: record.description,
-          subtitle: record.category.label,
-          amount: record.amount,
+          title: record.itemName,
+          subtitle: record.supplierName,
+          amount: record.totalPrice,
           date: record.date,
           type: DashboardRecordType.expense,
         ),
@@ -91,12 +115,10 @@ class DashboardSnapshotBuilder {
         (record) => DashboardRecentRecord(
           id: record.id,
           propertyName: propertyNames[record.propertyId] ?? 'Unknown property',
-          title: record.customerName.trim().isNotEmpty
-              ? record.customerName
-              : record.unitId.trim().isNotEmpty
-              ? record.unitId
-              : 'Direct payment',
-          subtitle: record.paymentMethod.label,
+          title: record.effectivePayerName.isEmpty
+              ? 'Payment received'
+              : record.effectivePayerName,
+          subtitle: record.paymentSource.isEmpty ? record.paymentMethod.label : record.paymentSource,
           amount: record.amount,
           date: record.receivedAt,
           type: DashboardRecordType.payment,
@@ -106,16 +128,19 @@ class DashboardSnapshotBuilder {
 
     return DashboardSnapshot(
       propertyCount: properties.length,
+      totalSalesValue: totalSalesValue,
       totalExpenses: totalExpenses,
-      totalPayments: totalPayments,
-      netBalance: totalPayments - totalExpenses,
-      chart: _buildChart(expenses: expenses, payments: payments),
+      totalPaidInstallments: totalPaidInstallments,
+      totalRemainingInstallments: totalRemainingInstallments,
+      pendingSupplierDues: pendingSupplierDues,
+      partnerContributionTotal: partnerContributionTotal,
+      chart: _buildChart(materials: materials, payments: payments),
       recentRecords: recentRecords.take(6).toList(),
     );
   }
 
   List<DashboardChartBucket> _buildChart({
-    required List<ExpenseRecord> expenses,
+    required List<MaterialExpenseEntry> materials,
     required List<PaymentRecord> payments,
   }) {
     final now = DateTime.now();
@@ -125,18 +150,11 @@ class DashboardSnapshotBuilder {
     for (var i = 5; i >= 0; i--) {
       final month = DateTime(now.year, now.month - i);
       final nextMonth = DateTime(month.year, month.month + 1);
-      final expenseValue = expenses
-          .where(
-            (item) =>
-                !item.date.isBefore(month) && item.date.isBefore(nextMonth),
-          )
-          .fold<double>(0, (sum, item) => sum + item.amount);
+      final expenseValue = materials
+          .where((item) => !item.date.isBefore(month) && item.date.isBefore(nextMonth))
+          .fold<double>(0, (sum, item) => sum + item.totalPrice);
       final paymentValue = payments
-          .where(
-            (item) =>
-                !item.receivedAt.isBefore(month) &&
-                item.receivedAt.isBefore(nextMonth),
-          )
+          .where((item) => !item.receivedAt.isBefore(month) && item.receivedAt.isBefore(nextMonth))
           .fold<double>(0, (sum, item) => sum + item.amount);
 
       buckets.add(

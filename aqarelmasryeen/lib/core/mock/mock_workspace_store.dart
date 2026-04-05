@@ -25,6 +25,8 @@ class MockWorkspaceStore {
   late List<InstallmentPlan> _plans;
   late List<Installment> _installments;
   late List<PaymentRecord> _payments;
+  late List<MaterialExpenseEntry> _materialExpenses;
+  late List<PartnerLedgerEntry> _partnerLedgerEntries;
   late List<ActivityLogEntry> _activity;
   late List<AppNotificationItem> _notifications;
   late List<PropertyStorageFile> _files;
@@ -122,48 +124,66 @@ class MockWorkspaceStore {
             .toList(),
       );
 
+  List<Installment> installmentsByUnit(String unitId) => List.unmodifiable(
+    allInstallments().where((item) => item.unitId == unitId).toList(),
+  );
+
   List<PaymentRecord> allPayments() => List.unmodifiable(
     _payments.toList()..sort((a, b) => b.receivedAt.compareTo(a.receivedAt)),
   );
 
-  List<PaymentRecord> paymentsByProperty(String propertyId) =>
+  List<PaymentRecord> paymentsByProperty(String propertyId) => List.unmodifiable(
+    allPayments().where((item) => item.propertyId == propertyId).toList(),
+  );
+
+  List<PaymentRecord> paymentsByUnit(String unitId) => List.unmodifiable(
+    allPayments().where((item) => item.unitId == unitId).toList(),
+  );
+
+  List<MaterialExpenseEntry> allMaterialExpenses() => List.unmodifiable(
+    _materialExpenses.where((item) => !item.archived).toList()
+      ..sort((a, b) => b.date.compareTo(a.date)),
+  );
+
+  List<MaterialExpenseEntry> materialExpensesByProperty(String propertyId) =>
       List.unmodifiable(
-        allPayments().where((item) => item.propertyId == propertyId).toList(),
+        allMaterialExpenses()
+            .where((item) => item.propertyId == propertyId)
+            .toList(),
       );
+
+  List<PartnerLedgerEntry> allPartnerLedgerEntries() => List.unmodifiable(
+    _partnerLedgerEntries.where((item) => !item.archived).toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt)),
+  );
 
   List<ActivityLogEntry> recentActivity({String? propertyId}) {
     final source = propertyId == null
         ? _activity
-        : _activity.where((item) => item.entityId == propertyId).toList();
+        : _activity.where((item) {
+            final scopedPropertyId = item.metadata['propertyId'] as String?;
+            return scopedPropertyId == propertyId || item.entityId == propertyId;
+          }).toList();
     return List.unmodifiable(
       source.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
     );
   }
 
-  List<AppNotificationItem> notificationsFor(String userId) =>
-      List.unmodifiable(
-        _notifications.where((item) => item.userId == userId).toList()
-          ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
-      );
+  List<AppNotificationItem> notificationsFor(String userId) => List.unmodifiable(
+    _notifications.where((item) => item.userId == userId).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+  );
 
   List<PropertyStorageFile> filesFor(String propertyId) => List.unmodifiable(
     _files.where((item) => item.fullPath.contains('/$propertyId/')).toList(),
   );
 
   Future<void> saveProperty(PropertyProject property) async {
-    _upsert(
-      _properties,
-      property.id,
-      property.copyWith(updatedAt: DateTime.now()),
-      (item) => item.id,
-    );
+    _upsert(_properties, property.id, property.copyWith(updatedAt: DateTime.now()));
     _emit();
   }
 
-  Future<void> archiveProperty(
-    String propertyId, {
-    required String actorId,
-  }) async {
+  Future<void> archiveProperty(String propertyId, {required String actorId}) async {
     final current = propertyById(propertyId);
     if (current == null) return;
     await saveProperty(
@@ -176,12 +196,7 @@ class MockWorkspaceStore {
   }
 
   Future<void> saveExpense(ExpenseRecord expense) async {
-    _upsert(
-      _expenses,
-      expense.id,
-      expense.copyWith(updatedAt: DateTime.now()),
-      (item) => item.id,
-    );
+    _upsert(_expenses, expense.id, expense.copyWith(updatedAt: DateTime.now()));
     _emit();
   }
 
@@ -196,32 +211,25 @@ class MockWorkspaceStore {
   }
 
   Future<void> upsertPartner(Partner partner) async {
-    _upsert(
-      _partners,
-      partner.id,
-      partner.copyWith(updatedAt: DateTime.now()),
-      (item) => item.id,
-    );
+    _upsert(_partners, partner.id, partner.copyWith(updatedAt: DateTime.now()));
     _emit();
   }
 
   Future<void> saveUnit(UnitSale unit) async {
-    _upsert(
-      _units,
-      unit.id,
-      unit.copyWith(updatedAt: DateTime.now()),
-      (item) => item.id,
-    );
+    _upsert(_units, unit.id, unit.copyWith(updatedAt: DateTime.now()));
+    _emit();
+  }
+
+  Future<void> deleteUnit(String unitId) async {
+    _units.removeWhere((item) => item.id == unitId);
+    _plans.removeWhere((item) => item.unitId == unitId);
+    _installments.removeWhere((item) => item.unitId == unitId);
+    _payments.removeWhere((item) => item.unitId == unitId);
     _emit();
   }
 
   Future<void> savePlan(InstallmentPlan plan) async {
-    _upsert(
-      _plans,
-      plan.id,
-      plan.copyWith(updatedAt: DateTime.now()),
-      (item) => item.id,
-    );
+    _upsert(_plans, plan.id, plan.copyWith(updatedAt: DateTime.now()));
     _emit();
   }
 
@@ -230,18 +238,18 @@ class MockWorkspaceStore {
       _installments,
       installment.id,
       installment.copyWith(updatedAt: DateTime.now()),
-      (item) => item.id,
     );
     _emit();
   }
 
+  Future<void> deleteInstallment(String installmentId) async {
+    _installments.removeWhere((item) => item.id == installmentId);
+    _payments.removeWhere((item) => item.installmentId == installmentId);
+    _emit();
+  }
+
   Future<void> recordPayment(PaymentRecord payment) async {
-    _upsert(
-      _payments,
-      payment.id,
-      payment.copyWith(updatedAt: DateTime.now()),
-      (item) => item.id,
-    );
+    _upsert(_payments, payment.id, payment.copyWith(updatedAt: DateTime.now()));
     _emit();
   }
 
@@ -273,32 +281,58 @@ class MockWorkspaceStore {
     _emit();
   }
 
+  Future<void> saveMaterialExpense(MaterialExpenseEntry entry) async {
+    _upsert(
+      _materialExpenses,
+      entry.id,
+      entry.copyWith(updatedAt: DateTime.now()),
+    );
+    _emit();
+  }
+
+  Future<void> softDeleteMaterialExpense(String entryId) async {
+    final index = _materialExpenses.indexWhere((item) => item.id == entryId);
+    if (index == -1) return;
+    _materialExpenses[index] = _materialExpenses[index].copyWith(
+      archived: true,
+      updatedAt: DateTime.now(),
+    );
+    _emit();
+  }
+
+  Future<void> savePartnerLedgerEntry(PartnerLedgerEntry entry) async {
+    _upsert(
+      _partnerLedgerEntries,
+      entry.id,
+      entry.copyWith(updatedAt: DateTime.now()),
+    );
+    _emit();
+  }
+
+  Future<void> softDeletePartnerLedgerEntry(String entryId) async {
+    final index = _partnerLedgerEntries.indexWhere((item) => item.id == entryId);
+    if (index == -1) return;
+    _partnerLedgerEntries[index] = _partnerLedgerEntries[index].copyWith(
+      archived: true,
+      updatedAt: DateTime.now(),
+    );
+    _emit();
+  }
+
   Future<void> logActivity(ActivityLogEntry entry) async {
-    _upsert(_activity, entry.id, entry, (item) => item.id);
+    _upsert(_activity, entry.id, entry);
     _emit();
   }
 
   Future<void> createNotification(AppNotificationItem item) async {
-    _upsert(_notifications, item.id, item, (entry) => entry.id);
+    _upsert(_notifications, item.id, item);
     _emit();
   }
 
   Future<void> markNotificationRead(String notificationId) async {
-    final index = _notifications.indexWhere(
-      (item) => item.id == notificationId,
-    );
+    final index = _notifications.indexWhere((item) => item.id == notificationId);
     if (index == -1) return;
-    final item = _notifications[index];
-    _notifications[index] = AppNotificationItem(
-      id: item.id,
-      userId: item.userId,
-      title: item.title,
-      body: item.body,
-      type: item.type,
-      route: item.route,
-      isRead: true,
-      createdAt: item.createdAt,
-    );
+    _notifications[index] = _notifications[index].copyWith(isRead: true);
     _emit();
   }
 
@@ -311,7 +345,7 @@ class MockWorkspaceStore {
     _profile = AppUser(
       uid: 'mock-user',
       phone: '',
-      fullName: 'شريك تجريبي',
+      fullName: 'Finance Partner',
       email: 'demo@mock.local',
       createdAt: now.subtract(const Duration(days: 120)),
       updatedAt: now,
@@ -330,7 +364,7 @@ class MockWorkspaceStore {
       Partner(
         id: 'partner_1',
         userId: 'mock-user',
-        name: 'أحمد المصري',
+        name: 'Ahmed El Masry',
         shareRatio: 0.5,
         contributionTotal: 900000,
         createdAt: now.subtract(const Duration(days: 140)),
@@ -339,7 +373,7 @@ class MockWorkspaceStore {
       Partner(
         id: 'partner_2',
         userId: 'partner-user-2',
-        name: 'محمد خالد',
+        name: 'Mohamed Khaled',
         shareRatio: 0.3,
         contributionTotal: 540000,
         createdAt: now.subtract(const Duration(days: 135)),
@@ -348,7 +382,7 @@ class MockWorkspaceStore {
       Partner(
         id: 'partner_3',
         userId: 'partner-user-3',
-        name: 'سارة علي',
+        name: 'Sara Ali',
         shareRatio: 0.2,
         contributionTotal: 360000,
         createdAt: now.subtract(const Duration(days: 130)),
@@ -359,9 +393,9 @@ class MockWorkspaceStore {
     _properties = [
       PropertyProject(
         id: 'property_1',
-        name: 'كمبوند النيل',
-        location: 'التجمع الخامس',
-        description: 'مشروع سكني متوسط التشطيب.',
+        name: 'Nile Compound',
+        location: 'New Cairo',
+        description: 'Residential project with installment collections.',
         status: PropertyStatus.active,
         totalBudget: 1800000,
         totalSalesTarget: 4200000,
@@ -373,10 +407,10 @@ class MockWorkspaceStore {
       ),
       PropertyProject(
         id: 'property_2',
-        name: 'برج الواحة',
-        location: 'العاصمة الإدارية',
-        description: 'وحدات إدارية وتجارية.',
-        status: PropertyStatus.planning,
+        name: 'Oasis Tower',
+        location: 'NAC',
+        description: 'Mixed-use building with active suppliers.',
+        status: PropertyStatus.active,
         totalBudget: 2600000,
         totalSalesTarget: 6100000,
         createdAt: now.subtract(const Duration(days: 95)),
@@ -395,13 +429,18 @@ class MockWorkspaceStore {
         floor: 1,
         unitType: UnitType.apartment,
         area: 145,
-        customerName: 'عمرو حسن',
+        customerName: 'Amr Hassan',
         customerPhone: '01000000001',
+        saleAmount: 2200000,
         totalPrice: 2200000,
+        contractAmount: 2200000,
         downPayment: 400000,
-        remainingAmount: 1800000,
+        remainingAmount: 1200000,
+        installmentScheduleCount: 6,
         paymentPlanType: PaymentPlanType.installment,
         status: UnitStatus.sold,
+        notes: 'Priority handover client',
+        projectedCompletionDate: now.add(const Duration(days: 58)),
         createdAt: now.subtract(const Duration(days: 90)),
         updatedAt: now.subtract(const Duration(days: 2)),
         createdBy: 'mock-user',
@@ -414,34 +453,20 @@ class MockWorkspaceStore {
         floor: 2,
         unitType: UnitType.apartment,
         area: 160,
-        customerName: 'منى سمير',
+        customerName: 'Mona Samir',
         customerPhone: '01000000002',
+        saleAmount: 2450000,
         totalPrice: 2450000,
+        contractAmount: 2450000,
         downPayment: 600000,
         remainingAmount: 1850000,
+        installmentScheduleCount: 8,
         paymentPlanType: PaymentPlanType.installment,
         status: UnitStatus.reserved,
+        notes: 'Reservation signed',
+        projectedCompletionDate: now.add(const Duration(days: 210)),
         createdAt: now.subtract(const Duration(days: 55)),
         updatedAt: now.subtract(const Duration(days: 4)),
-        createdBy: 'mock-user',
-        updatedBy: 'mock-user',
-      ),
-      UnitSale(
-        id: 'unit_3',
-        propertyId: 'property_2',
-        unitNumber: 'C-11',
-        floor: 1,
-        unitType: UnitType.office,
-        area: 90,
-        customerName: '',
-        customerPhone: '',
-        totalPrice: 1950000,
-        downPayment: 0,
-        remainingAmount: 1950000,
-        paymentPlanType: PaymentPlanType.custom,
-        status: UnitStatus.available,
-        createdAt: now.subtract(const Duration(days: 40)),
-        updatedAt: now.subtract(const Duration(days: 1)),
         createdBy: 'mock-user',
         updatedBy: 'mock-user',
       ),
@@ -453,12 +478,12 @@ class MockWorkspaceStore {
         propertyId: 'property_1',
         amount: 120000,
         category: ExpenseCategory.construction,
-        description: 'دفعة خرسانة',
+        description: 'Concrete foundation batch',
         paidByPartnerId: 'partner_1',
         paymentMethod: PaymentMethod.bankTransfer,
         date: now.subtract(const Duration(days: 18)),
         attachmentUrl: null,
-        notes: 'المرحلة الأولى',
+        notes: 'Stage 1 foundation',
         createdBy: 'mock-user',
         updatedBy: 'mock-user',
         createdAt: now.subtract(const Duration(days: 18)),
@@ -470,33 +495,16 @@ class MockWorkspaceStore {
         propertyId: 'property_1',
         amount: 45000,
         category: ExpenseCategory.marketing,
-        description: 'حملة ممولة',
+        description: 'Digital campaign',
         paidByPartnerId: 'partner_2',
         paymentMethod: PaymentMethod.wallet,
         date: now.subtract(const Duration(days: 9)),
         attachmentUrl: null,
-        notes: 'إعلانات سوشيال',
+        notes: 'Lead generation',
         createdBy: 'mock-user',
         updatedBy: 'mock-user',
         createdAt: now.subtract(const Duration(days: 9)),
         updatedAt: now.subtract(const Duration(days: 9)),
-        archived: false,
-      ),
-      ExpenseRecord(
-        id: 'expense_3',
-        propertyId: 'property_2',
-        amount: 30000,
-        category: ExpenseCategory.legal,
-        description: 'أتعاب قانونية',
-        paidByPartnerId: 'partner_3',
-        paymentMethod: PaymentMethod.cash,
-        date: now.subtract(const Duration(days: 6)),
-        attachmentUrl: null,
-        notes: '',
-        createdBy: 'mock-user',
-        updatedBy: 'mock-user',
-        createdAt: now.subtract(const Duration(days: 6)),
-        updatedAt: now.subtract(const Duration(days: 6)),
         archived: false,
       ),
     ];
@@ -515,6 +523,19 @@ class MockWorkspaceStore {
         createdBy: 'mock-user',
         updatedBy: 'mock-user',
       ),
+      InstallmentPlan(
+        id: 'plan_2',
+        propertyId: 'property_1',
+        unitId: 'unit_2',
+        installmentCount: 8,
+        startDate: now.subtract(const Duration(days: 30)),
+        intervalDays: 30,
+        installmentAmount: 231250,
+        createdAt: now.subtract(const Duration(days: 30)),
+        updatedAt: now.subtract(const Duration(days: 1)),
+        createdBy: 'mock-user',
+        updatedBy: 'mock-user',
+      ),
     ];
 
     _installments = [
@@ -528,6 +549,7 @@ class MockWorkspaceStore {
         paidAmount: 300000,
         dueDate: now.subtract(const Duration(days: 120)),
         status: InstallmentStatus.paid,
+        notes: 'Paid in full',
         createdAt: now.subtract(const Duration(days: 150)),
         updatedAt: now.subtract(const Duration(days: 120)),
         createdBy: 'mock-user',
@@ -543,6 +565,7 @@ class MockWorkspaceStore {
         paidAmount: 300000,
         dueDate: now.subtract(const Duration(days: 90)),
         status: InstallmentStatus.paid,
+        notes: '',
         createdAt: now.subtract(const Duration(days: 150)),
         updatedAt: now.subtract(const Duration(days: 90)),
         createdBy: 'mock-user',
@@ -558,6 +581,7 @@ class MockWorkspaceStore {
         paidAmount: 180000,
         dueDate: now.subtract(const Duration(days: 30)),
         status: InstallmentStatus.partiallyPaid,
+        notes: 'Split transfer',
         createdAt: now.subtract(const Duration(days: 150)),
         updatedAt: now.subtract(const Duration(days: 20)),
         createdBy: 'mock-user',
@@ -573,6 +597,7 @@ class MockWorkspaceStore {
         paidAmount: 0,
         dueDate: now.subtract(const Duration(days: 2)),
         status: InstallmentStatus.overdue,
+        notes: 'Reminder sent',
         createdAt: now.subtract(const Duration(days: 150)),
         updatedAt: now.subtract(const Duration(days: 2)),
         createdBy: 'mock-user',
@@ -588,6 +613,7 @@ class MockWorkspaceStore {
         paidAmount: 0,
         dueDate: now.add(const Duration(days: 28)),
         status: InstallmentStatus.pending,
+        notes: '',
         createdAt: now.subtract(const Duration(days: 150)),
         updatedAt: now.subtract(const Duration(days: 2)),
         createdBy: 'mock-user',
@@ -603,11 +629,31 @@ class MockWorkspaceStore {
         paidAmount: 0,
         dueDate: now.add(const Duration(days: 58)),
         status: InstallmentStatus.pending,
+        notes: '',
         createdAt: now.subtract(const Duration(days: 150)),
         updatedAt: now.subtract(const Duration(days: 2)),
         createdBy: 'mock-user',
         updatedBy: 'mock-user',
       ),
+      for (var i = 0; i < 8; i++)
+        Installment(
+          id: 'unit2_inst_${i + 1}',
+          planId: 'plan_2',
+          propertyId: 'property_1',
+          unitId: 'unit_2',
+          sequence: i + 1,
+          amount: 231250,
+          paidAmount: i == 0 ? 150000 : 0,
+          dueDate: now.add(Duration(days: 30 * (i + 1))),
+          status: i == 0
+              ? InstallmentStatus.partiallyPaid
+              : InstallmentStatus.pending,
+          notes: i == 0 ? 'Advance installment' : '',
+          createdAt: now.subtract(const Duration(days: 30)),
+          updatedAt: now.subtract(const Duration(days: 1)),
+          createdBy: 'mock-user',
+          updatedBy: 'mock-user',
+        ),
     ];
 
     _payments = [
@@ -615,12 +661,14 @@ class MockWorkspaceStore {
         id: 'payment_1',
         propertyId: 'property_1',
         unitId: 'unit_1',
-        customerName: 'Customer A',
+        payerName: 'Amr Hassan',
+        customerName: 'Amr Hassan',
         installmentId: 'inst_1',
         amount: 300000,
         receivedAt: now.subtract(const Duration(days: 120)),
         paymentMethod: PaymentMethod.bankTransfer,
-        notes: 'سداد القسط الأول',
+        paymentSource: 'Bank Transfer',
+        notes: 'Installment 1',
         createdAt: now.subtract(const Duration(days: 120)),
         updatedAt: now.subtract(const Duration(days: 120)),
         createdBy: 'mock-user',
@@ -630,12 +678,14 @@ class MockWorkspaceStore {
         id: 'payment_2',
         propertyId: 'property_1',
         unitId: 'unit_1',
-        customerName: 'Customer A',
+        payerName: 'Amr Hassan',
+        customerName: 'Amr Hassan',
         installmentId: 'inst_2',
         amount: 300000,
         receivedAt: now.subtract(const Duration(days: 90)),
         paymentMethod: PaymentMethod.bankTransfer,
-        notes: 'سداد القسط الثاني',
+        paymentSource: 'Bank Transfer',
+        notes: 'Installment 2',
         createdAt: now.subtract(const Duration(days: 90)),
         updatedAt: now.subtract(const Duration(days: 90)),
         createdBy: 'mock-user',
@@ -645,16 +695,109 @@ class MockWorkspaceStore {
         id: 'payment_3',
         propertyId: 'property_1',
         unitId: 'unit_1',
-        customerName: 'Customer A',
+        payerName: 'Amr Hassan',
+        customerName: 'Amr Hassan',
         installmentId: 'inst_3',
         amount: 180000,
         receivedAt: now.subtract(const Duration(days: 20)),
         paymentMethod: PaymentMethod.cash,
-        notes: 'دفعة جزئية',
+        paymentSource: 'Cash',
+        notes: 'Partial payment',
         createdAt: now.subtract(const Duration(days: 20)),
         updatedAt: now.subtract(const Duration(days: 20)),
         createdBy: 'mock-user',
         updatedBy: 'mock-user',
+      ),
+      PaymentRecord(
+        id: 'payment_4',
+        propertyId: 'property_1',
+        unitId: 'unit_2',
+        payerName: 'Mona Samir',
+        customerName: 'Mona Samir',
+        installmentId: 'unit2_inst_1',
+        amount: 150000,
+        receivedAt: now.subtract(const Duration(days: 4)),
+        paymentMethod: PaymentMethod.bankTransfer,
+        paymentSource: 'Collection Team',
+        notes: 'First split payment',
+        createdAt: now.subtract(const Duration(days: 4)),
+        updatedAt: now.subtract(const Duration(days: 4)),
+        createdBy: 'mock-user',
+        updatedBy: 'mock-user',
+      ),
+    ];
+
+    _materialExpenses = [
+      MaterialExpenseEntry(
+        id: 'material_1',
+        propertyId: 'property_1',
+        date: now.subtract(const Duration(days: 7)),
+        materialCategory: MaterialCategory.brick,
+        itemName: 'Red Brick',
+        quantity: 10000,
+        unitPrice: 4,
+        totalPrice: 40000,
+        supplierName: 'El Amal Trading',
+        amountPaid: 25000,
+        amountRemaining: 15000,
+        dueDate: now.add(const Duration(days: 3)),
+        notes: 'Ground floor walls',
+        createdBy: 'mock-user',
+        updatedBy: 'mock-user',
+        createdAt: now.subtract(const Duration(days: 7)),
+        updatedAt: now.subtract(const Duration(days: 7)),
+        archived: false,
+      ),
+      MaterialExpenseEntry(
+        id: 'material_2',
+        propertyId: 'property_2',
+        date: now.subtract(const Duration(days: 5)),
+        materialCategory: MaterialCategory.steel,
+        itemName: 'Rebar',
+        quantity: 12,
+        unitPrice: 15000,
+        totalPrice: 180000,
+        supplierName: 'Delta Steel',
+        amountPaid: 60000,
+        amountRemaining: 120000,
+        dueDate: now.subtract(const Duration(days: 1)),
+        notes: 'Tower core',
+        createdBy: 'mock-user',
+        updatedBy: 'mock-user',
+        createdAt: now.subtract(const Duration(days: 5)),
+        updatedAt: now.subtract(const Duration(days: 5)),
+        archived: false,
+      ),
+    ];
+
+    _partnerLedgerEntries = [
+      PartnerLedgerEntry(
+        id: 'ledger_1',
+        partnerId: 'partner_1',
+        propertyId: 'property_1',
+        entryType: PartnerLedgerEntryType.contribution,
+        amount: 150000,
+        notes: 'Capital top-up',
+        authorizedBy: 'mock-user',
+        createdBy: 'mock-user',
+        updatedBy: 'mock-user',
+        createdAt: now.subtract(const Duration(days: 12)),
+        updatedAt: now.subtract(const Duration(days: 12)),
+        archived: false,
+      ),
+      PartnerLedgerEntry(
+        id: 'ledger_2',
+        partnerId: 'partner_2',
+        propertyId: 'property_1',
+        entryType: PartnerLedgerEntryType.settlement,
+        amount: 90000,
+        notes: 'Quarterly settlement',
+        authorizedBy: 'mock-user',
+        createdBy: 'mock-user',
+        updatedBy: 'mock-user',
+        createdAt: now.subtract(const Duration(days: 8)),
+        updatedAt: now.subtract(const Duration(days: 8)),
+        archived: false,
       ),
     ];
 
@@ -662,7 +805,7 @@ class MockWorkspaceStore {
       ActivityLogEntry(
         id: 'activity_1',
         actorId: 'mock-user',
-        actorName: 'شريك تجريبي',
+        actorName: 'Finance Partner',
         action: 'property_created',
         entityType: 'property',
         entityId: 'property_1',
@@ -672,32 +815,12 @@ class MockWorkspaceStore {
       ActivityLogEntry(
         id: 'activity_2',
         actorId: 'mock-user',
-        actorName: 'شريك تجريبي',
-        action: 'expense_created',
-        entityType: 'expense',
-        entityId: 'property_1',
-        createdAt: now.subtract(const Duration(days: 9)),
-        metadata: const {'amount': 45000},
-      ),
-      ActivityLogEntry(
-        id: 'activity_3',
-        actorId: 'mock-user',
-        actorName: 'شريك تجريبي',
-        action: 'payment_received',
-        entityType: 'payment',
-        entityId: 'property_1',
-        createdAt: now.subtract(const Duration(days: 5)),
-        metadata: const {'amount': 180000},
-      ),
-      ActivityLogEntry(
-        id: 'activity_4',
-        actorId: 'mock-user',
-        actorName: 'شريك تجريبي',
-        action: 'partner_updated',
-        entityType: 'partner',
-        entityId: 'partner_2',
-        createdAt: now.subtract(const Duration(days: 2)),
-        metadata: const {},
+        actorName: 'Finance Partner',
+        action: 'material_expense_created',
+        entityType: 'material_expense',
+        entityId: 'material_1',
+        createdAt: now.subtract(const Duration(days: 7)),
+        metadata: const {'propertyId': 'property_1', 'amount': 40000},
       ),
     ];
 
@@ -705,22 +828,24 @@ class MockWorkspaceStore {
       AppNotificationItem(
         id: 'notification_1',
         userId: 'mock-user',
-        title: 'قسط متأخر',
-        body: 'يوجد قسط متأخر للوحدة A-101.',
+        title: 'Overdue Installment',
+        body: 'Unit A-101 has an overdue installment.',
         type: NotificationType.overdueInstallment,
         route: AppRoutes.propertyDetails('property_1'),
         isRead: false,
         createdAt: now.subtract(const Duration(hours: 8)),
+        referenceKey: 'installment-overdue-inst_4',
       ),
       AppNotificationItem(
         id: 'notification_2',
         userId: 'mock-user',
-        title: 'مصروف جديد',
-        body: 'تمت إضافة مصروف تسويق على كمبوند النيل.',
-        type: NotificationType.expenseAdded,
-        route: AppRoutes.propertyDetails('property_1'),
+        title: 'Supplier Payment Due',
+        body: 'Delta Steel still has EGP 120,000 outstanding.',
+        type: NotificationType.supplierPaymentDue,
+        route: AppRoutes.expenses,
         isRead: true,
         createdAt: now.subtract(const Duration(days: 1)),
+        referenceKey: 'supplier-due-material_2',
       ),
     ];
 
@@ -733,260 +858,32 @@ class MockWorkspaceStore {
         updatedAt: now.subtract(const Duration(days: 2)),
         contentType: 'application/pdf',
       ),
-      PropertyStorageFile(
-        name: 'site-photo.jpg',
-        fullPath: 'properties/property_1/files/site-photo.jpg',
-        downloadUrl: 'https://example.com/site-photo.jpg',
-        sizeBytes: 512000,
-        updatedAt: now.subtract(const Duration(days: 4)),
-        contentType: 'image/jpeg',
-      ),
     ];
   }
 
-  void _upsert<T>(
-    List<T> items,
-    String id,
-    T value,
-    String Function(T item) idSelector,
-  ) {
-    final index = items.indexWhere((item) => idSelector(item) == id);
+  void _upsert<T>(List<T> items, String id, T value) {
+    final index = items.indexWhere((item) => _idOf(item) == id);
     if (index == -1) {
       items.add(value);
     } else {
       items[index] = value;
     }
   }
-}
 
-extension on PropertyProject {
-  PropertyProject copyWith({
-    String? id,
-    String? name,
-    String? location,
-    String? description,
-    PropertyStatus? status,
-    double? totalBudget,
-    double? totalSalesTarget,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    String? createdBy,
-    String? updatedBy,
-    bool? archived,
-  }) {
-    return PropertyProject(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      location: location ?? this.location,
-      description: description ?? this.description,
-      status: status ?? this.status,
-      totalBudget: totalBudget ?? this.totalBudget,
-      totalSalesTarget: totalSalesTarget ?? this.totalSalesTarget,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      createdBy: createdBy ?? this.createdBy,
-      updatedBy: updatedBy ?? this.updatedBy,
-      archived: archived ?? this.archived,
-    );
-  }
-}
-
-extension on ExpenseRecord {
-  ExpenseRecord copyWith({
-    String? id,
-    String? propertyId,
-    double? amount,
-    ExpenseCategory? category,
-    String? description,
-    String? paidByPartnerId,
-    PaymentMethod? paymentMethod,
-    DateTime? date,
-    String? attachmentUrl,
-    String? notes,
-    String? createdBy,
-    String? updatedBy,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    bool? archived,
-  }) {
-    return ExpenseRecord(
-      id: id ?? this.id,
-      propertyId: propertyId ?? this.propertyId,
-      amount: amount ?? this.amount,
-      category: category ?? this.category,
-      description: description ?? this.description,
-      paidByPartnerId: paidByPartnerId ?? this.paidByPartnerId,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
-      date: date ?? this.date,
-      attachmentUrl: attachmentUrl ?? this.attachmentUrl,
-      notes: notes ?? this.notes,
-      createdBy: createdBy ?? this.createdBy,
-      updatedBy: updatedBy ?? this.updatedBy,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      archived: archived ?? this.archived,
-    );
-  }
-}
-
-extension on Partner {
-  Partner copyWith({
-    String? id,
-    String? userId,
-    String? name,
-    double? shareRatio,
-    double? contributionTotal,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) {
-    return Partner(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
-      name: name ?? this.name,
-      shareRatio: shareRatio ?? this.shareRatio,
-      contributionTotal: contributionTotal ?? this.contributionTotal,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
-}
-
-extension on UnitSale {
-  UnitSale copyWith({
-    String? id,
-    String? propertyId,
-    String? unitNumber,
-    int? floor,
-    UnitType? unitType,
-    double? area,
-    String? customerName,
-    String? customerPhone,
-    double? totalPrice,
-    double? downPayment,
-    double? remainingAmount,
-    PaymentPlanType? paymentPlanType,
-    UnitStatus? status,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    String? createdBy,
-    String? updatedBy,
-  }) {
-    return UnitSale(
-      id: id ?? this.id,
-      propertyId: propertyId ?? this.propertyId,
-      unitNumber: unitNumber ?? this.unitNumber,
-      floor: floor ?? this.floor,
-      unitType: unitType ?? this.unitType,
-      area: area ?? this.area,
-      customerName: customerName ?? this.customerName,
-      customerPhone: customerPhone ?? this.customerPhone,
-      totalPrice: totalPrice ?? this.totalPrice,
-      downPayment: downPayment ?? this.downPayment,
-      remainingAmount: remainingAmount ?? this.remainingAmount,
-      paymentPlanType: paymentPlanType ?? this.paymentPlanType,
-      status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      createdBy: createdBy ?? this.createdBy,
-      updatedBy: updatedBy ?? this.updatedBy,
-    );
-  }
-}
-
-extension on InstallmentPlan {
-  InstallmentPlan copyWith({
-    String? id,
-    String? propertyId,
-    String? unitId,
-    int? installmentCount,
-    DateTime? startDate,
-    int? intervalDays,
-    double? installmentAmount,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    String? createdBy,
-    String? updatedBy,
-  }) {
-    return InstallmentPlan(
-      id: id ?? this.id,
-      propertyId: propertyId ?? this.propertyId,
-      unitId: unitId ?? this.unitId,
-      installmentCount: installmentCount ?? this.installmentCount,
-      startDate: startDate ?? this.startDate,
-      intervalDays: intervalDays ?? this.intervalDays,
-      installmentAmount: installmentAmount ?? this.installmentAmount,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      createdBy: createdBy ?? this.createdBy,
-      updatedBy: updatedBy ?? this.updatedBy,
-    );
-  }
-}
-
-extension on Installment {
-  Installment copyWith({
-    String? id,
-    String? planId,
-    String? propertyId,
-    String? unitId,
-    int? sequence,
-    double? amount,
-    double? paidAmount,
-    DateTime? dueDate,
-    InstallmentStatus? status,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    String? createdBy,
-    String? updatedBy,
-  }) {
-    return Installment(
-      id: id ?? this.id,
-      planId: planId ?? this.planId,
-      propertyId: propertyId ?? this.propertyId,
-      unitId: unitId ?? this.unitId,
-      sequence: sequence ?? this.sequence,
-      amount: amount ?? this.amount,
-      paidAmount: paidAmount ?? this.paidAmount,
-      dueDate: dueDate ?? this.dueDate,
-      status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      createdBy: createdBy ?? this.createdBy,
-      updatedBy: updatedBy ?? this.updatedBy,
-    );
-  }
-}
-
-extension on PaymentRecord {
-  PaymentRecord copyWith({
-    String? id,
-    String? propertyId,
-    String? unitId,
-    String? customerName,
-    String? installmentId,
-    double? amount,
-    DateTime? receivedAt,
-    PaymentMethod? paymentMethod,
-    String? notes,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    String? createdBy,
-    String? updatedBy,
-  }) {
-    return PaymentRecord(
-      id: id ?? this.id,
-      propertyId: propertyId ?? this.propertyId,
-      unitId: unitId ?? this.unitId,
-      customerName: customerName ?? this.customerName,
-      installmentId: installmentId ?? this.installmentId,
-      amount: amount ?? this.amount,
-      receivedAt: receivedAt ?? this.receivedAt,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
-      notes: notes ?? this.notes,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      createdBy: createdBy ?? this.createdBy,
-      updatedBy: updatedBy ?? this.updatedBy,
-    );
+  String _idOf(Object item) {
+    return switch (item) {
+      PropertyProject value => value.id,
+      Partner value => value.id,
+      ExpenseRecord value => value.id,
+      UnitSale value => value.id,
+      InstallmentPlan value => value.id,
+      Installment value => value.id,
+      PaymentRecord value => value.id,
+      MaterialExpenseEntry value => value.id,
+      PartnerLedgerEntry value => value.id,
+      ActivityLogEntry value => value.id,
+      AppNotificationItem value => value.id,
+      _ => '',
+    };
   }
 }

@@ -69,6 +69,24 @@ class InstallmentRepository {
         );
   }
 
+  Stream<List<Installment>> watchInstallmentsByUnit(String unitId) {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.watch(
+        () => MockWorkspaceStore.instance.installmentsByUnit(unitId),
+      );
+    }
+    return _firestore
+        .collection(FirestorePaths.installments)
+        .where('unitId', isEqualTo: unitId)
+        .orderBy('dueDate')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Installment.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
   Future<void> savePlan(
     InstallmentPlan plan, {
     required String actorId,
@@ -186,6 +204,7 @@ class InstallmentRepository {
           paidAmount: installment.paidAmount,
           dueDate: installment.dueDate,
           status: installment.status,
+          notes: installment.notes,
           createdAt: installment.createdAt,
           updatedAt: DateTime.now(),
           createdBy: installment.createdBy,
@@ -202,6 +221,17 @@ class InstallmentRepository {
             ..['status'] = installment.status.name,
           SetOptions(merge: true),
         );
+  }
+
+  Future<void> deleteInstallment(String installmentId) {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.deleteInstallment(installmentId);
+    }
+
+    return _firestore
+        .collection(FirestorePaths.installments)
+        .doc(installmentId)
+        .delete();
   }
 }
 

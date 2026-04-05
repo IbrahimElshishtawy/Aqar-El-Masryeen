@@ -10,6 +10,8 @@ enum ExpenseCategory {
   marketing,
   brokerage,
   maintenance,
+  materials,
+  partnerSettlement,
   other,
 }
 
@@ -26,98 +28,166 @@ enum PaymentPlanType { cash, installment, custom }
 enum NotificationType {
   installmentDue,
   overdueInstallment,
+  installmentCompleted,
   expenseAdded,
   paymentReceived,
+  supplierPaymentDue,
+  largeExpenseRecorded,
+  ledgerUpdated,
   newDeviceLogin,
   systemAlert,
 }
+
+enum MaterialCategory {
+  cement,
+  brick,
+  steel,
+  sand,
+  gravel,
+  finishing,
+  electrical,
+  plumbing,
+  paint,
+  other,
+}
+
+enum SupplierInvoiceStatus { unpaid, partiallyPaid, paid, overdue }
+
+enum PartnerLedgerEntryType { contribution, settlement, obligation, adjustment }
 
 extension EnumLabelX on Enum {
   String get label {
     switch (this) {
       case UserRole.partner:
-        return 'شريك';
+        return 'Partner';
       case PropertyStatus.planning:
-        return 'تحت التخطيط';
+        return 'Planning';
       case PropertyStatus.active:
-        return 'نشط';
+        return 'Active';
       case PropertyStatus.delivered:
-        return 'تم التسليم';
+        return 'Delivered';
       case PropertyStatus.archived:
-        return 'مؤرشف';
+        return 'Archived';
       case ExpenseCategory.construction:
-        return 'إنشاءات';
+        return 'Construction';
       case ExpenseCategory.legal:
-        return 'قانوني';
+        return 'Legal';
       case ExpenseCategory.permits:
-        return 'تصاريح';
+        return 'Permits';
       case ExpenseCategory.utilities:
-        return 'مرافق';
+        return 'Utilities';
       case ExpenseCategory.marketing:
-        return 'تسويق';
+        return 'Marketing';
       case ExpenseCategory.brokerage:
-        return 'سمسرة';
+        return 'Brokerage';
       case ExpenseCategory.maintenance:
-        return 'صيانة';
+        return 'Maintenance';
+      case ExpenseCategory.materials:
+        return 'Materials';
+      case ExpenseCategory.partnerSettlement:
+        return 'Partner Settlement';
       case ExpenseCategory.other:
-        return 'أخرى';
+        return 'Other';
       case PaymentMethod.cash:
-        return 'نقدي';
+        return 'Cash';
       case PaymentMethod.bankTransfer:
-        return 'تحويل بنكي';
+        return 'Bank Transfer';
       case PaymentMethod.cheque:
-        return 'شيك';
+        return 'Cheque';
       case PaymentMethod.wallet:
-        return 'محفظة إلكترونية';
+        return 'Wallet';
       case PaymentMethod.other:
-        return 'أخرى';
+        return 'Other';
       case UnitType.apartment:
-        return 'شقة';
+        return 'Apartment';
       case UnitType.penthouse:
-        return 'بنتهاوس';
+        return 'Penthouse';
       case UnitType.office:
-        return 'مكتب';
+        return 'Office';
       case UnitType.retail:
-        return 'محل';
+        return 'Retail';
       case UnitType.floor:
-        return 'دور';
+        return 'Floor';
       case UnitType.villa:
-        return 'فيلا';
+        return 'Villa';
       case UnitStatus.available:
-        return 'متاح';
+        return 'Available';
       case UnitStatus.reserved:
-        return 'محجوز';
+        return 'Reserved';
       case UnitStatus.sold:
-        return 'مباع';
+        return 'Sold';
       case UnitStatus.cancelled:
-        return 'ملغي';
+        return 'Cancelled';
       case InstallmentStatus.pending:
-        return 'مستحق';
+        return 'Unpaid';
       case InstallmentStatus.partiallyPaid:
-        return 'مدفوع جزئيا';
+        return 'Partially Paid';
       case InstallmentStatus.paid:
-        return 'مدفوع';
+        return 'Paid';
       case InstallmentStatus.overdue:
-        return 'متأخر';
+        return 'Overdue';
       case PaymentPlanType.cash:
-        return 'كاش';
+        return 'Cash';
       case PaymentPlanType.installment:
-        return 'تقسيط';
+        return 'Installment';
       case PaymentPlanType.custom:
-        return 'مخصص';
+        return 'Custom';
       case NotificationType.installmentDue:
-        return 'قسط مستحق';
+        return 'Installment Due';
       case NotificationType.overdueInstallment:
-        return 'قسط متأخر';
+        return 'Overdue Installment';
+      case NotificationType.installmentCompleted:
+        return 'Installment Completed';
       case NotificationType.expenseAdded:
-        return 'إضافة مصروف';
+        return 'Expense Added';
       case NotificationType.paymentReceived:
-        return 'تحصيل دفعة';
+        return 'Payment Received';
+      case NotificationType.supplierPaymentDue:
+        return 'Supplier Payment Due';
+      case NotificationType.largeExpenseRecorded:
+        return 'Large Expense Recorded';
+      case NotificationType.ledgerUpdated:
+        return 'Ledger Updated';
       case NotificationType.newDeviceLogin:
-        return 'تسجيل دخول من جهاز جديد';
+        return 'New Device Login';
       case NotificationType.systemAlert:
-        return 'تنبيه نظام';
+        return 'System Alert';
+      case MaterialCategory.cement:
+        return 'Cement';
+      case MaterialCategory.brick:
+        return 'Brick';
+      case MaterialCategory.steel:
+        return 'Steel';
+      case MaterialCategory.sand:
+        return 'Sand';
+      case MaterialCategory.gravel:
+        return 'Gravel';
+      case MaterialCategory.finishing:
+        return 'Finishing';
+      case MaterialCategory.electrical:
+        return 'Electrical';
+      case MaterialCategory.plumbing:
+        return 'Plumbing';
+      case MaterialCategory.paint:
+        return 'Paint';
+      case MaterialCategory.other:
+        return 'Other';
+      case SupplierInvoiceStatus.unpaid:
+        return 'Unpaid';
+      case SupplierInvoiceStatus.partiallyPaid:
+        return 'Partially Paid';
+      case SupplierInvoiceStatus.paid:
+        return 'Paid';
+      case SupplierInvoiceStatus.overdue:
+        return 'Overdue';
+      case PartnerLedgerEntryType.contribution:
+        return 'Contribution';
+      case PartnerLedgerEntryType.settlement:
+        return 'Settlement';
+      case PartnerLedgerEntryType.obligation:
+        return 'Obligation';
+      case PartnerLedgerEntryType.adjustment:
+        return 'Adjustment';
     }
-    return name;
   }
 }

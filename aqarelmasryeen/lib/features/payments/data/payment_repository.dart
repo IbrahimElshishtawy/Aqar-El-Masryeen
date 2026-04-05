@@ -50,6 +50,25 @@ class PaymentRepository {
         );
   }
 
+  Stream<List<PaymentRecord>> watchByUnit(String unitId) {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.watch(
+        () => MockWorkspaceStore.instance.paymentsByUnit(unitId),
+      );
+    }
+
+    return _firestore
+        .collection(FirestorePaths.payments)
+        .where('unitId', isEqualTo: unitId)
+        .orderBy('receivedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => PaymentRecord.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
+  }
+
   Future<String> save(PaymentRecord payment) async {
     final id = payment.id.isEmpty ? _uuid.v4() : payment.id;
     if (AppConfig.useMockData) {
@@ -58,11 +77,13 @@ class PaymentRepository {
           id: id,
           propertyId: payment.propertyId,
           unitId: payment.unitId,
+          payerName: payment.payerName,
           customerName: payment.customerName,
           installmentId: payment.installmentId,
           amount: payment.amount,
           receivedAt: payment.receivedAt,
           paymentMethod: payment.paymentMethod,
+          paymentSource: payment.paymentSource,
           notes: payment.notes,
           createdAt: payment.createdAt,
           updatedAt: DateTime.now(),

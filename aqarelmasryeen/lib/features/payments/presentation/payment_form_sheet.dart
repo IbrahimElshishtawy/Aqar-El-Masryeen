@@ -10,10 +10,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class PaymentFormSheet extends ConsumerStatefulWidget {
-  const PaymentFormSheet({super.key, required this.propertyId, this.payment});
+  const PaymentFormSheet({
+    super.key,
+    required this.propertyId,
+    this.payment,
+    this.installmentId,
+    this.initialUnitId,
+  });
 
   final String propertyId;
   final PaymentRecord? payment;
+  final String? installmentId;
+  final String? initialUnitId;
 
   @override
   ConsumerState<PaymentFormSheet> createState() => _PaymentFormSheetState();
@@ -21,9 +29,10 @@ class PaymentFormSheet extends ConsumerStatefulWidget {
 
 class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _customerController;
+  late final TextEditingController _payerController;
   late final TextEditingController _unitController;
   late final TextEditingController _amountController;
+  late final TextEditingController _sourceController;
   late final TextEditingController _notesController;
   late PaymentMethod _paymentMethod;
   late DateTime _receivedAt;
@@ -33,13 +42,16 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
   void initState() {
     super.initState();
     final payment = widget.payment;
-    _customerController = TextEditingController(
-      text: payment?.customerName ?? '',
+    _payerController = TextEditingController(
+      text: payment?.effectivePayerName ?? '',
     );
-    _unitController = TextEditingController(text: payment?.unitId ?? '');
+    _unitController = TextEditingController(
+      text: payment?.unitId ?? widget.initialUnitId ?? '',
+    );
     _amountController = TextEditingController(
       text: payment == null ? '' : payment.amount.toStringAsFixed(0),
     );
+    _sourceController = TextEditingController(text: payment?.paymentSource ?? '');
     _notesController = TextEditingController(text: payment?.notes ?? '');
     _paymentMethod = payment?.paymentMethod ?? PaymentMethod.bankTransfer;
     _receivedAt = payment?.receivedAt ?? DateTime.now();
@@ -47,9 +59,10 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
 
   @override
   void dispose() {
-    _customerController.dispose();
+    _payerController.dispose();
     _unitController.dispose();
     _amountController.dispose();
+    _sourceController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -72,51 +85,47 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
     if (session == null) return;
 
     setState(() => _saving = true);
-    final savedId = await ref
-        .read(paymentRepositoryProvider)
-        .save(
-          PaymentRecord(
-            id: widget.payment?.id ?? '',
-            propertyId: widget.propertyId,
-            unitId: _unitController.text.trim(),
-            customerName: _customerController.text.trim(),
-            installmentId: widget.payment?.installmentId,
-            amount: double.parse(_amountController.text.trim()),
-            receivedAt: _receivedAt,
-            paymentMethod: _paymentMethod,
-            notes: _notesController.text.trim(),
-            createdAt:
-                widget.payment?.createdAt ??
-                DateTime.fromMillisecondsSinceEpoch(0),
-            updatedAt: DateTime.now(),
-            createdBy: widget.payment?.createdBy ?? session.userId,
-            updatedBy: session.userId,
-          ),
-        );
+    final savedId = await ref.read(paymentRepositoryProvider).save(
+      PaymentRecord(
+        id: widget.payment?.id ?? '',
+        propertyId: widget.propertyId,
+        unitId: _unitController.text.trim(),
+        payerName: _payerController.text.trim(),
+        customerName: _payerController.text.trim(),
+        installmentId: widget.payment?.installmentId ?? widget.installmentId,
+        amount: double.parse(_amountController.text.trim()),
+        receivedAt: _receivedAt,
+        paymentMethod: _paymentMethod,
+        paymentSource: _sourceController.text.trim(),
+        notes: _notesController.text.trim(),
+        createdAt:
+            widget.payment?.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+        updatedAt: DateTime.now(),
+        createdBy: widget.payment?.createdBy ?? session.userId,
+        updatedBy: session.userId,
+      ),
+    );
 
-    await ref
-        .read(activityRepositoryProvider)
-        .log(
-          actorId: session.userId,
-          actorName: session.profile?.name ?? 'Partner',
-          action: widget.payment == null
-              ? 'payment_created'
-              : 'payment_updated',
-          entityType: 'payment',
-          entityId: savedId,
-          metadata: {'propertyId': widget.propertyId},
-        );
-    await ref
-        .read(notificationRepositoryProvider)
-        .create(
-          userId: session.userId,
-          title: widget.payment == null ? 'Payment created' : 'Payment updated',
-          body: _customerController.text.trim().isEmpty
-              ? 'Incoming payment recorded'
-              : _customerController.text.trim(),
-          type: NotificationType.paymentReceived,
-          route: '/properties/${widget.propertyId}',
-        );
+    await ref.read(activityRepositoryProvider).log(
+      actorId: session.userId,
+      actorName: session.profile?.name ?? 'Partner',
+      action: widget.payment == null ? 'payment_created' : 'payment_updated',
+      entityType: 'payment',
+      entityId: savedId,
+      metadata: {
+        'propertyId': widget.propertyId,
+        'installmentId': widget.installmentId ?? widget.payment?.installmentId,
+      },
+    );
+    await ref.read(notificationRepositoryProvider).create(
+      userId: session.userId,
+      title: widget.payment == null ? 'Payment received' : 'Payment updated',
+      body: _payerController.text.trim().isEmpty
+          ? 'Incoming payment recorded'
+          : _payerController.text.trim(),
+      type: NotificationType.paymentReceived,
+      route: '/properties/${widget.propertyId}',
+    );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -124,14 +133,14 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: widget.payment == null ? 'Add payment' : 'Edit payment',
+      title: widget.payment == null ? 'Add Payment' : 'Edit Payment',
       child: Form(
         key: _formKey,
         child: Column(
           children: [
             TextFormField(
-              controller: _customerController,
-              decoration: const InputDecoration(labelText: 'Customer name'),
+              controller: _payerController,
+              decoration: const InputDecoration(labelText: 'Payer name'),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -141,9 +150,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'Amount'),
               validator: (value) {
                 final parsed = double.tryParse((value ?? '').trim());
@@ -152,6 +159,11 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
                 }
                 return null;
               },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _sourceController,
+              decoration: const InputDecoration(labelText: 'Payment source'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<PaymentMethod>(
@@ -170,7 +182,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
             InkWell(
               onTap: _pickDate,
               child: InputDecorator(
-                decoration: const InputDecoration(labelText: 'Date'),
+                decoration: const InputDecoration(labelText: 'Received at'),
                 child: Row(
                   children: [
                     Expanded(child: Text(_receivedAt.formatShort())),

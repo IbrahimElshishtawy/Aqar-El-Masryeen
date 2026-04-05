@@ -24,8 +24,11 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
   late final TextEditingController _areaController;
   late final TextEditingController _customerNameController;
   late final TextEditingController _customerPhoneController;
-  late final TextEditingController _totalPriceController;
+  late final TextEditingController _saleAmountController;
+  late final TextEditingController _contractAmountController;
   late final TextEditingController _downPaymentController;
+  late final TextEditingController _installmentScheduleCountController;
+  late final TextEditingController _notesController;
   late UnitType _unitType;
   late UnitStatus _status;
   late PaymentPlanType _paymentPlanType;
@@ -37,23 +40,26 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     final unit = widget.unit;
     _unitController = TextEditingController(text: unit?.unitNumber ?? '');
     _floorController = TextEditingController(
-      text: unit == null ? '' : unit.floor.toString(),
+      text: unit == null ? '' : '${unit.floor}',
     );
     _areaController = TextEditingController(
       text: unit == null ? '' : unit.area.toStringAsFixed(0),
     );
-    _customerNameController = TextEditingController(
-      text: unit?.customerName ?? '',
+    _customerNameController = TextEditingController(text: unit?.customerName ?? '');
+    _customerPhoneController = TextEditingController(text: unit?.customerPhone ?? '');
+    _saleAmountController = TextEditingController(
+      text: unit == null ? '' : unit.saleAmount.toStringAsFixed(0),
     );
-    _customerPhoneController = TextEditingController(
-      text: unit?.customerPhone ?? '',
-    );
-    _totalPriceController = TextEditingController(
-      text: unit == null ? '' : unit.totalPrice.toStringAsFixed(0),
+    _contractAmountController = TextEditingController(
+      text: unit == null ? '' : unit.contractAmount.toStringAsFixed(0),
     );
     _downPaymentController = TextEditingController(
       text: unit == null ? '' : unit.downPayment.toStringAsFixed(0),
     );
+    _installmentScheduleCountController = TextEditingController(
+      text: unit == null ? '' : '${unit.installmentScheduleCount}',
+    );
+    _notesController = TextEditingController(text: unit?.notes ?? '');
     _unitType = unit?.unitType ?? UnitType.apartment;
     _status = unit?.status ?? UnitStatus.available;
     _paymentPlanType = unit?.paymentPlanType ?? PaymentPlanType.installment;
@@ -66,8 +72,11 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     _areaController.dispose();
     _customerNameController.dispose();
     _customerPhoneController.dispose();
-    _totalPriceController.dispose();
+    _saleAmountController.dispose();
+    _contractAmountController.dispose();
     _downPaymentController.dispose();
+    _installmentScheduleCountController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -78,9 +87,12 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
 
     setState(() => _saving = true);
     final now = DateTime.now();
-    final totalPrice = double.tryParse(_totalPriceController.text.trim()) ?? 0;
+    final saleAmount = double.tryParse(_saleAmountController.text.trim()) ?? 0;
+    final contractAmount =
+        double.tryParse(_contractAmountController.text.trim()) ?? saleAmount;
     final downPayment =
         double.tryParse(_downPaymentController.text.trim()) ?? 0;
+
     final unit = UnitSale(
       id: widget.unit?.id ?? '',
       propertyId: widget.propertyId,
@@ -90,13 +102,19 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
       area: double.tryParse(_areaController.text.trim()) ?? 0,
       customerName: _customerNameController.text.trim(),
       customerPhone: _customerPhoneController.text.trim(),
-      totalPrice: totalPrice,
+      saleAmount: saleAmount,
+      totalPrice: contractAmount,
+      contractAmount: contractAmount,
       downPayment: downPayment,
-      remainingAmount: (totalPrice - downPayment)
-          .clamp(0, totalPrice)
+      remainingAmount: (contractAmount - downPayment)
+          .clamp(0, contractAmount)
           .toDouble(),
+      installmentScheduleCount:
+          int.tryParse(_installmentScheduleCountController.text.trim()) ?? 0,
       paymentPlanType: _paymentPlanType,
       status: _status,
+      notes: _notesController.text.trim(),
+      projectedCompletionDate: widget.unit?.projectedCompletionDate,
       createdAt: widget.unit?.createdAt ?? now,
       updatedAt: now,
       createdBy: widget.unit?.createdBy ?? session.userId,
@@ -104,20 +122,18 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     );
 
     await ref.read(salesRepositoryProvider).save(unit);
-    await ref
-        .read(activityRepositoryProvider)
-        .log(
-          actorId: session.userId,
-          actorName: session.profile?.name ?? 'شريك',
-          action: widget.unit == null ? 'unit_created' : 'unit_updated',
-          entityType: 'unit',
-          entityId: unit.id.isEmpty ? unit.unitNumber : unit.id,
-          metadata: {
-            'propertyId': widget.propertyId,
-            'totalPrice': unit.totalPrice,
-            'status': unit.status.name,
-          },
-        );
+    await ref.read(activityRepositoryProvider).log(
+      actorId: session.userId,
+      actorName: session.profile?.name ?? 'Partner',
+      action: widget.unit == null ? 'unit_created' : 'unit_updated',
+      entityType: 'unit',
+      entityId: unit.id.isEmpty ? unit.unitNumber : unit.id,
+      metadata: {
+        'propertyId': widget.propertyId,
+        'contractAmount': unit.contractAmount,
+        'status': unit.status.name,
+      },
+    );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -125,18 +141,16 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: widget.unit == null
-          ? 'إضافة وحدة أو عملية بيع'
-          : 'تعديل الوحدة أو البيع',
+      title: widget.unit == null ? 'Add Unit Sale' : 'Edit Unit Sale',
       child: Form(
         key: _formKey,
         child: Column(
           children: [
             TextFormField(
               controller: _unitController,
-              decoration: const InputDecoration(labelText: 'اسم أو رقم الوحدة'),
+              decoration: const InputDecoration(labelText: 'Unit number'),
               validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'أدخل اسم الوحدة.' : null,
+                  (value ?? '').trim().isEmpty ? 'Enter a unit number.' : null,
             ),
             const SizedBox(height: 12),
             Row(
@@ -145,7 +159,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                   child: TextFormField(
                     controller: _floorController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'الدور'),
+                    decoration: const InputDecoration(labelText: 'Floor'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -155,7 +169,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'المساحة م²'),
+                    decoration: const InputDecoration(labelText: 'Area (sqm)'),
                   ),
                 ),
               ],
@@ -171,34 +185,32 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                   .toList(),
               onChanged: (value) =>
                   setState(() => _unitType = value ?? _unitType),
-              decoration: const InputDecoration(labelText: 'نوع الوحدة'),
+              decoration: const InputDecoration(labelText: 'Unit type'),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _customerNameController,
-              decoration: const InputDecoration(labelText: 'اسم العميل'),
+              decoration: const InputDecoration(labelText: 'Customer name'),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _customerPhoneController,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'هاتف العميل'),
+              decoration: const InputDecoration(labelText: 'Customer phone'),
             ),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: TextFormField(
-                    controller: _totalPriceController,
+                    controller: _saleAmountController,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'السعر الإجمالي',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Sale amount'),
                     validator: (value) {
                       if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'أدخل السعر.';
+                        return 'Enter sale amount.';
                       }
                       return null;
                     },
@@ -207,11 +219,43 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
+                    controller: _contractAmountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(
+                      labelText: 'Contract amount',
+                    ),
+                    validator: (value) {
+                      if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
+                        return 'Enter contract amount.';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
                     controller: _downPaymentController,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'المقدم'),
+                    decoration: const InputDecoration(labelText: 'Down payment'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextFormField(
+                    controller: _installmentScheduleCountController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Schedule count',
+                    ),
                   ),
                 ),
               ],
@@ -227,7 +271,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                   .toList(),
               onChanged: (value) =>
                   setState(() => _paymentPlanType = value ?? _paymentPlanType),
-              decoration: const InputDecoration(labelText: 'نظام السداد'),
+              decoration: const InputDecoration(labelText: 'Payment plan'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<UnitStatus>(
@@ -239,14 +283,21 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                   )
                   .toList(),
               onChanged: (value) => setState(() => _status = value ?? _status),
-              decoration: const InputDecoration(labelText: 'الحالة'),
+              decoration: const InputDecoration(labelText: 'Status'),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _notesController,
+              minLines: 2,
+              maxLines: 4,
+              decoration: const InputDecoration(labelText: 'Notes'),
             ),
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'جار الحفظ...' : 'حفظ الوحدة'),
+                child: Text(_saving ? 'Saving...' : 'Save unit sale'),
               ),
             ),
           ],

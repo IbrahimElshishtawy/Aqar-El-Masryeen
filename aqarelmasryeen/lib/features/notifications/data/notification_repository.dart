@@ -39,8 +39,11 @@ class NotificationRepository {
     required String body,
     required NotificationType type,
     required String route,
+    String? referenceKey,
   }) {
-    final id = _uuid.v4();
+    final id = referenceKey?.trim().isNotEmpty == true
+        ? referenceKey!.trim()
+        : _uuid.v4();
     if (AppConfig.useMockData) {
       return MockWorkspaceStore.instance.createNotification(
         AppNotificationItem(
@@ -52,6 +55,7 @@ class NotificationRepository {
           route: route,
           isRead: false,
           createdAt: DateTime.now(),
+          referenceKey: referenceKey ?? '',
         ),
       );
     }
@@ -63,6 +67,7 @@ class NotificationRepository {
       'route': route,
       'isRead': false,
       'createdAt': DateTime.now(),
+      'referenceKey': referenceKey ?? '',
     });
   }
 

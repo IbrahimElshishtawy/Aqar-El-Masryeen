@@ -66,6 +66,36 @@ class PropertyProject {
       archived: data['archived'] as bool? ?? false,
     );
   }
+
+  PropertyProject copyWith({
+    String? id,
+    String? name,
+    String? location,
+    String? description,
+    PropertyStatus? status,
+    double? totalBudget,
+    double? totalSalesTarget,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? createdBy,
+    String? updatedBy,
+    bool? archived,
+  }) {
+    return PropertyProject(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      location: location ?? this.location,
+      description: description ?? this.description,
+      status: status ?? this.status,
+      totalBudget: totalBudget ?? this.totalBudget,
+      totalSalesTarget: totalSalesTarget ?? this.totalSalesTarget,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdBy: createdBy ?? this.createdBy,
+      updatedBy: updatedBy ?? this.updatedBy,
+      archived: archived ?? this.archived,
+    );
+  }
 }
 
 class UnitSale {
@@ -78,15 +108,20 @@ class UnitSale {
     required this.area,
     required this.customerName,
     required this.customerPhone,
+    required this.saleAmount,
     required this.totalPrice,
+    required this.contractAmount,
     required this.downPayment,
     required this.remainingAmount,
+    required this.installmentScheduleCount,
     required this.paymentPlanType,
     required this.status,
     required this.createdAt,
     required this.updatedAt,
     required this.createdBy,
     required this.updatedBy,
+    this.notes = '',
+    this.projectedCompletionDate,
   });
 
   final String id;
@@ -97,15 +132,20 @@ class UnitSale {
   final double area;
   final String customerName;
   final String customerPhone;
+  final double saleAmount;
   final double totalPrice;
+  final double contractAmount;
   final double downPayment;
   final double remainingAmount;
+  final int installmentScheduleCount;
   final PaymentPlanType paymentPlanType;
   final UnitStatus status;
   final DateTime createdAt;
   final DateTime updatedAt;
   final String createdBy;
   final String updatedBy;
+  final String notes;
+  final DateTime? projectedCompletionDate;
 
   Map<String, dynamic> toMap() {
     return {
@@ -116,11 +156,16 @@ class UnitSale {
       'area': area,
       'customerName': customerName,
       'customerPhone': customerPhone,
+      'saleAmount': saleAmount,
       'totalPrice': totalPrice,
+      'contractAmount': contractAmount,
       'downPayment': downPayment,
       'remainingAmount': remainingAmount,
+      'installmentScheduleCount': installmentScheduleCount,
       'paymentPlanType': paymentPlanType.name,
       'status': status.name,
+      'notes': notes,
+      'projectedCompletionDate': projectedCompletionDate,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'createdBy': createdBy,
@@ -130,6 +175,20 @@ class UnitSale {
 
   factory UnitSale.fromMap(String id, Map<String, dynamic>? map) {
     final data = map ?? <String, dynamic>{};
+    final fallbackSaleAmount = parseDouble(
+      data['saleAmount'] ?? data['totalPrice'],
+    );
+    final contractAmount = parseDouble(
+      data['contractAmount'] ?? data['totalPrice'] ?? data['saleAmount'],
+    );
+    final downPayment = parseDouble(data['downPayment']);
+    final remainingAmount = parseDouble(
+      data['remainingAmount'],
+      fallback: (contractAmount - downPayment)
+          .clamp(0, contractAmount)
+          .toDouble(),
+    );
+
     return UnitSale(
       id: id,
       propertyId: data['propertyId'] as String? ?? '',
@@ -142,9 +201,12 @@ class UnitSale {
       area: parseDouble(data['area']),
       customerName: data['customerName'] as String? ?? '',
       customerPhone: data['customerPhone'] as String? ?? '',
-      totalPrice: parseDouble(data['totalPrice']),
-      downPayment: parseDouble(data['downPayment']),
-      remainingAmount: parseDouble(data['remainingAmount']),
+      saleAmount: fallbackSaleAmount,
+      totalPrice: parseDouble(data['totalPrice'], fallback: contractAmount),
+      contractAmount: contractAmount,
+      downPayment: downPayment,
+      remainingAmount: remainingAmount,
+      installmentScheduleCount: parseInt(data['installmentScheduleCount']),
       paymentPlanType: PaymentPlanType.values.firstWhere(
         (value) => value.name == data['paymentPlanType'],
         orElse: () => PaymentPlanType.installment,
@@ -153,10 +215,66 @@ class UnitSale {
         (value) => value.name == data['status'],
         orElse: () => UnitStatus.available,
       ),
+      notes: data['notes'] as String? ?? '',
+      projectedCompletionDate: data['projectedCompletionDate'] == null
+          ? null
+          : parseDate(data['projectedCompletionDate']),
       createdAt: parseDate(data['createdAt']),
       updatedAt: parseDate(data['updatedAt']),
       createdBy: data['createdBy'] as String? ?? '',
       updatedBy: data['updatedBy'] as String? ?? '',
+    );
+  }
+
+  UnitSale copyWith({
+    String? id,
+    String? propertyId,
+    String? unitNumber,
+    int? floor,
+    UnitType? unitType,
+    double? area,
+    String? customerName,
+    String? customerPhone,
+    double? saleAmount,
+    double? totalPrice,
+    double? contractAmount,
+    double? downPayment,
+    double? remainingAmount,
+    int? installmentScheduleCount,
+    PaymentPlanType? paymentPlanType,
+    UnitStatus? status,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? createdBy,
+    String? updatedBy,
+    String? notes,
+    DateTime? projectedCompletionDate,
+  }) {
+    return UnitSale(
+      id: id ?? this.id,
+      propertyId: propertyId ?? this.propertyId,
+      unitNumber: unitNumber ?? this.unitNumber,
+      floor: floor ?? this.floor,
+      unitType: unitType ?? this.unitType,
+      area: area ?? this.area,
+      customerName: customerName ?? this.customerName,
+      customerPhone: customerPhone ?? this.customerPhone,
+      saleAmount: saleAmount ?? this.saleAmount,
+      totalPrice: totalPrice ?? this.totalPrice,
+      contractAmount: contractAmount ?? this.contractAmount,
+      downPayment: downPayment ?? this.downPayment,
+      remainingAmount: remainingAmount ?? this.remainingAmount,
+      installmentScheduleCount:
+          installmentScheduleCount ?? this.installmentScheduleCount,
+      paymentPlanType: paymentPlanType ?? this.paymentPlanType,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      createdBy: createdBy ?? this.createdBy,
+      updatedBy: updatedBy ?? this.updatedBy,
+      notes: notes ?? this.notes,
+      projectedCompletionDate:
+          projectedCompletionDate ?? this.projectedCompletionDate,
     );
   }
 }

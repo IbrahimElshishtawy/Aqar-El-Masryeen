@@ -43,6 +43,26 @@ class Partner {
       updatedAt: parseDate(data['updatedAt']),
     );
   }
+
+  Partner copyWith({
+    String? id,
+    String? userId,
+    String? name,
+    double? shareRatio,
+    double? contributionTotal,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return Partner(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      name: name ?? this.name,
+      shareRatio: shareRatio ?? this.shareRatio,
+      contributionTotal: contributionTotal ?? this.contributionTotal,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }
 
 class ActivityLogEntry {
@@ -103,6 +123,7 @@ class AppNotificationItem {
     required this.route,
     required this.isRead,
     required this.createdAt,
+    this.referenceKey = '',
   });
 
   final String id;
@@ -113,6 +134,20 @@ class AppNotificationItem {
   final String route;
   final bool isRead;
   final DateTime createdAt;
+  final String referenceKey;
+
+  Map<String, dynamic> toMap() {
+    return {
+      'userId': userId,
+      'title': title,
+      'body': body,
+      'type': type.name,
+      'route': route,
+      'isRead': isRead,
+      'createdAt': createdAt,
+      'referenceKey': referenceKey,
+    };
+  }
 
   factory AppNotificationItem.fromMap(String id, Map<String, dynamic>? map) {
     final data = map ?? <String, dynamic>{};
@@ -128,6 +163,31 @@ class AppNotificationItem {
       route: data['route'] as String? ?? '',
       isRead: data['isRead'] as bool? ?? false,
       createdAt: parseDate(data['createdAt']),
+      referenceKey: data['referenceKey'] as String? ?? '',
+    );
+  }
+
+  AppNotificationItem copyWith({
+    String? id,
+    String? userId,
+    String? title,
+    String? body,
+    NotificationType? type,
+    String? route,
+    bool? isRead,
+    DateTime? createdAt,
+    String? referenceKey,
+  }) {
+    return AppNotificationItem(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      type: type ?? this.type,
+      route: route ?? this.route,
+      isRead: isRead ?? this.isRead,
+      createdAt: createdAt ?? this.createdAt,
+      referenceKey: referenceKey ?? this.referenceKey,
     );
   }
 }

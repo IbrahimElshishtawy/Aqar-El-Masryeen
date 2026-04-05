@@ -163,10 +163,24 @@ class FirebaseMessagingService {
     final notification = message.notification;
     if (notification == null) return;
 
-    await _localNotifications.show(
+    await showLocalAlert(
       id: notification.hashCode,
-      title: notification.title,
-      body: notification.body,
+      title: notification.title ?? '',
+      body: notification.body ?? '',
+      payload: message.data['payload'] as String?,
+    );
+  }
+
+  Future<void> showLocalAlert({
+    required int id,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    await _localNotifications.show(
+      id: id,
+      title: title,
+      body: body,
       notificationDetails: const NotificationDetails(
         android: AndroidNotificationDetails(
           AppConfig.notificationChannelId,
@@ -181,7 +195,7 @@ class FirebaseMessagingService {
           presentSound: true,
         ),
       ),
-      payload: message.data['payload'] as String?,
+      payload: payload,
     );
   }
 }

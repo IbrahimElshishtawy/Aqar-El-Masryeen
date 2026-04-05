@@ -61,11 +61,16 @@ class SalesRepository {
           area: unit.area,
           customerName: unit.customerName,
           customerPhone: unit.customerPhone,
+          saleAmount: unit.saleAmount,
           totalPrice: unit.totalPrice,
+          contractAmount: unit.contractAmount,
           downPayment: unit.downPayment,
           remainingAmount: unit.remainingAmount,
+          installmentScheduleCount: unit.installmentScheduleCount,
           paymentPlanType: unit.paymentPlanType,
           status: unit.status,
+          notes: unit.notes,
+          projectedCompletionDate: unit.projectedCompletionDate,
           createdAt: unit.createdAt,
           updatedAt: DateTime.now(),
           createdBy: unit.createdBy,
@@ -82,6 +87,14 @@ class SalesRepository {
           SetOptions(merge: true),
         );
     return id;
+  }
+
+  Future<void> delete(String unitId) async {
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.deleteUnit(unitId);
+    }
+
+    return _firestore.collection(FirestorePaths.units).doc(unitId).delete();
   }
 }
 
