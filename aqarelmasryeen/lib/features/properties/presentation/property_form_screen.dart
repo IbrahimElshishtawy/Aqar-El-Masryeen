@@ -1,4 +1,5 @@
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
+import 'package:aqarelmasryeen/core/widgets/app_top_bar.dart';
 import 'package:aqarelmasryeen/core/widgets/async_value_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
@@ -40,7 +41,9 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
   }
 
   void _hydrate(PropertyProject property) {
-    if (_prefilled) return;
+    if (_prefilled) {
+      return;
+    }
     _prefilled = true;
     _nameController.text = property.name;
     _locationController.text = property.location;
@@ -51,10 +54,15 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
   }
 
   Future<void> _save(PropertyProject? existing) async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     setState(() => _saving = true);
     final session = ref.read(authSessionProvider).value;
-    if (session == null) return;
+    if (session == null) {
+      return;
+    }
 
     final property = PropertyProject(
       id: existing?.id ?? '',
@@ -71,20 +79,16 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       archived: false,
     );
 
-    final propertyId = await ref
-        .read(propertyRepositoryProvider)
-        .save(property);
-    await ref
-        .read(activityRepositoryProvider)
-        .log(
-          actorId: session.userId,
-          actorName:
-              ref.read(authSessionProvider).value?.profile?.name ?? 'شريك',
-          action: existing == null ? 'property_created' : 'property_updated',
-          entityType: 'property',
-          entityId: propertyId,
-          metadata: {'name': property.name, 'status': property.status.label},
-        );
+    final propertyId = await ref.read(propertyRepositoryProvider).save(property);
+    await ref.read(activityRepositoryProvider).log(
+      actorId: session.userId,
+      actorName: ref.read(authSessionProvider).value?.profile?.name ?? 'شريك',
+      action: existing == null ? 'property_created' : 'property_updated',
+      entityType: 'property',
+      entityId: propertyId,
+      metadata: {'name': property.name, 'status': property.status.label},
+    );
+
     if (mounted) {
       setState(() => _saving = false);
       context.go(AppRoutes.propertyDetails(propertyId));
@@ -104,8 +108,9 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
           );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.propertyId == null ? 'إضافة عقار' : 'تعديل العقار'),
+      appBar: AppTopBar(
+        title: widget.propertyId == null ? 'إضافة مشروع' : 'تعديل المشروع',
+        subtitle: 'البيانات الأساسية والميزانية المستهدفة',
       ),
       body: SafeArea(
         child: AsyncValueView<PropertyProject?>(
@@ -130,7 +135,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                             labelText: 'اسم المشروع',
                           ),
                           validator: (value) => (value ?? '').trim().isEmpty
-                              ? 'أدخل اسم العقار.'
+                              ? 'أدخل اسم المشروع.'
                               : null,
                         ),
                         const SizedBox(height: 14),
@@ -196,7 +201,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                               _saving
                                   ? 'جار الحفظ...'
                                   : widget.propertyId == null
-                                  ? 'إنشاء العقار'
+                                  ? 'إنشاء المشروع'
                                   : 'حفظ التعديلات',
                             ),
                           ),

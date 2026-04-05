@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/widgets/app_top_bar.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
 import 'package:flutter/material.dart';
@@ -23,7 +24,10 @@ class NotificationsCenterScreen extends ConsumerWidget {
     final notifications = ref.watch(userNotificationsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('التنبيهات')),
+      appBar: const AppTopBar(
+        title: 'مركز التنبيهات',
+        subtitle: 'آخر الإشعارات والتنبيهات المالية',
+      ),
       body: notifications.when(
         data: (items) {
           if (items.isEmpty) {
@@ -48,7 +52,9 @@ class NotificationsCenterScreen extends ConsumerWidget {
                     await ref
                         .read(notificationRepositoryProvider)
                         .markRead(item.id);
-                    if (context.mounted) context.go(item.route);
+                    if (context.mounted) {
+                      context.go(item.route);
+                    }
                   },
                 ),
               );

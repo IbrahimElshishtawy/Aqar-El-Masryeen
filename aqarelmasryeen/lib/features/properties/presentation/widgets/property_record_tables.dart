@@ -104,11 +104,11 @@ class PropertyExpensesTable extends StatelessWidget {
     required this.onAdd,
     required this.onEdit,
     required this.onDelete,
-    this.title = 'Expenses',
+    this.title = 'المصروفات',
     this.subtitle,
-    this.addLabel = 'Add expense',
-    this.emptyLabel = 'No expenses yet',
-    this.emptyActionLabel = 'Create expense',
+    this.addLabel = 'إضافة مصروف',
+    this.emptyLabel = 'لا توجد مصروفات بعد',
+    this.emptyActionLabel = 'إضافة مصروف',
   });
 
   final List<ExpenseRecord> expenses;
@@ -127,8 +127,7 @@ class PropertyExpensesTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppPanel(
       title: title,
-      subtitle:
-          subtitle ?? '${expenses.length} record(s) - Total ${totalAmount.egp}',
+      subtitle: subtitle ?? '${expenses.length} سجل - الإجمالي ${totalAmount.egp}',
       trailing: FilledButton.icon(
         onPressed: onAdd,
         icon: const Icon(Icons.add),
@@ -158,12 +157,12 @@ class PropertyExpensesTable extends StatelessWidget {
                 dataRowMaxHeight: 74,
                 columnSpacing: 18,
                 columns: const [
-                  DataColumn(label: Text('Date')),
-                  DataColumn(label: Text('Title')),
-                  DataColumn(label: Text('Amount')),
-                  DataColumn(label: Text('Paid by')),
-                  DataColumn(label: Text('Notes')),
-                  DataColumn(label: Text('Actions')),
+                  DataColumn(label: Text('التاريخ')),
+                  DataColumn(label: Text('البيان')),
+                  DataColumn(label: Text('المبلغ')),
+                  DataColumn(label: Text('المدفوع بواسطة')),
+                  DataColumn(label: Text('الملاحظات')),
+                  DataColumn(label: Text('الإجراءات')),
                 ],
                 rows: [
                   for (final expense in expenses)
@@ -241,11 +240,11 @@ class PropertyPaymentsTable extends StatelessWidget {
     required this.onAdd,
     required this.onEdit,
     required this.onDelete,
-    this.title = 'Sales',
+    this.title = 'التحصيلات',
     this.subtitle,
-    this.addLabel = 'Add sale',
-    this.emptyLabel = 'No sales yet',
-    this.emptyActionLabel = 'Create sale',
+    this.addLabel = 'إضافة تحصيل',
+    this.emptyLabel = 'لا توجد تحصيلات بعد',
+    this.emptyActionLabel = 'إضافة تحصيل',
   });
 
   final List<PaymentRecord> payments;
@@ -263,8 +262,7 @@ class PropertyPaymentsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppPanel(
       title: title,
-      subtitle:
-          subtitle ?? '${payments.length} record(s) - Total ${totalAmount.egp}',
+      subtitle: subtitle ?? '${payments.length} سجل - الإجمالي ${totalAmount.egp}',
       trailing: FilledButton.icon(
         onPressed: onAdd,
         icon: const Icon(Icons.add),
@@ -294,12 +292,12 @@ class PropertyPaymentsTable extends StatelessWidget {
                 dataRowMaxHeight: 74,
                 columnSpacing: 18,
                 columns: const [
-                  DataColumn(label: Text('Date')),
-                  DataColumn(label: Text('Customer / Unit')),
-                  DataColumn(label: Text('Amount')),
-                  DataColumn(label: Text('Method')),
-                  DataColumn(label: Text('Notes')),
-                  DataColumn(label: Text('Actions')),
+                  DataColumn(label: Text('التاريخ')),
+                  DataColumn(label: Text('العميل / الوحدة')),
+                  DataColumn(label: Text('المبلغ')),
+                  DataColumn(label: Text('الطريقة')),
+                  DataColumn(label: Text('الملاحظات')),
+                  DataColumn(label: Text('الإجراءات')),
                 ],
                 rows: [
                   for (final payment in payments)
@@ -311,9 +309,9 @@ class PropertyPaymentsTable extends StatelessWidget {
                             width: 220,
                             child: Text(
                               payment.customerName.trim().isNotEmpty
-                                  ? '${payment.customerName} - ${payment.unitId.isEmpty ? 'No unit' : payment.unitId}'
+                                  ? '${payment.customerName} - ${payment.unitId.isEmpty ? 'بدون وحدة' : payment.unitId}'
                                   : (payment.unitId.isEmpty
-                                        ? 'Direct payment'
+                                        ? 'تحصيل مباشر'
                                         : payment.unitId),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
