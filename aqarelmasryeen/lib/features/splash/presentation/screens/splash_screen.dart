@@ -33,13 +33,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       return;
     }
     try {
-      await ref.read(notificationServiceProvider).initialize(
-        onNotificationTap: (payload) {
-          if (mounted) {
-            context.go(payload.route);
-          }
-        },
-      );
+      await ref
+          .read(notificationServiceProvider)
+          .initialize(
+            onNotificationTap: (payload) {
+              if (mounted) {
+                context.go(payload.route);
+              }
+            },
+          );
     } catch (error, stackTrace) {
       debugPrint('Notification initialization failed on splash: $error');
       debugPrintStack(stackTrace: stackTrace, maxFrames: 6);
@@ -61,92 +63,73 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.primary.withValues(alpha: 0.18),
-              theme.scaffoldBackgroundColor,
-              theme.colorScheme.secondary.withValues(alpha: 0.10),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final height = constraints.maxHeight;
-              final isCompact = height < 700;
-              final isVeryCompact = height < 620;
-              final screenPadding = isVeryCompact ? 16.0 : 24.0;
-              final logoSize = isVeryCompact ? 72.0 : 88.0;
-              final logoRadius = isVeryCompact ? 22.0 : 28.0;
-              final logoIconSize = isVeryCompact ? 34.0 : 40.0;
-              final largeSpacing = isCompact ? 14.0 : 20.0;
-              final smallSpacing = isCompact ? 6.0 : 8.0;
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxHeight < 700;
+            final plateSize = isCompact ? 176.0 : 196.0;
+            final spacing = isCompact ? 18.0 : 24.0;
 
-              return SingleChildScrollView(
-                padding: EdgeInsets.all(screenPadding),
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 420),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: logoSize,
-                          height: logoSize,
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.12,
-                            ),
-                            borderRadius: BorderRadius.circular(logoRadius),
-                          ),
-                          child: Icon(
-                            Icons.account_balance_wallet_outlined,
-                            size: logoIconSize,
-                            color: theme.colorScheme.primary,
-                          ),
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 360),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: plateSize,
+                        height: plateSize,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(34),
+                          border: Border.all(color: const Color(0xFFD8D8D2)),
                         ),
-                        SizedBox(height: largeSpacing),
-                        Text(
-                          AppConfig.appName,
+                        padding: const EdgeInsets.all(16),
+                        child: Image.asset(
+                          'assets/image/Apar.jpg',
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                      SizedBox(height: spacing),
+                      Text(
+                        AppConfig.appName,
+                        textAlign: TextAlign.center,
+                        style:
+                            (isCompact
+                                    ? theme.textTheme.titleMedium
+                                    : theme.textTheme.titleLarge)
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 16),
+                      decision.when(
+                        data: (decision) {
+                          _scheduleNavigation(decision.route);
+                          return const SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(strokeWidth: 2.4),
+                          );
+                        },
+                        loading: () => const SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(strokeWidth: 2.4),
+                        ),
+                        error: (error, stackTrace) => Text(
+                          error.toString(),
                           textAlign: TextAlign.center,
-                          style:
-                              (isCompact
-                                      ? theme.textTheme.titleLarge
-                                      : theme.textTheme.headlineSmall)
-                                  ?.copyWith(fontWeight: FontWeight.w800),
+                          style: theme.textTheme.bodyMedium,
                         ),
-                        SizedBox(height: smallSpacing),
-                        Text(
-                          'مساحة عمل آمنة لإدارة الحسابات العقارية',
-                          textAlign: TextAlign.center,
-                          style: isCompact
-                              ? theme.textTheme.bodyMedium
-                              : theme.textTheme.bodyLarge,
-                        ),
-                        SizedBox(height: largeSpacing),
-                        decision.when(
-                          data: (decision) {
-                            _scheduleNavigation(decision.route);
-                            return const CircularProgressIndicator();
-                          },
-                          loading: () => const CircularProgressIndicator(),
-                          error: (error, stackTrace) => Text(
-                            error.toString(),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

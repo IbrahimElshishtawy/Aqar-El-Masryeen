@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="splash_background">#F7F1E5</color>
+    <color name="splash_background">#F6F6F3</color>
     <color name="splash_surface">#FFFFFFFF</color>
-    <color name="splash_surface_stroke">#1F2E5FA5</color>
-    <color name="splash_text">#123B72</color>
+    <color name="splash_surface_stroke">#1AD8D8D2</color>
+    <color name="splash_text">#666662</color>
 </resources>

@@ -3,14 +3,14 @@
     <item android:drawable="@color/splash_background" />
 
     <item
-        android:width="220dp"
-        android:height="220dp"
+        android:width="212dp"
+        android:height="212dp"
         android:gravity="center"
         android:drawable="@drawable/splash_logo_plate" />
 
     <item
-        android:width="176dp"
-        android:height="176dp"
+        android:width="168dp"
+        android:height="168dp"
         android:gravity="center"
         android:drawable="@mipmap/ic_launcher" />
 </layer-list>
