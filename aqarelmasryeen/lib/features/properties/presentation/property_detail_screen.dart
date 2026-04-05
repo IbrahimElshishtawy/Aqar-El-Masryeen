@@ -1,7 +1,6 @@
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
-import 'package:aqarelmasryeen/core/widgets/summary_card.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/expense_form_sheet.dart';
@@ -11,7 +10,6 @@ import 'package:aqarelmasryeen/features/payments/presentation/payment_form_sheet
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_record_tables.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
-import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
@@ -37,8 +35,6 @@ final propertyPartnersProvider = StreamProvider.autoDispose<List<Partner>>(
   (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
 );
 
-enum _PropertySection { expenses, payments }
-
 class PropertyDetailScreen extends ConsumerStatefulWidget {
   const PropertyDetailScreen({super.key, required this.propertyId});
 
@@ -50,7 +46,17 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
-  _PropertySection _section = _PropertySection.expenses;
+  Future<void> _showRecordsSheet({
+    required String title,
+    required Widget child,
+  }) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => _PropertyRecordsSheet(title: title, child: child),
+    );
+  }
 
   Future<void> _showExpenseSheet({
     required List<Partner> partners,
@@ -68,6 +74,35 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     );
   }
 
+  Future<void> _showExpenseTableSheet({
+    required String title,
+    required List<ExpenseRecord> expenses,
+    required List<Partner> partners,
+    required Map<String, String> partnerNames,
+  }) {
+    final totalAmount = expenses.fold<double>(
+      0,
+      (sum, expense) => sum + expense.amount,
+    );
+    return _showRecordsSheet(
+      title: title,
+      child: PropertyExpensesTable(
+        title: title,
+        subtitle: '${expenses.length} سجل - الإجمالي ${totalAmount.egp}',
+        addLabel: 'إضافة مصروف',
+        emptyLabel: 'لا توجد مصاريف في هذا القسم',
+        emptyActionLabel: 'إضافة مصروف',
+        expenses: expenses,
+        partnerNames: partnerNames,
+        totalAmount: totalAmount,
+        onAdd: () => _showExpenseSheet(partners: partners),
+        onEdit: (expense) =>
+            _showExpenseSheet(partners: partners, expense: expense),
+        onDelete: _deleteExpense,
+      ),
+    );
+  }
+
   Future<void> _showPaymentSheet({PaymentRecord? payment}) {
     return showModalBottomSheet<void>(
       context: context,
@@ -75,6 +110,31 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       useSafeArea: true,
       builder: (context) =>
           PaymentFormSheet(propertyId: widget.propertyId, payment: payment),
+    );
+  }
+
+  Future<void> _showPaymentTableSheet({
+    required String title,
+    required List<PaymentRecord> payments,
+  }) {
+    final totalAmount = payments.fold<double>(
+      0,
+      (sum, payment) => sum + payment.amount,
+    );
+    return _showRecordsSheet(
+      title: title,
+      child: PropertyPaymentsTable(
+        title: title,
+        subtitle: '${payments.length} سجل - الإجمالي ${totalAmount.egp}',
+        addLabel: 'إضافة مبيعة',
+        emptyLabel: 'لا توجد مبيعات في هذا القسم',
+        emptyActionLabel: 'إضافة مبيعة',
+        payments: payments,
+        totalAmount: totalAmount,
+        onAdd: () => _showPaymentSheet(),
+        onEdit: (payment) => _showPaymentSheet(payment: payment),
+        onDelete: _deletePayment,
+      ),
     );
   }
 
@@ -156,6 +216,75 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         );
   }
 
+  Partner? _resolveCurrentPartner({
+    required List<Partner> partners,
+    required String? sessionUserId,
+    required String? profileName,
+  }) {
+    if (sessionUserId != null && sessionUserId.trim().isNotEmpty) {
+      for (final partner in partners) {
+        if (partner.userId == sessionUserId) {
+          return partner;
+        }
+      }
+    }
+
+    if (profileName != null && profileName.trim().isNotEmpty) {
+      final normalizedProfileName = profileName.trim().toLowerCase();
+      for (final partner in partners) {
+        if (partner.name.trim().toLowerCase() == normalizedProfileName) {
+          return partner;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  String _buildExpensePartnerLabel({
+    required List<Partner> partners,
+    required Partner? currentPartner,
+    required List<ExpenseRecord> expenses,
+  }) {
+    final otherPartnerIds = expenses
+        .map((expense) => expense.paidByPartnerId)
+        .where((id) => id.isNotEmpty && id != currentPartner?.id)
+        .toSet();
+    final otherPartners = partners
+        .where((partner) => otherPartnerIds.contains(partner.id))
+        .toList();
+
+    if (otherPartners.length == 1) {
+      return 'مصاريف ${otherPartners.first.name}';
+    }
+    if (otherPartners.length > 1) {
+      return 'مصاريف الشركاء';
+    }
+    return 'مصاريف الشريك';
+  }
+
+  String _buildPaymentPartnerLabel({
+    required List<Partner> partners,
+    required String? sessionUserId,
+    required List<PaymentRecord> payments,
+  }) {
+    final otherCreatorIds = payments
+        .map((payment) => payment.createdBy)
+        .where((id) => id.isNotEmpty && id != sessionUserId)
+        .toSet();
+    final otherPartners = partners
+        .where((partner) => otherCreatorIds.contains(partner.userId))
+        .toList();
+
+    if (otherPartners.length == 1) {
+      return 'مبيعات ${otherPartners.first.name}';
+    }
+    if (otherPartners.length > 1) {
+      return 'مبيعات الشركاء';
+    }
+    return 'مبيعات الشريك';
+  }
+
   @override
   Widget build(BuildContext context) {
     final propertyAsync = ref.watch(propertyDetailsProvider(widget.propertyId));
@@ -166,6 +295,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       propertyPaymentsProvider(widget.propertyId),
     );
     final partnersAsync = ref.watch(propertyPartnersProvider);
+    final session = ref.watch(authSessionProvider).valueOrNull;
 
     if (propertyAsync.hasError ||
         expensesAsync.hasError ||
@@ -226,98 +356,178 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       0,
       (sum, payment) => sum + payment.amount,
     );
+    final currentPartner = _resolveCurrentPartner(
+      partners: partners,
+      sessionUserId: session?.userId,
+      profileName: session?.profile?.name,
+    );
+    final myExpenses = currentPartner != null
+        ? expenses
+              .where((expense) => expense.paidByPartnerId == currentPartner.id)
+              .toList()
+        : session == null
+        ? <ExpenseRecord>[]
+        : expenses
+              .where((expense) => expense.createdBy == session.userId)
+              .toList();
+    final partnerExpenses = currentPartner != null
+        ? expenses
+              .where((expense) => expense.paidByPartnerId != currentPartner.id)
+              .toList()
+        : session == null
+        ? expenses
+        : expenses
+              .where((expense) => expense.createdBy != session.userId)
+              .toList();
+    final myPayments = session == null
+        ? <PaymentRecord>[]
+        : payments
+              .where((payment) => payment.createdBy == session.userId)
+              .toList();
+    final partnerPayments = session == null
+        ? payments
+        : payments
+              .where((payment) => payment.createdBy != session.userId)
+              .toList();
+    final myExpensesTotal = myExpenses.fold<double>(
+      0,
+      (sum, expense) => sum + expense.amount,
+    );
+    final partnerExpensesTotal = partnerExpenses.fold<double>(
+      0,
+      (sum, expense) => sum + expense.amount,
+    );
+    final myPaymentsTotal = myPayments.fold<double>(
+      0,
+      (sum, payment) => sum + payment.amount,
+    );
+    final partnerPaymentsTotal = partnerPayments.fold<double>(
+      0,
+      (sum, payment) => sum + payment.amount,
+    );
+    final partnerExpensesLabel = _buildExpensePartnerLabel(
+      partners: partners,
+      currentPartner: currentPartner,
+      expenses: partnerExpenses,
+    );
+    final partnerPaymentsLabel = _buildPaymentPartnerLabel(
+      partners: partners,
+      sessionUserId: session?.userId,
+      payments: partnerPayments,
+    );
 
     return AppShellScaffold(
       title: property.name,
       subtitle: property.location,
       currentIndex: 1,
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: Column(
-              children: [
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isWide = constraints.maxWidth >= 680;
-                    return GridView.count(
-                      physics: const NeverScrollableScrollPhysics(),
-                      shrinkWrap: true,
-                      crossAxisCount: isWide ? 3 : 1,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                      childAspectRatio: isWide ? 1.55 : 2.25,
-                      children: [
-                        SummaryCard(
-                          label: 'Status',
-                          value: property.status.label,
-                          subtitle: property.location,
-                          icon: Icons.apartment_rounded,
-                          emphasis: true,
-                        ),
-                        SummaryCard(
-                          label: 'Expenses',
-                          value: totalExpenses.egp,
-                          subtitle: '${expenses.length} record(s)',
-                          icon: Icons.north_east_rounded,
-                        ),
-                        SummaryCard(
-                          label: 'Payments',
-                          value: totalPayments.egp,
-                          subtitle: '${payments.length} record(s)',
-                          icon: Icons.south_west_rounded,
-                        ),
-                      ],
-                    );
-                  },
-                ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final showSideBySide = constraints.maxWidth >= 980;
+
+          final paymentsOverview = PropertyRecordsOverviewPanel(
+            title: 'المبيعات',
+            subtitle: '${payments.length} سجل - الإجمالي ${totalPayments.egp}',
+            addLabel: 'إضافة مبيعة',
+            onAdd: () => _showPaymentSheet(),
+            primaryLabel: 'مبيعاتي',
+            primaryCount: myPayments.length,
+            primaryTotal: myPaymentsTotal,
+            onOpenPrimary: () =>
+                _showPaymentTableSheet(title: 'مبيعاتي', payments: myPayments),
+            secondaryLabel: partnerPaymentsLabel,
+            secondaryCount: partnerPayments.length,
+            secondaryTotal: partnerPaymentsTotal,
+            onOpenSecondary: () => _showPaymentTableSheet(
+              title: partnerPaymentsLabel,
+              payments: partnerPayments,
+            ),
+            icon: Icons.point_of_sale_outlined,
+          );
+          final expensesOverview = PropertyRecordsOverviewPanel(
+            title: 'المصاريف',
+            subtitle: '${expenses.length} سجل - الإجمالي ${totalExpenses.egp}',
+            addLabel: 'إضافة مصروف',
+            onAdd: () => _showExpenseSheet(partners: partners),
+            primaryLabel: 'مصاريفي',
+            primaryCount: myExpenses.length,
+            primaryTotal: myExpensesTotal,
+            onOpenPrimary: () => _showExpenseTableSheet(
+              title: 'مصاريفي',
+              expenses: myExpenses,
+              partners: partners,
+              partnerNames: partnerNames,
+            ),
+            secondaryLabel: partnerExpensesLabel,
+            secondaryCount: partnerExpenses.length,
+            secondaryTotal: partnerExpensesTotal,
+            onOpenSecondary: () => _showExpenseTableSheet(
+              title: partnerExpensesLabel,
+              expenses: partnerExpenses,
+              partners: partners,
+              partnerNames: partnerNames,
+            ),
+            icon: Icons.receipt_long_outlined,
+          );
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            children: [
+              if (showSideBySide)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: paymentsOverview),
+                    const SizedBox(width: 12),
+                    Expanded(child: expensesOverview),
+                  ],
+                )
+              else ...[
+                paymentsOverview,
                 const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: SegmentedButton<_PropertySection>(
-                    segments: const [
-                      ButtonSegment(
-                        value: _PropertySection.expenses,
-                        label: Text('Expenses'),
-                      ),
-                      ButtonSegment(
-                        value: _PropertySection.payments,
-                        label: Text('Payments'),
-                      ),
-                    ],
-                    selected: {_section},
-                    onSelectionChanged: (value) {
-                      setState(() => _section = value.first);
-                    },
+                expensesOverview,
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PropertyRecordsSheet extends StatelessWidget {
+  const _PropertyRecordsSheet({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      heightFactor: 0.92,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close),
                 ),
               ],
             ),
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-              children: [
-                if (_section == _PropertySection.expenses)
-                  PropertyExpensesTable(
-                    expenses: expenses,
-                    partnerNames: partnerNames,
-                    onAdd: () => _showExpenseSheet(partners: partners),
-                    onEdit: (expense) =>
-                        _showExpenseSheet(partners: partners, expense: expense),
-                    onDelete: _deleteExpense,
-                  )
-                else
-                  PropertyPaymentsTable(
-                    payments: payments,
-                    onAdd: () => _showPaymentSheet(),
-                    onEdit: (payment) => _showPaymentSheet(payment: payment),
-                    onDelete: _deletePayment,
-                  ),
-              ],
-            ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Expanded(child: ListView(children: [child])),
+          ],
+        ),
       ),
     );
   }

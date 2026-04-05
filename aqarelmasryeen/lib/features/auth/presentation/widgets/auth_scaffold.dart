@@ -93,38 +93,31 @@ class AuthScaffold extends StatelessWidget {
                       ),
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: constraints.maxHeight - bottomPadding,
-                        ),
-                        child: Align(
-                          alignment: isCompact
-                              ? Alignment.topCenter
-                              : Alignment.center,
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 480),
-                            child: Card(
-                              child: Padding(
-                                padding: EdgeInsets.all(cardPadding),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (leading != null) ...[
-                                      leading!,
-                                      SizedBox(height: leadingSpacing),
-                                    ],
-                                    Text(title, style: titleStyle),
-                                    SizedBox(height: subtitleSpacing),
-                                    Text(subtitle, style: subtitleStyle),
-                                    SizedBox(height: sectionSpacing),
-                                    child,
-                                    if (footer != null) ...[
-                                      SizedBox(height: footerSpacing),
-                                      footer!,
-                                    ],
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 480),
+                          child: Card(
+                            child: Padding(
+                              padding: EdgeInsets.all(cardPadding),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (leading != null) ...[
+                                    leading!,
+                                    SizedBox(height: leadingSpacing),
                                   ],
-                                ),
+                                  Text(title, style: titleStyle),
+                                  SizedBox(height: subtitleSpacing),
+                                  Text(subtitle, style: subtitleStyle),
+                                  SizedBox(height: sectionSpacing),
+                                  child,
+                                  if (footer != null) ...[
+                                    SizedBox(height: footerSpacing),
+                                    footer!,
+                                  ],
+                                ],
                               ),
                             ),
                           ),

@@ -33,15 +33,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       return;
     }
     try {
-      await ref
-          .read(notificationServiceProvider)
-          .initialize(
-            onNotificationTap: (payload) {
-              if (mounted) {
-                context.go(payload.route);
-              }
-            },
-          );
+      await ref.read(notificationServiceProvider).initialize(
+        onNotificationTap: (payload) {
+          if (mounted) {
+            context.go(payload.route);
+          }
+        },
+      );
     } catch (error, stackTrace) {
       debugPrint('Notification initialization failed on splash: $error');
       debugPrintStack(stackTrace: stackTrace, maxFrames: 6);
@@ -90,11 +88,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
               return SingleChildScrollView(
                 padding: EdgeInsets.all(screenPadding),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minHeight: constraints.maxHeight - (screenPadding * 2),
-                  ),
-                  child: Center(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [

@@ -39,6 +39,13 @@ class PropertiesScreen extends ConsumerWidget {
         title: 'Properties',
         subtitle: 'Financial health by asset',
         currentIndex: 1,
+        actions: [
+          IconButton(
+            tooltip: 'Add property',
+            onPressed: () => context.push('${AppRoutes.properties}/new'),
+            icon: const Icon(Icons.add_circle_outline_rounded),
+          ),
+        ],
         child: EmptyStateView(
           title: 'Unable to load properties',
           message:
@@ -79,40 +86,63 @@ class PropertiesScreen extends ConsumerWidget {
       title: 'Properties',
       subtitle: 'Financial health by asset',
       currentIndex: 1,
+      actions: [
+        IconButton(
+          tooltip: 'Add property',
+          onPressed: () => context.push('${AppRoutes.properties}/new'),
+          icon: const Icon(Icons.add_circle_outline_rounded),
+        ),
+      ],
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
           LayoutBuilder(
             builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 680;
+              final cards = [
+                SummaryCard(
+                  label: 'Properties',
+                  value: '${summaries.length}',
+                  subtitle: 'Active portfolio entries',
+                  icon: Icons.apartment_rounded,
+                  emphasis: true,
+                ),
+                Row(
+                  children: [
+                    SummaryCard(
+                      label: 'Expenses',
+                      value: totalExpenses.egp,
+                      subtitle: 'All property expenses',
+                      icon: Icons.north_east_rounded,
+                    ),
+                    SummaryCard(
+                      label: 'Payments',
+                      value: totalPayments.egp,
+                      subtitle: 'All property payments',
+                      icon: Icons.south_west_rounded,
+                    ),
+                  ],
+                ),
+              ];
+
+              if (constraints.maxWidth < 680) {
+                return Column(
+                  children: [
+                    for (var index = 0; index < cards.length; index++) ...[
+                      cards[index],
+                      if (index != cards.length - 1) const SizedBox(height: 12),
+                    ],
+                  ],
+                );
+              }
+
               return GridView.count(
                 physics: const NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
-                crossAxisCount: isWide ? 3 : 1,
+                crossAxisCount: 3,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
-                childAspectRatio: isWide ? 1.55 : 2.35,
-                children: [
-                  SummaryCard(
-                    label: 'Properties',
-                    value: '${summaries.length}',
-                    subtitle: 'Active portfolio entries',
-                    icon: Icons.apartment_rounded,
-                    emphasis: true,
-                  ),
-                  SummaryCard(
-                    label: 'Expenses',
-                    value: totalExpenses.egp,
-                    subtitle: 'All property expenses',
-                    icon: Icons.north_east_rounded,
-                  ),
-                  SummaryCard(
-                    label: 'Payments',
-                    value: totalPayments.egp,
-                    subtitle: 'All property payments',
-                    icon: Icons.south_west_rounded,
-                  ),
-                ],
+                childAspectRatio: 1.55,
+                children: cards,
               );
             },
           ),
@@ -126,16 +156,31 @@ class PropertiesScreen extends ConsumerWidget {
           else
             LayoutBuilder(
               builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth >= 900 ? 2 : 1;
+                if (constraints.maxWidth < 900) {
+                  return Column(
+                    children: [
+                      for (
+                        var index = 0;
+                        index < summaries.length;
+                        index++
+                      ) ...[
+                        _PropertySummaryCard(summary: summaries[index]),
+                        if (index != summaries.length - 1)
+                          const SizedBox(height: 12),
+                      ],
+                    ],
+                  );
+                }
+
                 return GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
                   shrinkWrap: true,
                   itemCount: summaries.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
-                    childAspectRatio: crossAxisCount == 1 ? 1.55 : 1.28,
+                    childAspectRatio: 1.18,
                   ),
                   itemBuilder: (context, index) =>
                       _PropertySummaryCard(summary: summaries[index]),
@@ -165,116 +210,172 @@ class _PropertySummaryCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(22),
       onTap: () => context.push(AppRoutes.propertyDetails(summary.property.id)),
       child: AppPanel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+        padding: const EdgeInsets.all(16),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final theme = Theme.of(context);
+            final isCompact = constraints.maxWidth < 400;
+
+            return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
+                if (isCompact) ...[
+                  Text(
+                    summary.property.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    summary.property.location,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 10),
+                  _StatusChip(label: summary.property.status.label),
+                ] else
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        summary.property.name,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              summary.property.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              summary.property.location,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(summary.property.location),
+                      const SizedBox(width: 12),
+                      _StatusChip(label: summary.property.status.label),
                     ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F0EA),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(summary.property.status.label),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: _MiniStat(
-                    label: 'Expenses',
-                    value: summary.totalExpenses.egp,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _MiniStat(
-                    label: 'Payments',
-                    value: summary.totalPayments.egp,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: SizedBox(
-                height: 10,
-                child: Row(
+                const SizedBox(height: 14),
+                Row(
                   children: [
                     Expanded(
-                      flex: (paymentRatio * 1000).round().clamp(1, 1000),
-                      child: Container(color: Colors.black),
+                      child: _MiniStat(
+                        label: 'Expenses',
+                        value: summary.totalExpenses.egp,
+                        compact: isCompact,
+                      ),
                     ),
+                    const SizedBox(width: 10),
                     Expanded(
-                      flex: (expenseRatio * 1000).round().clamp(1, 1000),
-                      child: Container(color: const Color(0xFFB3B3AB)),
+                      child: _MiniStat(
+                        label: 'Payments',
+                        value: summary.totalPayments.egp,
+                        compact: isCompact,
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Balance ${summary.balance.egp}',
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: SizedBox(
+                    height: 8,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: (paymentRatio * 1000).round().clamp(1, 1000),
+                          child: Container(color: Colors.black),
+                        ),
+                        Expanded(
+                          flex: (expenseRatio * 1000).round().clamp(1, 1000),
+                          child: Container(color: const Color(0xFFB3B3AB)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Balance ${summary.balance.egp}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    fontSize: isCompact ? 15 : null,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _MiniStat extends StatelessWidget {
-  const _MiniStat({required this.label, required this.value});
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label});
 
   final String label;
-  final String value;
 
   @override
   Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F0EA),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(label, style: Theme.of(context).textTheme.labelMedium),
+    );
+  }
+}
+
+class _MiniStat extends StatelessWidget {
+  const _MiniStat({
+    required this.label,
+    required this.value,
+    this.compact = false,
+  });
+
+  final String label;
+  final String value;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF0F0EA),
         borderRadius: BorderRadius.circular(16),
       ),
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(compact ? 12 : 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 6),
+          Text(label, style: theme.textTheme.bodySmall),
+          SizedBox(height: compact ? 4 : 6),
           Text(
             value,
-            style: Theme.of(
-              context,
-            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: compact ? 14 : null,
+            ),
           ),
         ],
       ),

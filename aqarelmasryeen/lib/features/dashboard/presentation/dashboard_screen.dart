@@ -84,6 +84,7 @@ class DashboardScreen extends ConsumerWidget {
             subtitle: 'Primary portfolio count across the workspace',
             icon: Icons.apartment_rounded,
             emphasis: true,
+            splitLayout: true,
           ),
           const SizedBox(height: 12),
           LayoutBuilder(
@@ -102,18 +103,21 @@ class DashboardScreen extends ConsumerWidget {
                     value: snapshot.totalExpenses.egp,
                     subtitle: 'All recorded outgoing costs',
                     icon: Icons.north_east_rounded,
+                    splitLayout: true,
                   ),
                   SummaryCard(
                     label: 'Total payments',
                     value: snapshot.totalPayments.egp,
                     subtitle: 'All recorded incoming cash',
                     icon: Icons.south_west_rounded,
+                    splitLayout: true,
                   ),
                   SummaryCard(
                     label: 'Net balance',
                     value: snapshot.netBalance.egp,
                     subtitle: 'Payments minus expenses',
                     icon: Icons.account_balance_wallet_outlined,
+                    splitLayout: true,
                   ),
                 ],
               );

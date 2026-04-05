@@ -53,17 +53,19 @@ class AppShellScaffold extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: canPop,
-        toolbarHeight: subtitle == null ? 68 : 78,
+        toolbarHeight: subtitle == null ? 68 : 92,
         titleSpacing: canPop ? null : 20,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(title),
+            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
             if (subtitle != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               Text(
                 subtitle!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: Theme.of(context).colorScheme.secondary,
                 ),
