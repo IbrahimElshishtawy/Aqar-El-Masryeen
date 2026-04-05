@@ -215,9 +215,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'قيمة البيع',
-                    ),
+                    decoration: const InputDecoration(labelText: 'قيمة البيع'),
                     validator: (value) {
                       if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
                         return 'أدخل قيمة البيع.';

@@ -2,11 +2,11 @@ import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/core/widgets/metric_card.dart';
-import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/partners/domain/partner_settlement_calculator.dart';
 import 'package:aqarelmasryeen/features/partners/presentation/partner_form_sheet.dart';
+import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -30,6 +30,7 @@ class PartnersScreen extends ConsumerWidget {
 
     return AppShellScaffold(
       title: 'الشركاء',
+      subtitle: 'متابعة النسب والمساهمات والأرصدة',
       currentIndex: 2,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => showModalBottomSheet<void>(
@@ -68,7 +69,7 @@ class PartnersScreen extends ConsumerWidget {
                         0,
                         (sum, item) => sum + item.shareRatio,
                       ) /
-                    partnerItems.length;
+                      partnerItems.length;
 
             return ListView(
               padding: EdgeInsets.all(screenWidth < 640 ? 12 : 16),
@@ -94,7 +95,7 @@ class PartnersScreen extends ConsumerWidget {
                       icon: Icons.groups_outlined,
                     ),
                     MetricCard(
-                      label: 'إجمالي المساهمة',
+                      label: 'إجمالي المساهمات',
                       value: totalCapital.egp,
                       icon: Icons.account_balance_wallet_outlined,
                     ),
@@ -115,14 +116,15 @@ class PartnersScreen extends ConsumerWidget {
                 const SizedBox(height: 20),
                 const _SectionHeading(
                   title: 'تفاصيل الشركاء',
-                  subtitle: 'متابعة سريعة لنسبة كل شريك ومساهمته ورصيده الحالي.',
+                  subtitle:
+                      'متابعة سريعة لنسبة كل شريك ومساهمته والرصيد الحالي.',
                 ),
                 const SizedBox(height: 12),
                 if (partnerItems.isEmpty)
                   const EmptyStateView(
                     title: 'لا توجد سجلات للشركاء',
                     message:
-                        'أضف الشركاء لتبدأ في متابعة المساهمات والتسويات والرصيد المستحق لكل طرف.',
+                        'أضف الشركاء لتبدأ في متابعة المساهمات والتسويات والأرصدة.',
                   )
                 else
                   for (final settlement in settlements) ...[
@@ -167,10 +169,7 @@ class _PartnersBanner extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.secondary,
-            theme.colorScheme.primary,
-          ],
+          colors: [theme.colorScheme.secondary, theme.colorScheme.primary],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),

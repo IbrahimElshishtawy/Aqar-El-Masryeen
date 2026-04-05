@@ -217,9 +217,7 @@ class _MaterialExpenseFormSheetState
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'سعر الوحدة',
-                    ),
+                    decoration: const InputDecoration(labelText: 'سعر الوحدة'),
                     validator: (value) {
                       if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
                         return 'أدخل سعر الوحدة.';
@@ -247,9 +245,12 @@ class _MaterialExpenseFormSheetState
             const SizedBox(height: 12),
             TextFormField(
               controller: _supplierController,
-              decoration: const InputDecoration(labelText: 'اسم التاجر / المورد'),
-              validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'أدخل اسم التاجر أو المورد.' : null,
+              decoration: const InputDecoration(
+                labelText: 'اسم التاجر / المورد',
+              ),
+              validator: (value) => (value ?? '').trim().isEmpty
+                  ? 'أدخل اسم التاجر أو المورد.'
+                  : null,
             ),
             const SizedBox(height: 12),
             TextFormField(

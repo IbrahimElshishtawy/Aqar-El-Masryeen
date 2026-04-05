@@ -151,9 +151,7 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'قيمة القسط',
-                    ),
+                    decoration: const InputDecoration(labelText: 'قيمة القسط'),
                     validator: (value) {
                       if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
                         return 'أدخل قيمة القسط.';
@@ -168,9 +166,7 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
             InkWell(
               onTap: _pickDate,
               child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'تاريخ الاستحقاق',
-                ),
+                decoration: const InputDecoration(labelText: 'تاريخ الاستحقاق'),
                 child: Row(
                   children: [
                     Expanded(child: Text(_dueDate.formatShort())),

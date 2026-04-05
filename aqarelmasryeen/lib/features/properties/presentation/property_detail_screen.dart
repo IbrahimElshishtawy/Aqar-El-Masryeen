@@ -13,7 +13,6 @@ import 'package:aqarelmasryeen/features/notifications/data/financial_notificatio
 import 'package:aqarelmasryeen/features/partners/data/partner_ledger_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/partners/domain/partner_ledger_calculator.dart';
-import 'package:aqarelmasryeen/features/partners/presentation/partner_ledger_entry_form_sheet.dart';
 import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/payments/presentation/payment_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
@@ -132,19 +131,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     );
   }
 
-  Future<void> _showPartnerLedgerSheet({
-    required Partner partner,
-    PartnerLedgerEntry? entry,
-  }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) =>
-          PartnerLedgerEntryFormSheet(partner: partner, entry: entry),
-    );
-  }
-
   Future<bool> _confirm(String title, String message) async {
     return await showDialog<bool>(
           context: context,
@@ -154,11 +140,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Cancel'),
+                child: const Text('إلغاء'),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('Confirm'),
+                child: const Text('تأكيد'),
               ),
             ],
           ),
@@ -168,8 +154,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
 
   Future<void> _deleteUnit(UnitSale unit) async {
     final confirmed = await _confirm(
-      'Delete unit sale',
-      'This removes the unit, its installments, and linked payments.',
+      'حذف مبيعات الوحدة',
+      'سيتم حذف الوحدة مع الأقساط والمدفوعات المرتبطة بها.',
     );
     if (!confirmed) return;
     final session = ref.read(authSessionProvider).valueOrNull;
@@ -179,7 +165,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         .read(activityRepositoryProvider)
         .log(
           actorId: session.userId,
-          actorName: session.profile?.name ?? 'Partner',
+          actorName: session.profile?.name ?? 'شريك',
           action: 'unit_deleted',
           entityType: 'unit',
           entityId: unit.id,
@@ -189,8 +175,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
 
   Future<void> _deleteInstallment(Installment installment) async {
     final confirmed = await _confirm(
-      'Delete installment',
-      'The installment and its linked payments will be removed.',
+      'حذف القسط',
+      'سيتم حذف القسط والمدفوعات المرتبطة به.',
     );
     if (!confirmed) return;
     await ref
@@ -200,8 +186,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
 
   Future<void> _deletePayment(PaymentRecord payment) async {
     final confirmed = await _confirm(
-      'Delete payment',
-      'This payment will be removed from installment totals.',
+      'حذف الدفعة',
+      'سيتم حذف الدفعة من إجماليات الأقساط.',
     );
     if (!confirmed) return;
     await ref.read(paymentRepositoryProvider).delete(payment.id);
@@ -209,22 +195,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
 
   Future<void> _deleteMaterial(MaterialExpenseEntry entry) async {
     final confirmed = await _confirm(
-      'Delete material invoice',
-      'This invoice will be archived from active ledgers.',
+      'حذف فاتورة مواد',
+      'سيتم أرشفة هذه الفاتورة من الجداول النشطة.',
     );
     if (!confirmed) return;
     await ref.read(materialExpenseRepositoryProvider).softDelete(entry.id);
-  }
-
-  Future<void> _deletePartnerLedger(PartnerLedgerEntry entry) async {
-    final confirmed = await _confirm(
-      'Authorized delete',
-      'This protected partner ledger entry will be archived.',
-    );
-    if (!confirmed) return;
-    await ref
-        .read(partnerLedgerRepositoryProvider)
-        .softDeleteAuthorized(entry.id);
   }
 
   @override
@@ -253,11 +228,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         partnerLedgerAsync.hasError;
     if (hasError) {
       return AppShellScaffold(
-        title: 'Property',
-        subtitle: 'Sales and ledger view',
+        title: 'المشروع',
+        subtitle: 'المبيعات والمصاريف',
         currentIndex: 1,
         child: EmptyStateView(
-          title: 'Unable to load property finance',
+          title: 'تعذر تحميل البيانات المالية',
           message:
               propertyAsync.error?.toString() ??
               unitsAsync.error?.toString() ??
@@ -266,7 +241,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               materialsAsync.error?.toString() ??
               partnersAsync.error?.toString() ??
               partnerLedgerAsync.error?.toString() ??
-              'Unknown error',
+              'حدث خطأ غير متوقع',
         ),
       );
     }
@@ -281,8 +256,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         !partnerLedgerAsync.hasValue;
     if (waiting) {
       return const AppShellScaffold(
-        title: 'Property',
-        subtitle: 'Sales and ledger view',
+        title: 'المشروع',
+        subtitle: 'المبيعات والمصاريف',
         currentIndex: 1,
         child: Center(child: CircularProgressIndicator()),
       );
@@ -291,12 +266,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final property = propertyAsync.value;
     if (property == null) {
       return const AppShellScaffold(
-        title: 'Property',
-        subtitle: 'Sales and ledger view',
+        title: 'المشروع',
+        subtitle: 'المبيعات والمصاريف',
         currentIndex: 1,
         child: EmptyStateView(
-          title: 'Property not found',
-          message: 'This property is no longer available.',
+          title: 'المشروع غير موجود',
+          message: 'هذا المشروع لم يعد متاحاً.',
         ),
       );
     }
@@ -363,12 +338,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       currentIndex: 1,
       actions: [
         IconButton(
-          tooltip: 'Add unit sale',
+          tooltip: 'إضافة مبيعات وحدة',
           onPressed: () => _showUnitSheet(),
           icon: const Icon(Icons.add_business_outlined),
         ),
         IconButton(
-          tooltip: 'Add supplier invoice',
+          tooltip: 'إضافة فاتورة مواد',
           onPressed: () => _showMaterialSheet(),
           icon: const Icon(Icons.receipt_long_outlined),
         ),
@@ -379,41 +354,134 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           _SummaryGrid(
             cards: [
               SummaryCard(
-                label: 'Units',
+                label: 'الوحدات',
                 value: '${units.length}',
-                subtitle: 'Tracked residential sales',
+                subtitle: 'الوحدات السكنية المسجلة',
                 icon: Icons.home_work_outlined,
                 emphasis: true,
               ),
               SummaryCard(
-                label: 'Sales value',
+                label: 'إجمالي المبيعات',
                 value: totalSalesValue.egp,
-                subtitle: 'Total contract value',
+                subtitle: 'إجمالي قيمة العقود',
                 icon: Icons.sell_outlined,
               ),
               SummaryCard(
-                label: 'Paid installments',
+                label: 'الأقساط المدفوعة',
                 value: totalPaidInstallments.egp,
-                subtitle: 'Collected installment cash',
+                subtitle: 'إجمالي ما تم تحصيله من الأقساط',
                 icon: Icons.payments_outlined,
               ),
               SummaryCard(
-                label: 'Remaining installments',
+                label: 'الأقساط المتبقية',
                 value: totalRemainingInstallments.egp,
-                subtitle: 'Outstanding installment balance',
+                subtitle: 'الرصيد المتبقي من الأقساط',
                 icon: Icons.schedule_outlined,
               ),
               SummaryCard(
-                label: 'Supplier dues',
+                label: 'مستحقات الموردين',
                 value: materialsSnapshot.overallRemaining.egp,
-                subtitle: 'Unpaid supplier invoices',
+                subtitle: 'الفواتير غير المسددة',
                 icon: Icons.inventory_2_outlined,
               ),
               SummaryCard(
-                label: 'Overdue',
+                label: 'الأقساط المتأخرة',
                 value: '$overdueInstallments',
-                subtitle: 'Late installments requiring follow-up',
+                subtitle: 'تحتاج متابعة وإشعارات',
                 icon: Icons.warning_amber_outlined,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          FinancialLedgerTable<UnitSaleComputedSummary>(
+            title: 'ورقة مبيعات الوحدات',
+            subtitle: 'ملخص المقدم والإجمالي والمتبقي والأقساط لكل وحدة',
+            rows: unitSummaries,
+            sheetLabel: 'ورقة إكسل مبيعات الوحدات',
+            columns: [
+              LedgerColumn(
+                label: 'الوحدة',
+                valueBuilder: (row) => Text(row.unit.unitNumber),
+                minWidth: 100,
+              ),
+              LedgerColumn(
+                label: 'العميل',
+                valueBuilder: (row) => Text(
+                  row.unit.customerName.isEmpty
+                      ? 'غير محدد'
+                      : row.unit.customerName,
+                ),
+                minWidth: 170,
+              ),
+              LedgerColumn(
+                label: 'المقدم',
+                valueBuilder: (row) => Text(row.unit.downPayment.egp),
+                minWidth: 120,
+                numeric: true,
+              ),
+              LedgerColumn(
+                label: 'قيمة البيع',
+                valueBuilder: (row) => Text(row.unit.saleAmount.egp),
+                minWidth: 120,
+                numeric: true,
+              ),
+              LedgerColumn(
+                label: 'الإجمالي',
+                valueBuilder: (row) => Text(row.totalContractAmount.egp),
+                minWidth: 120,
+                numeric: true,
+              ),
+              LedgerColumn(
+                label: 'المدفوع من الأقساط',
+                valueBuilder: (row) =>
+                    Text(row.totalPaidInstallmentsAmount.egp),
+                minWidth: 140,
+                numeric: true,
+              ),
+              LedgerColumn(
+                label: 'المتبقي من الأقساط',
+                valueBuilder: (row) =>
+                    Text(row.totalRemainingInstallmentsAmount.egp),
+                minWidth: 145,
+                numeric: true,
+              ),
+              LedgerColumn(
+                label: 'إجمالي المدفوع',
+                valueBuilder: (row) => Text(row.totalPaidSoFar.egp),
+                minWidth: 130,
+                numeric: true,
+              ),
+              LedgerColumn(
+                label: 'إجمالي المتبقي',
+                valueBuilder: (row) => Text(row.totalRemaining.egp),
+                minWidth: 130,
+                numeric: true,
+              ),
+              LedgerColumn(
+                label: 'عدد الأقساط',
+                valueBuilder: (row) => Text(
+                  '${row.totalInstallmentsCount}/${row.installmentScheduleCount}',
+                ),
+                minWidth: 120,
+                numeric: true,
+              ),
+              LedgerColumn(
+                label: 'إنهاء الأقساط',
+                valueBuilder: (row) => Text(
+                  row.projectedCompletionDate == null
+                      ? '-'
+                      : row.projectedCompletionDate!.formatShort(),
+                ),
+                minWidth: 125,
+              ),
+              LedgerColumn(
+                label: 'المدة المتبقية',
+                valueBuilder: (row) => Text(
+                  row.projectedCompletionDate == null
+                      ? '-'
+                      : '${row.remainingDuration.inDays} يوم',
+                ),
+                minWidth: 120,
               ),
             ],
           ),
@@ -449,28 +517,28 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             const SizedBox(height: 16),
           ],
           FinancialLedgerTable<MaterialExpenseEntry>(
-            title: 'Expense Sheet',
+            title: 'ورقة مصاريف مواد البناء',
             subtitle:
-                '${materials.length} invoice(s) - total ${materialsSnapshot.overallTotal.egp}',
+                '${materials.length} فاتورة - الإجمالي ${materialsSnapshot.overallTotal.egp}',
             rows: materials,
-            addLabel: 'Add invoice',
+            addLabel: 'إضافة فاتورة',
             onAdd: _showMaterialSheet,
             onEdit: (entry) => _showMaterialSheet(entry: entry),
             onDelete: _deleteMaterial,
-            sheetLabel: 'Expense sheet • supplier invoices',
+            sheetLabel: 'ورقة إكسل فواتير الموردين',
             columns: [
               LedgerColumn(
-                label: 'Date',
+                label: 'التاريخ',
                 valueBuilder: (row) => Text(row.date.formatShort()),
                 minWidth: 116,
               ),
               LedgerColumn(
-                label: 'Supplier',
+                label: 'المورد',
                 valueBuilder: (row) => Text(row.supplierName),
                 minWidth: 170,
               ),
               LedgerColumn(
-                label: 'Material / Category',
+                label: 'المادة / الصنف',
                 valueBuilder: (row) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -489,44 +557,44 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 minWidth: 220,
               ),
               LedgerColumn(
-                label: 'Qty',
+                label: 'الكمية',
                 valueBuilder: (row) => Text('${row.quantity}'),
                 minWidth: 88,
                 numeric: true,
               ),
               LedgerColumn(
-                label: 'Unit price',
+                label: 'سعر الوحدة',
                 valueBuilder: (row) => Text(row.unitPrice.egp),
                 minWidth: 120,
                 numeric: true,
               ),
               LedgerColumn(
-                label: 'Total',
+                label: 'الإجمالي',
                 valueBuilder: (row) => Text(row.totalPrice.egp),
                 minWidth: 128,
                 numeric: true,
               ),
               LedgerColumn(
-                label: 'Paid',
+                label: 'المدفوع',
                 valueBuilder: (row) => Text(row.amountPaid.egp),
                 minWidth: 128,
                 numeric: true,
               ),
               LedgerColumn(
-                label: 'Remaining',
+                label: 'المتبقي',
                 valueBuilder: (row) => Text(row.amountRemaining.egp),
                 minWidth: 132,
                 numeric: true,
               ),
               LedgerColumn(
-                label: 'Due date',
+                label: 'الاستحقاق',
                 valueBuilder: (row) => Text(
                   row.dueDate == null ? '-' : row.dueDate!.formatShort(),
                 ),
                 minWidth: 120,
               ),
               LedgerColumn(
-                label: 'Status',
+                label: 'الحالة',
                 valueBuilder: (row) => FinancialStatusChip(
                   label: row.status.label,
                   color: _statusColor(row.status),
@@ -534,7 +602,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 minWidth: 128,
               ),
               LedgerColumn(
-                label: 'Notes',
+                label: 'ملاحظات',
                 valueBuilder: (row) => Text(
                   row.notes.isEmpty ? '-' : row.notes,
                   maxLines: 2,
@@ -546,15 +614,15 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             totalsFooter: LedgerTotalsFooter(
               children: [
                 LedgerFooterValue(
-                  label: 'Overall total',
+                  label: 'إجمالي الفواتير',
                   value: materialsSnapshot.overallTotal.egp,
                 ),
                 LedgerFooterValue(
-                  label: 'Paid',
+                  label: 'إجمالي المدفوع',
                   value: materialsSnapshot.overallPaid.egp,
                 ),
                 LedgerFooterValue(
-                  label: 'Remaining',
+                  label: 'إجمالي المتبقي',
                   value: materialsSnapshot.overallRemaining.egp,
                 ),
               ],
@@ -562,36 +630,36 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           ),
           const SizedBox(height: 16),
           FinancialLedgerTable<SupplierLedgerSummary>(
-            title: 'Supplier Summary',
-            subtitle: 'Outstanding balances and purchase totals by supplier',
+            title: 'ورقة ملخص الموردين',
+            subtitle: 'إجمالي المشتريات والمدفوع والمتبقي لكل مورد',
             rows: materialsSnapshot.supplierSummaries,
-            sheetLabel: 'Expense sheet • supplier summary',
+            sheetLabel: 'ورقة إكسل ملخص الموردين',
             columns: [
               LedgerColumn(
-                label: 'Supplier',
+                label: 'المورد',
                 valueBuilder: (row) => Text(row.supplierName),
                 minWidth: 180,
               ),
               LedgerColumn(
-                label: 'Invoices',
+                label: 'عدد الفواتير',
                 valueBuilder: (row) => Text('${row.invoiceCount}'),
                 minWidth: 100,
                 numeric: true,
               ),
               LedgerColumn(
-                label: 'Purchased',
+                label: 'إجمالي المشتريات',
                 valueBuilder: (row) => Text(row.totalPurchased.egp),
                 minWidth: 128,
                 numeric: true,
               ),
               LedgerColumn(
-                label: 'Paid',
+                label: 'المدفوع',
                 valueBuilder: (row) => Text(row.totalPaid.egp),
                 minWidth: 128,
                 numeric: true,
               ),
               LedgerColumn(
-                label: 'Remaining',
+                label: 'المتبقي',
                 valueBuilder: (row) => Text(row.totalRemaining.egp),
                 minWidth: 132,
                 numeric: true,
@@ -600,41 +668,41 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           ),
           const SizedBox(height: 16),
           FinancialLedgerTable<PartnerLedgerSummaryRow>(
-            title: 'Partner Expense Ledger',
-            subtitle: 'Protected settlement flow with paid, owed, and balances',
+            title: 'ورقة الشركاء',
+            subtitle: 'عرض فقط للمدفوع والمستحق والرصيد لكل شريك',
             rows: partnerSummaries,
-            sheetLabel: 'Expense sheet • partner balances',
+            sheetLabel: 'ورقة إكسل الشركاء',
             columns: [
               LedgerColumn(
-                label: 'Partner',
+                label: 'الشريك',
                 valueBuilder: (row) => Text(row.partner.name),
                 minWidth: 180,
               ),
               LedgerColumn(
-                label: 'Total paid',
+                label: 'إجمالي المدفوع',
                 valueBuilder: (row) => Text(row.totalPaid.egp),
                 minWidth: 128,
                 numeric: true,
               ),
               LedgerColumn(
-                label: 'Total owed',
+                label: 'إجمالي المستحق',
                 valueBuilder: (row) => Text(row.totalOwed.egp),
                 minWidth: 128,
                 numeric: true,
               ),
               LedgerColumn(
-                label: 'Balance',
+                label: 'الرصيد',
                 valueBuilder: (row) => Text(row.balance.egp),
                 minWidth: 132,
                 numeric: true,
               ),
               LedgerColumn(
-                label: 'Last updated',
+                label: 'آخر تحديث',
                 valueBuilder: (row) => Text(row.lastUpdated.formatShort()),
                 minWidth: 118,
               ),
               LedgerColumn(
-                label: 'Notes',
+                label: 'ملاحظات',
                 valueBuilder: (row) =>
                     Text(row.notes.isEmpty ? '-' : row.notes),
                 minWidth: 220,
@@ -642,22 +710,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             ],
             onView: (row) =>
                 _showPartnerHistoryDialog(row.partner, partnerHistory),
-            onEdit: (row) => _showPartnerLedgerSheet(partner: row.partner),
-            addLabel: 'Authorized action',
-            onAdd: partners.isEmpty
-                ? null
-                : () => _showPartnerLedgerSheet(partner: partners.first),
           ),
           if (partnerHistory.isNotEmpty) ...[
             const SizedBox(height: 16),
             FinancialLedgerTable<PartnerLedgerEntry>(
-              title: 'Partner Ledger History',
-              subtitle: 'Authorized ledger entries for this property',
+              title: 'سجل حركة الشركاء',
+              subtitle: 'سجل للقراءة فقط داخل هذا المشروع',
               rows: partnerHistory,
-              sheetLabel: 'Expense sheet • partner history',
+              sheetLabel: 'ورقة إكسل سجل الشركاء',
               columns: [
                 LedgerColumn(
-                  label: 'Partner',
+                  label: 'الشريك',
                   valueBuilder: (row) => Text(
                     partners
                         .firstWhere((item) => item.id == row.partnerId)
@@ -666,30 +729,23 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   minWidth: 180,
                 ),
                 LedgerColumn(
-                  label: 'Type',
+                  label: 'النوع',
                   valueBuilder: (row) => Text(row.entryType.label),
                   minWidth: 140,
                 ),
                 LedgerColumn(
-                  label: 'Amount',
+                  label: 'المبلغ',
                   valueBuilder: (row) => Text(row.amount.egp),
                   minWidth: 132,
                   numeric: true,
                 ),
                 LedgerColumn(
-                  label: 'Notes',
+                  label: 'ملاحظات',
                   valueBuilder: (row) =>
                       Text(row.notes.isEmpty ? '-' : row.notes),
                   minWidth: 220,
                 ),
               ],
-              onDelete: _deletePartnerLedger,
-              onEdit: (row) => _showPartnerLedgerSheet(
-                partner: partners.firstWhere(
-                  (item) => item.id == row.partnerId,
-                ),
-                entry: row,
-              ),
             ),
           ],
         ],
@@ -712,11 +768,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Installment ${row.installment.sequence} payments'),
+        title: Text('مدفوعات القسط ${row.installment.sequence}'),
         content: SizedBox(
           width: 420,
           child: row.payments.isEmpty
-              ? const Text('No payments recorded yet.')
+              ? const Text('لا توجد مدفوعات مسجلة حتى الآن.')
               : ListView(
                   shrinkWrap: true,
                   children: [
@@ -725,7 +781,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         contentPadding: EdgeInsets.zero,
                         title: Text(
                           payment.effectivePayerName.isEmpty
-                              ? 'Unspecified payer'
+                              ? 'دافع غير محدد'
                               : payment.effectivePayerName,
                         ),
                         subtitle: Text(payment.receivedAt.formatShort()),
@@ -745,11 +801,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('${partner.name} history'),
+        title: Text('سجل ${partner.name}'),
         content: SizedBox(
           width: 420,
           child: entries.isEmpty
-              ? const Text('No authorized entries yet.')
+              ? const Text('لا توجد حركات مسجلة حتى الآن.')
               : ListView(
                   shrinkWrap: true,
                   children: [
@@ -845,12 +901,12 @@ class _UnitSalesPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final projectedCompletion = summary.projectedCompletionDate == null
-        ? 'TBD'
+        ? 'غير محدد'
         : summary.projectedCompletionDate!.formatShort();
     final durationDays = summary.remainingDuration.inDays;
     final installmentLabels = {
       for (final row in summary.installmentRows)
-        row.installment.id: '#${row.installment.sequence}',
+        row.installment.id: 'قسط ${row.installment.sequence}',
     };
 
     return Column(
@@ -860,7 +916,7 @@ class _UnitSalesPanel extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'Unit ${summary.unit.unitNumber} • ${summary.unit.customerName.isEmpty ? 'Unassigned' : summary.unit.customerName}',
+                'الوحدة ${summary.unit.unitNumber} • ${summary.unit.customerName.isEmpty ? 'عميل غير محدد' : summary.unit.customerName}',
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
@@ -880,99 +936,98 @@ class _UnitSalesPanel extends StatelessWidget {
         _SummaryGrid(
           cards: [
             SummaryCard(
-              label: 'Contract amount',
+              label: 'الإجمالي',
               value: summary.totalContractAmount.egp,
-              subtitle: 'Sale ${summary.unit.saleAmount.egp}',
+              subtitle: 'قيمة البيع ${summary.unit.saleAmount.egp}',
               icon: Icons.description_outlined,
               emphasis: true,
             ),
             SummaryCard(
-              label: 'Down payment',
+              label: 'المقدم',
               value: summary.unit.downPayment.egp,
-              subtitle: 'Initial collection',
+              subtitle: 'المبلغ المحصل مقدماً',
               icon: Icons.savings_outlined,
             ),
             SummaryCard(
-              label: 'Total paid',
+              label: 'إجمالي المدفوع',
               value: summary.totalPaidSoFar.egp,
-              subtitle: 'Down payment plus installments',
+              subtitle: 'المقدم + الأقساط المسددة',
               icon: Icons.payments_outlined,
             ),
             SummaryCard(
-              label: 'Remaining',
+              label: 'إجمالي المتبقي',
               value: summary.totalRemaining.egp,
-              subtitle:
-                  '${summary.unpaidInstallmentsCount} unpaid installment(s)',
+              subtitle: '${summary.unpaidInstallmentsCount} أقساط غير مسددة',
               icon: Icons.schedule_outlined,
             ),
             SummaryCard(
-              label: 'Projected completion',
+              label: 'إنهاء الأقساط',
               value: projectedCompletion,
               subtitle: durationDays <= 0
-                  ? 'Complete or due now'
-                  : '$durationDays day(s) remaining',
+                  ? 'مستحق الآن أو مكتمل'
+                  : '$durationDays يوم متبقٍ',
               icon: Icons.event_available_outlined,
             ),
             SummaryCard(
-              label: 'Installment status',
+              label: 'حالة الأقساط',
               value:
-                  '${summary.paidInstallmentsCount}/${summary.totalInstallmentsCount} paid',
+                  '${summary.paidInstallmentsCount}/${summary.totalInstallmentsCount} مدفوع',
               subtitle:
-                  '${summary.partiallyPaidInstallmentsCount} partial • ${summary.overdueInstallmentsCount} overdue',
+                  '${summary.partiallyPaidInstallmentsCount} جزئي • ${summary.overdueInstallmentsCount} متأخر',
               icon: Icons.table_chart_outlined,
             ),
           ],
         ),
         const SizedBox(height: 12),
         FinancialLedgerTable<InstallmentComputedRow>(
-          title: 'Sales Installment Sheet',
+          title: 'ورقة أقساط الوحدة',
           subtitle:
-              '${summary.installmentRows.length} row(s) - remaining ${summary.totalRemainingInstallmentsAmount.egp}',
+              '${summary.installmentRows.length} صف - متبقي ${summary.totalRemainingInstallmentsAmount.egp}',
           rows: summary.installmentRows,
-          addLabel: 'Add installment',
+          addLabel: 'إضافة قسط',
           onAdd: onAddInstallment,
           onView: onViewInstallment,
           onEdit: (row) => onEditInstallment(row.installment),
           onDelete: (row) => onDeleteInstallment(row.installment),
-          sheetLabel: 'Sales sheet • installment schedule',
+          sheetLabel: 'ورقة إكسل جدول الأقساط',
           columns: [
             LedgerColumn(
-              label: 'Plan #',
+              label: 'رقم القسط',
               valueBuilder: (row) => Text('${row.installment.sequence}'),
               minWidth: 78,
               numeric: true,
             ),
             LedgerColumn(
-              label: 'Due date',
+              label: 'الاستحقاق',
               valueBuilder: (row) =>
                   Text(row.installment.dueDate.formatShort()),
               minWidth: 118,
             ),
             LedgerColumn(
-              label: 'Amount due',
+              label: 'قيمة القسط',
               valueBuilder: (row) => Text(row.installment.amount.egp),
               minWidth: 128,
               numeric: true,
             ),
             LedgerColumn(
-              label: 'Payer',
+              label: 'من دفع',
               valueBuilder: (row) => Text(row.payerSummary),
               minWidth: 180,
             ),
             LedgerColumn(
-              label: 'Amount paid',
+              label: 'المدفوع',
               valueBuilder: (row) => Text(row.amountPaid.egp),
               minWidth: 128,
               numeric: true,
             ),
             LedgerColumn(
-              label: 'Remaining',
+              label: 'المتبقي',
               valueBuilder: (row) => Text(row.remainingAmount.egp),
               minWidth: 132,
               numeric: true,
             ),
             LedgerColumn(
-              label: 'Status',
+              label: 'الحالة',
               valueBuilder: (row) => FinancialStatusChip(
                 label: row.status.label,
                 color: row.status == InstallmentStatus.paid
@@ -986,7 +1041,7 @@ class _UnitSalesPanel extends StatelessWidget {
               minWidth: 128,
             ),
             LedgerColumn(
-              label: 'Notes',
+              label: 'ملاحظات',
               valueBuilder: (row) => Text(
                 row.installment.notes.isEmpty ? '-' : row.installment.notes,
                 maxLines: 2,
@@ -998,19 +1053,19 @@ class _UnitSalesPanel extends StatelessWidget {
           totalsFooter: LedgerTotalsFooter(
             children: [
               LedgerFooterValue(
-                label: 'Schedule count',
+                label: 'عدد الأقساط المخطط',
                 value: '${summary.installmentScheduleCount}',
               ),
               LedgerFooterValue(
-                label: 'Paid installments',
+                label: 'الأقساط المدفوعة',
                 value: '${summary.paidInstallmentsCount}',
               ),
               LedgerFooterValue(
-                label: 'Partial',
+                label: 'مدفوع جزئي',
                 value: '${summary.partiallyPaidInstallmentsCount}',
               ),
               LedgerFooterValue(
-                label: 'Overdue',
+                label: 'متأخر',
                 value: '${summary.overdueInstallmentsCount}',
               ),
             ],
@@ -1018,24 +1073,24 @@ class _UnitSalesPanel extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         FinancialLedgerTable<PaymentRecord>(
-          title: 'Sales Collection Sheet',
+          title: 'ورقة التحصيل',
           subtitle:
-              '${payments.length} payment(s) - total ${payments.fold<double>(0, (sum, item) => sum + item.amount).egp}',
+              '${payments.length} دفعة - الإجمالي ${payments.fold<double>(0, (sum, item) => sum + item.amount).egp}',
           rows: payments,
-          sheetLabel: 'Sales sheet • collected payments',
+          sheetLabel: 'ورقة إكسل التحصيل',
           columns: [
             LedgerColumn(
-              label: 'Date',
+              label: 'التاريخ',
               valueBuilder: (row) => Text(row.receivedAt.formatShort()),
               minWidth: 116,
             ),
             LedgerColumn(
-              label: 'Unit',
+              label: 'الوحدة',
               valueBuilder: (_) => Text(summary.unit.unitNumber),
               minWidth: 92,
             ),
             LedgerColumn(
-              label: 'Customer / Payer',
+              label: 'العميل / الدافع',
               valueBuilder: (row) => Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -1060,33 +1115,33 @@ class _UnitSalesPanel extends StatelessWidget {
               minWidth: 190,
             ),
             LedgerColumn(
-              label: 'Method',
+              label: 'طريقة الدفع',
               valueBuilder: (row) => Text(row.paymentMethod.label),
               minWidth: 130,
             ),
             LedgerColumn(
-              label: 'Source',
+              label: 'المصدر',
               valueBuilder: (row) =>
                   Text(row.paymentSource.isEmpty ? '-' : row.paymentSource),
               minWidth: 150,
             ),
             LedgerColumn(
-              label: 'Installment',
+              label: 'القسط',
               valueBuilder: (row) => Text(
                 row.installmentId == null
                     ? '-'
-                    : (installmentLabels[row.installmentId!] ?? 'Custom'),
+                    : (installmentLabels[row.installmentId!] ?? 'دفعة خاصة'),
               ),
               minWidth: 110,
             ),
             LedgerColumn(
-              label: 'Amount',
+              label: 'المبلغ',
               valueBuilder: (row) => Text(row.amount.egp),
               minWidth: 128,
               numeric: true,
             ),
             LedgerColumn(
-              label: 'Notes',
+              label: 'ملاحظات',
               valueBuilder: (row) => Text(
                 row.notes.isEmpty ? '-' : row.notes,
                 maxLines: 2,
@@ -1101,7 +1156,7 @@ class _UnitSalesPanel extends StatelessWidget {
               ? null
               : () =>
                     onAddPayment(summary.installmentRows.first.installment.id),
-          addLabel: 'Record payment',
+          addLabel: 'إضافة دفعة',
         ),
       ],
     );

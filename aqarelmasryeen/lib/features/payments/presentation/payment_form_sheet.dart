@@ -132,9 +132,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
         .read(notificationRepositoryProvider)
         .create(
           userId: session.userId,
-          title: widget.payment == null
-              ? 'تم استلام دفعة'
-              : 'تم تحديث الدفعة',
+          title: widget.payment == null ? 'تم استلام دفعة' : 'تم تحديث الدفعة',
           body: _payerController.text.trim().isEmpty
               ? 'تم تسجيل دفعة واردة'
               : _payerController.text.trim(),
@@ -199,9 +197,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
             InkWell(
               onTap: _pickDate,
               child: InputDecorator(
-                decoration: const InputDecoration(
-                  labelText: 'تاريخ الاستلام',
-                ),
+                decoration: const InputDecoration(labelText: 'تاريخ الاستلام'),
                 child: Row(
                   children: [
                     Expanded(child: Text(_receivedAt.formatShort())),
