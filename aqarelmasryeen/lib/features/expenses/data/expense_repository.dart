@@ -50,10 +50,10 @@ class ExpenseRepository {
         );
   }
 
-  Future<void> save(ExpenseRecord expense) async {
+  Future<String> save(ExpenseRecord expense) async {
     final id = expense.id.isEmpty ? _uuid.v4() : expense.id;
     if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.saveExpense(
+      await MockWorkspaceStore.instance.saveExpense(
         ExpenseRecord(
           id: id,
           propertyId: expense.propertyId,
@@ -72,14 +72,21 @@ class ExpenseRepository {
           archived: expense.archived,
         ),
       );
+      return id;
     }
     await _firestore
         .collection(FirestorePaths.expenses)
         .doc(id)
         .set(
-          expense.toMap()..['updatedAt'] = DateTime.now(),
+          expense.toMap()
+            ..['createdAt'] =
+                expense.createdAt == DateTime.fromMillisecondsSinceEpoch(0)
+                ? DateTime.now()
+                : expense.createdAt
+            ..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );
+    return id;
   }
 
   Future<void> softDelete(String expenseId) {

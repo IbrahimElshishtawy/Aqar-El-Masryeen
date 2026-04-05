@@ -226,6 +226,7 @@ class PaymentRecord {
     required this.id,
     required this.propertyId,
     required this.unitId,
+    this.customerName = '',
     required this.installmentId,
     required this.amount,
     required this.receivedAt,
@@ -240,6 +241,7 @@ class PaymentRecord {
   final String id;
   final String propertyId;
   final String unitId;
+  final String customerName;
   final String? installmentId;
   final double amount;
   final DateTime receivedAt;
@@ -254,6 +256,7 @@ class PaymentRecord {
     return {
       'propertyId': propertyId,
       'unitId': unitId,
+      'customerName': customerName,
       'installmentId': installmentId,
       'amount': amount,
       'receivedAt': receivedAt,
@@ -272,6 +275,7 @@ class PaymentRecord {
       id: id,
       propertyId: data['propertyId'] as String? ?? '',
       unitId: data['unitId'] as String? ?? '',
+      customerName: data['customerName'] as String? ?? '',
       installmentId: data['installmentId'] as String?,
       amount: parseDouble(data['amount']),
       receivedAt: parseDate(data['receivedAt']),

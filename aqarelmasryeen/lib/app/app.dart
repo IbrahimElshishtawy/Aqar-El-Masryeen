@@ -1,6 +1,6 @@
-import 'package:aqarelmasryeen/core/security/session_activity_listener.dart';
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/routing/app_router.dart';
+import 'package:aqarelmasryeen/core/security/session_activity_listener.dart';
 import 'package:aqarelmasryeen/core/services/firebase_initializer.dart';
 import 'package:aqarelmasryeen/core/services/notification_service.dart';
 import 'package:aqarelmasryeen/core/theme/app_theme.dart';
@@ -80,11 +80,11 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         darkTheme: AppTheme.dark(),
-        themeMode: ThemeMode.system,
+        themeMode: ThemeMode.light,
         routerConfig: routerConfig,
         builder: builder,
-        locale: const Locale('ar'),
-        supportedLocales: const [Locale('ar'), Locale('en')],
+        locale: const Locale('en'),
+        supportedLocales: const [Locale('en'), Locale('ar')],
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
@@ -98,11 +98,11 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       home: home,
       builder: builder,
-      locale: const Locale('ar'),
-      supportedLocales: const [Locale('ar'), Locale('en')],
+      locale: const Locale('en'),
+      supportedLocales: const [Locale('en'), Locale('ar')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -117,31 +117,16 @@ class _AppBootstrapScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              theme.colorScheme.primary.withValues(alpha: 0.18),
-              theme.scaffoldBackgroundColor,
-              theme.colorScheme.secondary.withValues(alpha: 0.10),
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Preparing workspace...'),
             ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: const SafeArea(
-          child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('جار تهيئة مساحة العمل الآمنة...'),
-              ],
-            ),
           ),
         ),
       ),
@@ -167,7 +152,7 @@ class _AppBootstrapErrorScreen extends StatelessWidget {
                 const Icon(Icons.error_outline, size: 48),
                 const SizedBox(height: 12),
                 Text(
-                  'تعذر تهيئة Firebase',
+                  'Firebase failed to initialize',
                   style: Theme.of(context).textTheme.titleLarge,
                   textAlign: TextAlign.center,
                 ),

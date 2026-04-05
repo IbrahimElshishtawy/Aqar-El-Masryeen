@@ -1,65 +1,55 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
-import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
+import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
-import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ExpenseFormSheet extends ConsumerStatefulWidget {
-  const ExpenseFormSheet({
-    super.key,
-    required this.propertyId,
-    required this.partners,
-    this.expense,
-  });
+class PaymentFormSheet extends ConsumerStatefulWidget {
+  const PaymentFormSheet({super.key, required this.propertyId, this.payment});
 
   final String propertyId;
-  final List<Partner> partners;
-  final ExpenseRecord? expense;
+  final PaymentRecord? payment;
 
   @override
-  ConsumerState<ExpenseFormSheet> createState() => _ExpenseFormSheetState();
+  ConsumerState<PaymentFormSheet> createState() => _PaymentFormSheetState();
 }
 
-class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
+class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
   final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _customerController;
+  late final TextEditingController _unitController;
   late final TextEditingController _amountController;
-  late final TextEditingController _descriptionController;
   late final TextEditingController _notesController;
-  late ExpenseCategory _category;
   late PaymentMethod _paymentMethod;
-  late String _partnerId;
-  late DateTime _selectedDate;
+  late DateTime _receivedAt;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
-    final expense = widget.expense;
+    final payment = widget.payment;
+    _customerController = TextEditingController(
+      text: payment?.customerName ?? '',
+    );
+    _unitController = TextEditingController(text: payment?.unitId ?? '');
     _amountController = TextEditingController(
-      text: expense == null ? '' : expense.amount.toStringAsFixed(0),
+      text: payment == null ? '' : payment.amount.toStringAsFixed(0),
     );
-    _descriptionController = TextEditingController(
-      text: expense?.description ?? '',
-    );
-    _notesController = TextEditingController(text: expense?.notes ?? '');
-    _category = expense?.category ?? ExpenseCategory.construction;
-    _paymentMethod = expense?.paymentMethod ?? PaymentMethod.bankTransfer;
-    _partnerId =
-        expense?.paidByPartnerId ??
-        (widget.partners.isEmpty ? '' : widget.partners.first.id);
-    _selectedDate = expense?.date ?? DateTime.now();
+    _notesController = TextEditingController(text: payment?.notes ?? '');
+    _paymentMethod = payment?.paymentMethod ?? PaymentMethod.bankTransfer;
+    _receivedAt = payment?.receivedAt ?? DateTime.now();
   }
 
   @override
   void dispose() {
+    _customerController.dispose();
+    _unitController.dispose();
     _amountController.dispose();
-    _descriptionController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -67,12 +57,12 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _receivedAt,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
     if (picked != null) {
-      setState(() => _selectedDate = picked);
+      setState(() => _receivedAt = picked);
     }
   }
 
@@ -83,26 +73,24 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
 
     setState(() => _saving = true);
     final savedId = await ref
-        .read(expenseRepositoryProvider)
+        .read(paymentRepositoryProvider)
         .save(
-          ExpenseRecord(
-            id: widget.expense?.id ?? '',
+          PaymentRecord(
+            id: widget.payment?.id ?? '',
             propertyId: widget.propertyId,
+            unitId: _unitController.text.trim(),
+            customerName: _customerController.text.trim(),
+            installmentId: widget.payment?.installmentId,
             amount: double.parse(_amountController.text.trim()),
-            category: _category,
-            description: _descriptionController.text.trim(),
-            paidByPartnerId: _partnerId,
+            receivedAt: _receivedAt,
             paymentMethod: _paymentMethod,
-            date: _selectedDate,
-            attachmentUrl: widget.expense?.attachmentUrl,
             notes: _notesController.text.trim(),
-            createdBy: widget.expense?.createdBy ?? session.userId,
-            updatedBy: session.userId,
             createdAt:
-                widget.expense?.createdAt ??
+                widget.payment?.createdAt ??
                 DateTime.fromMillisecondsSinceEpoch(0),
             updatedAt: DateTime.now(),
-            archived: false,
+            createdBy: widget.payment?.createdBy ?? session.userId,
+            updatedBy: session.userId,
           ),
         );
 
@@ -111,10 +99,10 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
         .log(
           actorId: session.userId,
           actorName: session.profile?.name ?? 'Partner',
-          action: widget.expense == null
-              ? 'expense_created'
-              : 'expense_updated',
-          entityType: 'expense',
+          action: widget.payment == null
+              ? 'payment_created'
+              : 'payment_updated',
+          entityType: 'payment',
           entityId: savedId,
           metadata: {'propertyId': widget.propertyId},
         );
@@ -122,9 +110,11 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
         .read(notificationRepositoryProvider)
         .create(
           userId: session.userId,
-          title: widget.expense == null ? 'Expense created' : 'Expense updated',
-          body: _descriptionController.text.trim(),
-          type: NotificationType.expenseAdded,
+          title: widget.payment == null ? 'Payment created' : 'Payment updated',
+          body: _customerController.text.trim().isEmpty
+              ? 'Incoming payment recorded'
+              : _customerController.text.trim(),
+          type: NotificationType.paymentReceived,
           route: '/properties/${widget.propertyId}',
         );
 
@@ -134,18 +124,19 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: widget.expense == null ? 'Add expense' : 'Edit expense',
+      title: widget.payment == null ? 'Add payment' : 'Edit payment',
       child: Form(
         key: _formKey,
         child: Column(
           children: [
             TextFormField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Title / description',
-              ),
-              validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'Enter a title.' : null,
+              controller: _customerController,
+              decoration: const InputDecoration(labelText: 'Customer name'),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _unitController,
+              decoration: const InputDecoration(labelText: 'Unit'),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -161,35 +152,6 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
                 }
                 return null;
               },
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<ExpenseCategory>(
-              initialValue: _category,
-              items: ExpenseCategory.values
-                  .map(
-                    (item) =>
-                        DropdownMenuItem(value: item, child: Text(item.label)),
-                  )
-                  .toList(),
-              onChanged: (value) =>
-                  setState(() => _category = value ?? _category),
-              decoration: const InputDecoration(labelText: 'Category'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _partnerId.isEmpty ? null : _partnerId,
-              items: widget.partners
-                  .map(
-                    (partner) => DropdownMenuItem(
-                      value: partner.id,
-                      child: Text(partner.name),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) => setState(() => _partnerId = value ?? ''),
-              decoration: const InputDecoration(labelText: 'Paid by'),
-              validator: (value) =>
-                  (value ?? '').isEmpty ? 'Select a partner.' : null,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<PaymentMethod>(
@@ -211,7 +173,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
                 decoration: const InputDecoration(labelText: 'Date'),
                 child: Row(
                   children: [
-                    Expanded(child: Text(_selectedDate.formatShort())),
+                    Expanded(child: Text(_receivedAt.formatShort())),
                     const Icon(Icons.calendar_today_outlined, size: 18),
                   ],
                 ),
@@ -229,7 +191,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'Saving...' : 'Save expense'),
+                child: Text(_saving ? 'Saving...' : 'Save payment'),
               ),
             ),
           ],

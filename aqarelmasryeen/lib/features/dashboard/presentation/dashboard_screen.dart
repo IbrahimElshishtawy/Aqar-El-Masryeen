@@ -1,21 +1,15 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
-import 'package:aqarelmasryeen/core/utils/ui_labels.dart';
+import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
-import 'package:aqarelmasryeen/core/widgets/metric_card.dart';
-import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
-import 'package:aqarelmasryeen/features/collections/data/payment_repository.dart';
-import 'package:aqarelmasryeen/features/dashboard/domain/dashboard_assembler.dart';
+import 'package:aqarelmasryeen/core/widgets/summary_card.dart';
+import 'package:aqarelmasryeen/features/dashboard/domain/dashboard_snapshot.dart';
+import 'package:aqarelmasryeen/features/dashboard/presentation/widgets/dashboard_finance_chart.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
-import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
-import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
+import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
-import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
-import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
-import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
-import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,21 +20,8 @@ final dashboardPropertiesProvider = StreamProvider.autoDispose(
 final dashboardExpensesProvider = StreamProvider.autoDispose(
   (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
 );
-final dashboardUnitsProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(salesRepositoryProvider).watchAll(),
-);
-final dashboardInstallmentsProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(installmentRepositoryProvider).watchAllInstallments(),
-);
 final dashboardPaymentsProvider = StreamProvider.autoDispose(
   (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
-);
-final dashboardActivityProvider =
-    StreamProvider.autoDispose<List<ActivityLogEntry>>(
-      (ref) => ref.watch(activityRepositoryProvider).watchRecent(),
-    );
-final dashboardPartnersProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
 );
 
 class DashboardScreen extends ConsumerWidget {
@@ -48,181 +29,193 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    final isCompact = screenWidth < 400;
-    final properties = ref.watch(dashboardPropertiesProvider);
-    final expenses = ref.watch(dashboardExpensesProvider);
-    final units = ref.watch(dashboardUnitsProvider);
-    final installments = ref.watch(dashboardInstallmentsProvider);
-    final payments = ref.watch(dashboardPaymentsProvider);
-    final activity = ref.watch(dashboardActivityProvider);
-    final partners = ref.watch(dashboardPartnersProvider);
-    final session = ref.watch(authSessionProvider).valueOrNull;
+    final propertiesAsync = ref.watch(dashboardPropertiesProvider);
+    final expensesAsync = ref.watch(dashboardExpensesProvider);
+    final paymentsAsync = ref.watch(dashboardPaymentsProvider);
 
-    final allReady = [
-      properties,
-      expenses,
-      units,
-      installments,
-      payments,
-      activity,
-      partners,
-    ].every((item) => item.hasValue);
-
-    if (!allReady) {
-      return const AppShellScaffold(
-        title: 'الرئيسية',
+    if (propertiesAsync.hasError ||
+        expensesAsync.hasError ||
+        paymentsAsync.hasError) {
+      return AppShellScaffold(
+        title: 'Home',
+        subtitle: 'Portfolio overview',
         currentIndex: 0,
-        child: Center(child: CircularProgressIndicator()),
+        actions: _actions(context),
+        child: EmptyStateView(
+          title: 'Unable to load dashboard',
+          message:
+              propertiesAsync.error?.toString() ??
+              expensesAsync.error?.toString() ??
+              paymentsAsync.error?.toString() ??
+              'Unknown error',
+        ),
       );
     }
 
-    final summary = const DashboardAssembler().build(
-      properties: properties.value!,
-      expenses: expenses.value!,
-      units: units.value!,
-      installments: installments.value!,
-      payments: payments.value!,
-      recentActivity: activity.value!,
+    if (!propertiesAsync.hasValue ||
+        !expensesAsync.hasValue ||
+        !paymentsAsync.hasValue) {
+      return AppShellScaffold(
+        title: 'Home',
+        subtitle: 'Portfolio overview',
+        currentIndex: 0,
+        actions: _actions(context),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final snapshot = const DashboardSnapshotBuilder().build(
+      properties: propertiesAsync.value!,
+      expenses: expensesAsync.value!,
+      payments: paymentsAsync.value!,
     );
-    final topProperties = properties.value!.take(3).toList();
 
     return AppShellScaffold(
-      title: 'الرئيسية',
+      title: 'Home',
+      subtitle: 'Portfolio overview',
       currentIndex: 0,
-      actions: [
-        IconButton(
-          onPressed: () => context.push(AppRoutes.notifications),
-          icon: const Icon(Icons.notifications_none_outlined),
-        ),
-      ],
+      actions: _actions(context),
       child: ListView(
-        padding: EdgeInsets.all(isCompact ? 12 : 16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          Text(
-            'مرحبًا ${session?.profile?.name.isNotEmpty == true ? session!.profile!.name : 'شريك'}',
-            style:
-                (isCompact
-                        ? Theme.of(context).textTheme.titleLarge
-                        : Theme.of(context).textTheme.headlineSmall)
-                    ?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          SizedBox(height: isCompact ? 4 : 6),
-          Text(
-            'نظرة سريعة على العقارات والتحصيلات والمصروفات ومراكز الشركاء.',
-            style: isCompact
-                ? Theme.of(context).textTheme.bodyMedium
-                : Theme.of(context).textTheme.bodyLarge,
-          ),
-          SizedBox(height: isCompact ? 12 : 16),
-          GridView.count(
-            shrinkWrap: true,
-            crossAxisCount: screenWidth < 500 ? 2 : 3,
-            mainAxisSpacing: isCompact ? 10 : 12,
-            crossAxisSpacing: isCompact ? 10 : 12,
-            physics: const NeverScrollableScrollPhysics(),
-            childAspectRatio: isCompact ? 1.38 : 1.28,
-            children: [
-              MetricCard(
-                label: 'العقارات',
-                value: '${summary.totalProperties}',
-                icon: Icons.apartment_outlined,
-              ),
-              MetricCard(
-                label: 'المصروفات',
-                value: summary.totalExpenses.egp,
-                icon: Icons.account_balance_wallet_outlined,
-              ),
-              MetricCard(
-                label: 'المبيعات',
-                value: summary.totalSalesValue.egp,
-                icon: Icons.trending_up_outlined,
-              ),
-              MetricCard(
-                label: 'المحصّل',
-                value: summary.totalCollected.egp,
-                icon: Icons.payments_outlined,
-              ),
-              MetricCard(
-                label: 'المتبقي',
-                value: summary.totalRemaining.egp,
-                icon: Icons.hourglass_bottom_outlined,
-              ),
-              MetricCard(
-                label: 'المتأخر',
-                value: '${summary.overdueInstallmentsCount}',
-                icon: Icons.warning_amber_outlined,
-                color: Colors.orange,
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              FilledButton.icon(
-                onPressed: () => context.go(AppRoutes.properties),
-                icon: const Icon(Icons.add_business_outlined),
-                label: const Text('إدارة العقارات'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => context.go(AppRoutes.partners),
-                icon: const Icon(Icons.group_outlined),
-                label: const Text('أرصدة الشركاء'),
-              ),
-              OutlinedButton.icon(
-                onPressed: () => context.go(AppRoutes.reports),
-                icon: const Icon(Icons.summarize_outlined),
-                label: const Text('فتح التقارير'),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            'العقارات المهمة',
-            style: Theme.of(context).textTheme.titleLarge,
+          SummaryCard(
+            label: 'Total properties',
+            value: '${snapshot.propertyCount}',
+            subtitle: 'Primary portfolio count across the workspace',
+            icon: Icons.apartment_rounded,
+            emphasis: true,
           ),
           const SizedBox(height: 12),
-          if (topProperties.isEmpty)
-            const EmptyStateView(
-              title: 'لا توجد عقارات نشطة',
-              message: 'أنشئ مشروعًا للبدء في دورة العمل المحاسبية.',
-            )
-          else
-            for (final property in topProperties) ...[
-              Card(
-                child: ListTile(
-                  title: Text(property.name),
-                  subtitle: Text(
-                    '${property.location} • ${property.status.label}',
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 680;
+              return GridView.count(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                crossAxisCount: isWide ? 3 : 1,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: isWide ? 1.55 : 2.35,
+                children: [
+                  SummaryCard(
+                    label: 'Total expenses',
+                    value: snapshot.totalExpenses.egp,
+                    subtitle: 'All recorded outgoing costs',
+                    icon: Icons.north_east_rounded,
                   ),
-                  trailing: TextButton(
-                    onPressed: () =>
-                        context.push(AppRoutes.propertyDetails(property.id)),
-                    child: const Text('فتح'),
+                  SummaryCard(
+                    label: 'Total payments',
+                    value: snapshot.totalPayments.egp,
+                    subtitle: 'All recorded incoming cash',
+                    icon: Icons.south_west_rounded,
                   ),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-          Text('أحدث الأنشطة', style: Theme.of(context).textTheme.titleLarge),
+                  SummaryCard(
+                    label: 'Net balance',
+                    value: snapshot.netBalance.egp,
+                    subtitle: 'Payments minus expenses',
+                    icon: Icons.account_balance_wallet_outlined,
+                  ),
+                ],
+              );
+            },
+          ),
           const SizedBox(height: 12),
-          for (final item in activity.value!) ...[
-            Card(
-              child: ListTile(
-                dense: true,
-                title: Text(
-                  '${item.actorName} ${activityActionLabel(item.action)}',
-                ),
-                subtitle: Text(item.createdAt.formatWithTime()),
-                trailing: Text(entityTypeLabel(item.entityType)),
-              ),
-            ),
-            const SizedBox(height: 8),
-          ],
+          DashboardFinanceChart(buckets: snapshot.chart),
+          const SizedBox(height: 12),
+          AppPanel(
+            title: 'Recent financial activity',
+            subtitle: 'Latest expense and payment records',
+            child: snapshot.recentRecords.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Text('No financial activity yet.'),
+                  )
+                : Column(
+                    children: [
+                      for (
+                        var index = 0;
+                        index < snapshot.recentRecords.length;
+                        index++
+                      ) ...[
+                        _RecentRecordTile(
+                          record: snapshot.recentRecords[index],
+                        ),
+                        if (index != snapshot.recentRecords.length - 1)
+                          const Divider(height: 24),
+                      ],
+                    ],
+                  ),
+          ),
         ],
       ),
+    );
+  }
+
+  List<Widget> _actions(BuildContext context) {
+    return [
+      IconButton(
+        onPressed: () => context.push(AppRoutes.notifications),
+        icon: const Icon(Icons.notifications_none_rounded),
+      ),
+      IconButton(
+        onPressed: () => context.push(AppRoutes.settings),
+        icon: const Icon(Icons.settings_outlined),
+      ),
+    ];
+  }
+}
+
+class _RecentRecordTile extends StatelessWidget {
+  const _RecentRecordTile({required this.record});
+
+  final DashboardRecentRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    final isExpense = record.type == DashboardRecordType.expense;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 42,
+          height: 42,
+          decoration: BoxDecoration(
+            color: isExpense ? const Color(0xFFF0F0EA) : Colors.black,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(
+            isExpense ? Icons.north_east_rounded : Icons.south_west_rounded,
+            color: isExpense ? Colors.black : Colors.white,
+            size: 18,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                record.title,
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 4),
+              Text('${record.propertyName} • ${record.subtitle}'),
+              const SizedBox(height: 4),
+              Text(record.date.formatWithTime()),
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          '${isExpense ? '-' : '+'}${record.amount.egp}',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+      ],
     );
   }
 }

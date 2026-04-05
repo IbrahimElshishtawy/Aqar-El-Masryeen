@@ -9,6 +9,7 @@ class AppRoutes {
   static const unlock = '/auth/unlock';
   static const dashboard = '/dashboard';
   static const properties = '/properties';
+  static const profileHome = '/profile';
   static const partners = '/partners';
   static const reports = '/reports';
   static const settings = '/settings';

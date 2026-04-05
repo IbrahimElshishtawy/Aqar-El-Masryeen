@@ -245,6 +245,11 @@ class MockWorkspaceStore {
     _emit();
   }
 
+  Future<void> deletePayment(String paymentId) async {
+    _payments.removeWhere((item) => item.id == paymentId);
+    _emit();
+  }
+
   Future<void> updateInstallmentPayment({
     required String installmentId,
     required double paidAmount,
@@ -610,6 +615,7 @@ class MockWorkspaceStore {
         id: 'payment_1',
         propertyId: 'property_1',
         unitId: 'unit_1',
+        customerName: 'Customer A',
         installmentId: 'inst_1',
         amount: 300000,
         receivedAt: now.subtract(const Duration(days: 120)),
@@ -624,6 +630,7 @@ class MockWorkspaceStore {
         id: 'payment_2',
         propertyId: 'property_1',
         unitId: 'unit_1',
+        customerName: 'Customer A',
         installmentId: 'inst_2',
         amount: 300000,
         receivedAt: now.subtract(const Duration(days: 90)),
@@ -638,6 +645,7 @@ class MockWorkspaceStore {
         id: 'payment_3',
         propertyId: 'property_1',
         unitId: 'unit_1',
+        customerName: 'Customer A',
         installmentId: 'inst_3',
         amount: 180000,
         receivedAt: now.subtract(const Duration(days: 20)),
@@ -954,6 +962,7 @@ extension on PaymentRecord {
     String? id,
     String? propertyId,
     String? unitId,
+    String? customerName,
     String? installmentId,
     double? amount,
     DateTime? receivedAt,
@@ -968,6 +977,7 @@ extension on PaymentRecord {
       id: id ?? this.id,
       propertyId: propertyId ?? this.propertyId,
       unitId: unitId ?? this.unitId,
+      customerName: customerName ?? this.customerName,
       installmentId: installmentId ?? this.installmentId,
       amount: amount ?? this.amount,
       receivedAt: receivedAt ?? this.receivedAt,

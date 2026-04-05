@@ -10,11 +10,10 @@ import 'package:aqarelmasryeen/features/auth/presentation/screens/profile_comple
 import 'package:aqarelmasryeen/features/auth/presentation/screens/register_screen.dart';
 import 'package:aqarelmasryeen/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:aqarelmasryeen/features/notifications/presentation/notifications_center_screen.dart';
-import 'package:aqarelmasryeen/features/partners/presentation/partners_screen.dart';
+import 'package:aqarelmasryeen/features/profile/presentation/profile_screen.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/properties_screen.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/property_detail_screen.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/property_form_screen.dart';
-import 'package:aqarelmasryeen/features/reports/presentation/reports_screen.dart';
 import 'package:aqarelmasryeen/features/security/presentation/screens/unlock_screen.dart';
 import 'package:aqarelmasryeen/features/settings/presentation/settings_screen.dart';
 import 'package:aqarelmasryeen/features/splash/presentation/screens/splash_screen.dart';
@@ -101,14 +100,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(
-        path: AppRoutes.partners,
+        path: AppRoutes.profileHome,
         pageBuilder: (context, state) =>
-            _buildAppPage(state: state, child: const PartnersScreen()),
-      ),
-      GoRoute(
-        path: AppRoutes.reports,
-        pageBuilder: (context, state) =>
-            _buildAppPage(state: state, child: const ReportsScreen()),
+            _buildAppPage(state: state, child: const ProfileScreen()),
       ),
       GoRoute(
         path: AppRoutes.settings,
@@ -188,18 +182,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               const Icon(Icons.warning_amber_rounded, size: 48),
               const SizedBox(height: 12),
               Text(
-                'تعذر فتح هذه الشاشة',
+                'Unable to open this screen',
                 style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),
               Text(
-                state.error?.toString() ?? 'المسار غير موجود.',
+                state.error?.toString() ??
+                    'The requested route does not exist.',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: () => context.go(AppRoutes.dashboard),
-                child: const Text('العودة إلى الرئيسية'),
+                child: const Text('Back to home'),
               ),
             ],
           ),
@@ -216,7 +211,7 @@ CustomTransitionPage<void> _buildAppPage({
   return CustomTransitionPage<void>(
     key: state.pageKey,
     child: child,
-    transitionDuration: const Duration(milliseconds: 260),
+    transitionDuration: const Duration(milliseconds: 240),
     reverseTransitionDuration: const Duration(milliseconds: 220),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final curvedAnimation = CurvedAnimation(
@@ -227,11 +222,10 @@ CustomTransitionPage<void> _buildAppPage({
       return FadeTransition(
         opacity: curvedAnimation,
         child: SlideTransition(
-          position:
-              Tween<Offset>(
-                begin: const Offset(0, 0.03),
-                end: Offset.zero,
-              ).animate(curvedAnimation),
+          position: Tween<Offset>(
+            begin: const Offset(0, 0.02),
+            end: Offset.zero,
+          ).animate(curvedAnimation),
           child: child,
         ),
       );
