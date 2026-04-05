@@ -27,19 +27,19 @@ class AppShellScaffold extends ConsumerWidget {
   static const _destinations = [
     _ShellDestination(
       route: AppRoutes.dashboard,
-      label: 'Home',
+      label: 'الرئيسية',
       icon: Icons.grid_view_outlined,
       selectedIcon: Icons.grid_view_rounded,
     ),
     _ShellDestination(
       route: AppRoutes.properties,
-      label: 'Properties',
+      label: 'المشروعات',
       icon: Icons.apartment_outlined,
       selectedIcon: Icons.apartment_rounded,
     ),
     _ShellDestination(
       route: AppRoutes.profileHome,
-      label: 'Profile',
+      label: 'الحساب',
       icon: Icons.person_outline_rounded,
       selectedIcon: Icons.person_rounded,
     ),

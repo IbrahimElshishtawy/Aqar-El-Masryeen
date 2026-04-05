@@ -449,7 +449,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             const SizedBox(height: 16),
           ],
           FinancialLedgerTable<MaterialExpenseEntry>(
-            title: 'Building Materials Ledger',
+            title: 'Expense Sheet',
             subtitle:
                 '${materials.length} invoice(s) - total ${materialsSnapshot.overallTotal.egp}',
             rows: materials,
@@ -457,13 +457,20 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             onAdd: _showMaterialSheet,
             onEdit: (entry) => _showMaterialSheet(entry: entry),
             onDelete: _deleteMaterial,
+            sheetLabel: 'Expense sheet • supplier invoices',
             columns: [
               LedgerColumn(
                 label: 'Date',
                 valueBuilder: (row) => Text(row.date.formatShort()),
+                minWidth: 116,
               ),
               LedgerColumn(
-                label: 'Material',
+                label: 'Supplier',
+                valueBuilder: (row) => Text(row.supplierName),
+                minWidth: 170,
+              ),
+              LedgerColumn(
+                label: 'Material / Category',
                 valueBuilder: (row) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -479,26 +486,44 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     ),
                   ],
                 ),
-              ),
-              LedgerColumn(
-                label: 'Supplier',
-                valueBuilder: (row) => Text(row.supplierName),
+                minWidth: 220,
               ),
               LedgerColumn(
                 label: 'Qty',
                 valueBuilder: (row) => Text('${row.quantity}'),
+                minWidth: 88,
+                numeric: true,
+              ),
+              LedgerColumn(
+                label: 'Unit price',
+                valueBuilder: (row) => Text(row.unitPrice.egp),
+                minWidth: 120,
+                numeric: true,
               ),
               LedgerColumn(
                 label: 'Total',
                 valueBuilder: (row) => Text(row.totalPrice.egp),
+                minWidth: 128,
+                numeric: true,
               ),
               LedgerColumn(
                 label: 'Paid',
                 valueBuilder: (row) => Text(row.amountPaid.egp),
+                minWidth: 128,
+                numeric: true,
               ),
               LedgerColumn(
                 label: 'Remaining',
                 valueBuilder: (row) => Text(row.amountRemaining.egp),
+                minWidth: 132,
+                numeric: true,
+              ),
+              LedgerColumn(
+                label: 'Due date',
+                valueBuilder: (row) => Text(
+                  row.dueDate == null ? '-' : row.dueDate!.formatShort(),
+                ),
+                minWidth: 120,
               ),
               LedgerColumn(
                 label: 'Status',
@@ -506,6 +531,16 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   label: row.status.label,
                   color: _statusColor(row.status),
                 ),
+                minWidth: 128,
+              ),
+              LedgerColumn(
+                label: 'Notes',
+                valueBuilder: (row) => Text(
+                  row.notes.isEmpty ? '-' : row.notes,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                minWidth: 220,
               ),
             ],
             totalsFooter: LedgerTotalsFooter(
@@ -530,26 +565,36 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             title: 'Supplier Summary',
             subtitle: 'Outstanding balances and purchase totals by supplier',
             rows: materialsSnapshot.supplierSummaries,
+            sheetLabel: 'Expense sheet • supplier summary',
             columns: [
               LedgerColumn(
                 label: 'Supplier',
                 valueBuilder: (row) => Text(row.supplierName),
+                minWidth: 180,
               ),
               LedgerColumn(
                 label: 'Invoices',
                 valueBuilder: (row) => Text('${row.invoiceCount}'),
+                minWidth: 100,
+                numeric: true,
               ),
               LedgerColumn(
                 label: 'Purchased',
                 valueBuilder: (row) => Text(row.totalPurchased.egp),
+                minWidth: 128,
+                numeric: true,
               ),
               LedgerColumn(
                 label: 'Paid',
                 valueBuilder: (row) => Text(row.totalPaid.egp),
+                minWidth: 128,
+                numeric: true,
               ),
               LedgerColumn(
                 label: 'Remaining',
                 valueBuilder: (row) => Text(row.totalRemaining.egp),
+                minWidth: 132,
+                numeric: true,
               ),
             ],
           ),
@@ -558,31 +603,41 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             title: 'Partner Expense Ledger',
             subtitle: 'Protected settlement flow with paid, owed, and balances',
             rows: partnerSummaries,
+            sheetLabel: 'Expense sheet • partner balances',
             columns: [
               LedgerColumn(
                 label: 'Partner',
                 valueBuilder: (row) => Text(row.partner.name),
+                minWidth: 180,
               ),
               LedgerColumn(
                 label: 'Total paid',
                 valueBuilder: (row) => Text(row.totalPaid.egp),
+                minWidth: 128,
+                numeric: true,
               ),
               LedgerColumn(
                 label: 'Total owed',
                 valueBuilder: (row) => Text(row.totalOwed.egp),
+                minWidth: 128,
+                numeric: true,
               ),
               LedgerColumn(
                 label: 'Balance',
                 valueBuilder: (row) => Text(row.balance.egp),
+                minWidth: 132,
+                numeric: true,
               ),
               LedgerColumn(
                 label: 'Last updated',
                 valueBuilder: (row) => Text(row.lastUpdated.formatShort()),
+                minWidth: 118,
               ),
               LedgerColumn(
                 label: 'Notes',
                 valueBuilder: (row) =>
                     Text(row.notes.isEmpty ? '-' : row.notes),
+                minWidth: 220,
               ),
             ],
             onView: (row) =>
@@ -599,6 +654,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               title: 'Partner Ledger History',
               subtitle: 'Authorized ledger entries for this property',
               rows: partnerHistory,
+              sheetLabel: 'Expense sheet • partner history',
               columns: [
                 LedgerColumn(
                   label: 'Partner',
@@ -607,19 +663,24 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                         .firstWhere((item) => item.id == row.partnerId)
                         .name,
                   ),
+                  minWidth: 180,
                 ),
                 LedgerColumn(
                   label: 'Type',
                   valueBuilder: (row) => Text(row.entryType.label),
+                  minWidth: 140,
                 ),
                 LedgerColumn(
                   label: 'Amount',
                   valueBuilder: (row) => Text(row.amount.egp),
+                  minWidth: 132,
+                  numeric: true,
                 ),
                 LedgerColumn(
                   label: 'Notes',
                   valueBuilder: (row) =>
                       Text(row.notes.isEmpty ? '-' : row.notes),
+                  minWidth: 220,
                 ),
               ],
               onDelete: _deletePartnerLedger,
@@ -787,6 +848,10 @@ class _UnitSalesPanel extends StatelessWidget {
         ? 'TBD'
         : summary.projectedCompletionDate!.formatShort();
     final durationDays = summary.remainingDuration.inDays;
+    final installmentLabels = {
+      for (final row in summary.installmentRows)
+        row.installment.id: '#${row.installment.sequence}',
+    };
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -860,7 +925,7 @@ class _UnitSalesPanel extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         FinancialLedgerTable<InstallmentComputedRow>(
-          title: 'Installment Sheet',
+          title: 'Sales Installment Sheet',
           subtitle:
               '${summary.installmentRows.length} row(s) - remaining ${summary.totalRemainingInstallmentsAmount.egp}',
           rows: summary.installmentRows,
@@ -869,31 +934,42 @@ class _UnitSalesPanel extends StatelessWidget {
           onView: onViewInstallment,
           onEdit: (row) => onEditInstallment(row.installment),
           onDelete: (row) => onDeleteInstallment(row.installment),
+          sheetLabel: 'Sales sheet • installment schedule',
           columns: [
             LedgerColumn(
-              label: '#',
+              label: 'Plan #',
               valueBuilder: (row) => Text('${row.installment.sequence}'),
+              minWidth: 78,
+              numeric: true,
             ),
             LedgerColumn(
               label: 'Due date',
               valueBuilder: (row) =>
                   Text(row.installment.dueDate.formatShort()),
+              minWidth: 118,
             ),
             LedgerColumn(
               label: 'Amount due',
               valueBuilder: (row) => Text(row.installment.amount.egp),
+              minWidth: 128,
+              numeric: true,
             ),
             LedgerColumn(
               label: 'Payer',
               valueBuilder: (row) => Text(row.payerSummary),
+              minWidth: 180,
             ),
             LedgerColumn(
               label: 'Amount paid',
               valueBuilder: (row) => Text(row.amountPaid.egp),
+              minWidth: 128,
+              numeric: true,
             ),
             LedgerColumn(
               label: 'Remaining',
               valueBuilder: (row) => Text(row.remainingAmount.egp),
+              minWidth: 132,
+              numeric: true,
             ),
             LedgerColumn(
               label: 'Status',
@@ -907,12 +983,16 @@ class _UnitSalesPanel extends StatelessWidget {
                     ? Colors.redAccent
                     : Colors.blueGrey,
               ),
+              minWidth: 128,
             ),
             LedgerColumn(
               label: 'Notes',
               valueBuilder: (row) => Text(
                 row.installment.notes.isEmpty ? '-' : row.installment.notes,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
+              minWidth: 220,
             ),
           ],
           totalsFooter: LedgerTotalsFooter(
@@ -938,33 +1018,81 @@ class _UnitSalesPanel extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         FinancialLedgerTable<PaymentRecord>(
-          title: 'Installment Payments',
+          title: 'Sales Collection Sheet',
           subtitle:
               '${payments.length} payment(s) - total ${payments.fold<double>(0, (sum, item) => sum + item.amount).egp}',
           rows: payments,
+          sheetLabel: 'Sales sheet • collected payments',
           columns: [
             LedgerColumn(
               label: 'Date',
               valueBuilder: (row) => Text(row.receivedAt.formatShort()),
+              minWidth: 116,
             ),
             LedgerColumn(
-              label: 'Payer',
-              valueBuilder: (row) => Text(
-                row.effectivePayerName.isEmpty ? '-' : row.effectivePayerName,
+              label: 'Unit',
+              valueBuilder: (_) => Text(summary.unit.unitNumber),
+              minWidth: 92,
+            ),
+            LedgerColumn(
+              label: 'Customer / Payer',
+              valueBuilder: (row) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    row.customerName.trim().isEmpty
+                        ? summary.unit.customerName
+                        : row.customerName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    row.effectivePayerName.isEmpty
+                        ? '-'
+                        : row.effectivePayerName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
               ),
+              minWidth: 190,
+            ),
+            LedgerColumn(
+              label: 'Method',
+              valueBuilder: (row) => Text(row.paymentMethod.label),
+              minWidth: 130,
             ),
             LedgerColumn(
               label: 'Source',
               valueBuilder: (row) =>
                   Text(row.paymentSource.isEmpty ? '-' : row.paymentSource),
+              minWidth: 150,
             ),
             LedgerColumn(
               label: 'Installment',
-              valueBuilder: (row) => Text(row.installmentId ?? '-'),
+              valueBuilder: (row) => Text(
+                row.installmentId == null
+                    ? '-'
+                    : (installmentLabels[row.installmentId!] ?? 'Custom'),
+              ),
+              minWidth: 110,
             ),
             LedgerColumn(
               label: 'Amount',
               valueBuilder: (row) => Text(row.amount.egp),
+              minWidth: 128,
+              numeric: true,
+            ),
+            LedgerColumn(
+              label: 'Notes',
+              valueBuilder: (row) => Text(
+                row.notes.isEmpty ? '-' : row.notes,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              minWidth: 220,
             ),
           ],
           onEdit: onEditPayment,

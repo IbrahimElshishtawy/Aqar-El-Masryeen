@@ -73,7 +73,7 @@ class MaterialsLedgerCalculator {
         .map((entry) {
           final supplierEntries = entry.value;
           return SupplierLedgerSummary(
-            supplierName: entry.key.isEmpty ? 'Unknown Supplier' : entry.key,
+            supplierName: entry.key.isEmpty ? 'مورد غير محدد' : entry.key,
             totalPurchased: supplierEntries.fold<double>(
               0,
               (sum, item) => sum + item.totalPrice,

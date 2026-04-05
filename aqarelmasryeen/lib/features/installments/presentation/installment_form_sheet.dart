@@ -107,7 +107,7 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
         .read(activityRepositoryProvider)
         .log(
           actorId: session.userId,
-          actorName: session.profile?.name ?? 'Partner',
+          actorName: session.profile?.name ?? 'شريك',
           action: widget.installment == null
               ? 'installment_created'
               : 'installment_updated',
@@ -124,9 +124,7 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: widget.installment == null
-          ? 'Add Installment'
-          : 'Edit Installment',
+      title: widget.installment == null ? 'إضافة قسط' : 'تعديل القسط',
       child: Form(
         key: _formKey,
         child: Column(
@@ -137,10 +135,10 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
                   child: TextFormField(
                     controller: _sequenceController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Number'),
+                    decoration: const InputDecoration(labelText: 'رقم القسط'),
                     validator: (value) {
                       if ((int.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'Enter sequence.';
+                        return 'أدخل رقم القسط.';
                       }
                       return null;
                     },
@@ -153,10 +151,12 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'Amount due'),
+                    decoration: const InputDecoration(
+                      labelText: 'قيمة القسط',
+                    ),
                     validator: (value) {
                       if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'Enter amount.';
+                        return 'أدخل قيمة القسط.';
                       }
                       return null;
                     },
@@ -168,7 +168,9 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
             InkWell(
               onTap: _pickDate,
               child: InputDecorator(
-                decoration: const InputDecoration(labelText: 'Due date'),
+                decoration: const InputDecoration(
+                  labelText: 'تاريخ الاستحقاق',
+                ),
                 child: Row(
                   children: [
                     Expanded(child: Text(_dueDate.formatShort())),
@@ -182,14 +184,14 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
               controller: _notesController,
               minLines: 2,
               maxLines: 4,
-              decoration: const InputDecoration(labelText: 'Notes'),
+              decoration: const InputDecoration(labelText: 'ملاحظات'),
             ),
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'Saving...' : 'Save installment'),
+                child: Text(_saving ? 'جاري الحفظ...' : 'حفظ القسط'),
               ),
             ),
           ],

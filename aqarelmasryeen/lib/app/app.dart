@@ -83,8 +83,8 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
         themeMode: ThemeMode.light,
         routerConfig: routerConfig,
         builder: builder,
-        locale: const Locale('en'),
-        supportedLocales: const [Locale('en'), Locale('ar')],
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar'), Locale('en')],
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
@@ -101,8 +101,8 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
       themeMode: ThemeMode.light,
       home: home,
       builder: builder,
-      locale: const Locale('en'),
-      supportedLocales: const [Locale('en'), Locale('ar')],
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -125,7 +125,7 @@ class _AppBootstrapScreen extends StatelessWidget {
             children: const [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('Preparing workspace...'),
+              Text('جاري تجهيز مساحة العمل...'),
             ],
           ),
         ),
@@ -152,7 +152,7 @@ class _AppBootstrapErrorScreen extends StatelessWidget {
                 const Icon(Icons.error_outline, size: 48),
                 const SizedBox(height: 12),
                 Text(
-                  'Firebase failed to initialize',
+                  'تعذر تهيئة خدمات التطبيق',
                   style: Theme.of(context).textTheme.titleLarge,
                   textAlign: TextAlign.center,
                 ),

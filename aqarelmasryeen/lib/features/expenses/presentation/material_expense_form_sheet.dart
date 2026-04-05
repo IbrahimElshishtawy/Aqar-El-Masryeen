@@ -135,7 +135,7 @@ class _MaterialExpenseFormSheetState
         .read(activityRepositoryProvider)
         .log(
           actorId: session.userId,
-          actorName: session.profile?.name ?? 'Partner',
+          actorName: session.profile?.name ?? 'شريك',
           action: widget.entry == null
               ? 'material_expense_created'
               : 'material_expense_updated',
@@ -151,8 +151,8 @@ class _MaterialExpenseFormSheetState
         .create(
           userId: session.userId,
           title: entry.totalPrice >= 100000
-              ? 'Large expense recorded'
-              : 'Material expense updated',
+              ? 'تم تسجيل مصروف مواد كبير'
+              : 'تم تحديث مصروف المواد',
           body: '${entry.itemName} - ${entry.supplierName}',
           type: entry.totalPrice >= 100000
               ? NotificationType.largeExpenseRecorded
@@ -167,8 +167,8 @@ class _MaterialExpenseFormSheetState
   Widget build(BuildContext context) {
     return AppFormSheet(
       title: widget.entry == null
-          ? 'Add Material Invoice'
-          : 'Edit Material Invoice',
+          ? 'إضافة فاتورة مواد بناء'
+          : 'تعديل فاتورة مواد البناء',
       child: Form(
         key: _formKey,
         child: Column(
@@ -183,14 +183,14 @@ class _MaterialExpenseFormSheetState
                   .toList(),
               onChanged: (value) =>
                   setState(() => _category = value ?? _category),
-              decoration: const InputDecoration(labelText: 'Material category'),
+              decoration: const InputDecoration(labelText: 'نوع المادة'),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _itemController,
-              decoration: const InputDecoration(labelText: 'Item name'),
+              decoration: const InputDecoration(labelText: 'اسم الصنف'),
               validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'Enter an item.' : null,
+                  (value ?? '').trim().isEmpty ? 'أدخل اسم الصنف.' : null,
             ),
             const SizedBox(height: 12),
             Row(
@@ -201,10 +201,10 @@ class _MaterialExpenseFormSheetState
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'Quantity'),
+                    decoration: const InputDecoration(labelText: 'الكمية'),
                     validator: (value) {
                       if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'Enter qty.';
+                        return 'أدخل الكمية.';
                       }
                       return null;
                     },
@@ -217,10 +217,12 @@ class _MaterialExpenseFormSheetState
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'Unit price'),
+                    decoration: const InputDecoration(
+                      labelText: 'سعر الوحدة',
+                    ),
                     validator: (value) {
                       if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'Enter price.';
+                        return 'أدخل سعر الوحدة.';
                       }
                       return null;
                     },
@@ -234,10 +236,10 @@ class _MaterialExpenseFormSheetState
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'Total price'),
+              decoration: const InputDecoration(labelText: 'إجمالي الفاتورة'),
               validator: (value) {
                 if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                  return 'Enter total.';
+                  return 'أدخل إجمالي الفاتورة.';
                 }
                 return null;
               },
@@ -245,9 +247,9 @@ class _MaterialExpenseFormSheetState
             const SizedBox(height: 12),
             TextFormField(
               controller: _supplierController,
-              decoration: const InputDecoration(labelText: 'Supplier'),
+              decoration: const InputDecoration(labelText: 'اسم التاجر / المورد'),
               validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'Enter a supplier.' : null,
+                  (value ?? '').trim().isEmpty ? 'أدخل اسم التاجر أو المورد.' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -255,7 +257,7 @@ class _MaterialExpenseFormSheetState
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'Amount paid'),
+              decoration: const InputDecoration(labelText: 'المدفوع'),
             ),
             const SizedBox(height: 12),
             Row(
@@ -264,7 +266,7 @@ class _MaterialExpenseFormSheetState
                   child: InkWell(
                     onTap: () => _pickDate(due: false),
                     child: InputDecorator(
-                      decoration: const InputDecoration(labelText: 'Date'),
+                      decoration: const InputDecoration(labelText: 'التاريخ'),
                       child: Text(_date.formatShort()),
                     ),
                   ),
@@ -274,7 +276,9 @@ class _MaterialExpenseFormSheetState
                   child: InkWell(
                     onTap: () => _pickDate(due: true),
                     child: InputDecorator(
-                      decoration: const InputDecoration(labelText: 'Due date'),
+                      decoration: const InputDecoration(
+                        labelText: 'تاريخ الاستحقاق',
+                      ),
                       child: Text(_dueDate.formatShort()),
                     ),
                   ),
@@ -286,14 +290,16 @@ class _MaterialExpenseFormSheetState
               controller: _notesController,
               minLines: 2,
               maxLines: 4,
-              decoration: const InputDecoration(labelText: 'Notes'),
+              decoration: const InputDecoration(labelText: 'ملاحظات'),
             ),
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'Saving...' : 'Save material invoice'),
+                child: Text(
+                  _saving ? 'جاري الحفظ...' : 'حفظ فاتورة مواد البناء',
+                ),
               ),
             ),
           ],

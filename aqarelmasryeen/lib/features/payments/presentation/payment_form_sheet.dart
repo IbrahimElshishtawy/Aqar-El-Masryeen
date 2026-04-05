@@ -116,7 +116,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
         .read(activityRepositoryProvider)
         .log(
           actorId: session.userId,
-          actorName: session.profile?.name ?? 'Partner',
+          actorName: session.profile?.name ?? 'شريك',
           action: widget.payment == null
               ? 'payment_created'
               : 'payment_updated',
@@ -133,10 +133,10 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
         .create(
           userId: session.userId,
           title: widget.payment == null
-              ? 'Payment received'
-              : 'Payment updated',
+              ? 'تم استلام دفعة'
+              : 'تم تحديث الدفعة',
           body: _payerController.text.trim().isEmpty
-              ? 'Incoming payment recorded'
+              ? 'تم تسجيل دفعة واردة'
               : _payerController.text.trim(),
           type: NotificationType.paymentReceived,
           route: '/properties/${widget.propertyId}',
@@ -148,19 +148,19 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: widget.payment == null ? 'Add Payment' : 'Edit Payment',
+      title: widget.payment == null ? 'إضافة دفعة' : 'تعديل الدفعة',
       child: Form(
         key: _formKey,
         child: Column(
           children: [
             TextFormField(
               controller: _payerController,
-              decoration: const InputDecoration(labelText: 'Payer name'),
+              decoration: const InputDecoration(labelText: 'اسم الدافع'),
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _unitController,
-              decoration: const InputDecoration(labelText: 'Unit'),
+              decoration: const InputDecoration(labelText: 'رقم الوحدة'),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -168,11 +168,11 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'Amount'),
+              decoration: const InputDecoration(labelText: 'المبلغ'),
               validator: (value) {
                 final parsed = double.tryParse((value ?? '').trim());
                 if (parsed == null || parsed <= 0) {
-                  return 'Enter a valid amount.';
+                  return 'أدخل مبلغاً صحيحاً.';
                 }
                 return null;
               },
@@ -180,7 +180,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _sourceController,
-              decoration: const InputDecoration(labelText: 'Payment source'),
+              decoration: const InputDecoration(labelText: 'مصدر الدفعة'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<PaymentMethod>(
@@ -193,13 +193,15 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
                   .toList(),
               onChanged: (value) =>
                   setState(() => _paymentMethod = value ?? _paymentMethod),
-              decoration: const InputDecoration(labelText: 'Payment method'),
+              decoration: const InputDecoration(labelText: 'طريقة الدفع'),
             ),
             const SizedBox(height: 12),
             InkWell(
               onTap: _pickDate,
               child: InputDecorator(
-                decoration: const InputDecoration(labelText: 'Received at'),
+                decoration: const InputDecoration(
+                  labelText: 'تاريخ الاستلام',
+                ),
                 child: Row(
                   children: [
                     Expanded(child: Text(_receivedAt.formatShort())),
@@ -213,14 +215,14 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
               controller: _notesController,
               minLines: 2,
               maxLines: 4,
-              decoration: const InputDecoration(labelText: 'Notes'),
+              decoration: const InputDecoration(labelText: 'ملاحظات'),
             ),
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'Saving...' : 'Save payment'),
+                child: Text(_saving ? 'جاري الحفظ...' : 'حفظ الدفعة'),
               ),
             ),
           ],

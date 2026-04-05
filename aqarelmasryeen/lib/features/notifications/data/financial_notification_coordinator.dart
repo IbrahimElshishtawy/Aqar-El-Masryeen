@@ -26,9 +26,9 @@ class FinancialNotificationCoordinator {
             daysUntilDue <= 7) {
           await _notifications.create(
             userId: userId,
-            title: 'Installment due soon',
+            title: 'قسط مستحق قريباً',
             body:
-                'Unit ${summary.unit.unitNumber} installment ${row.installment.sequence} is due on ${row.installment.dueDate.toString().split(' ').first}.',
+                'الوحدة ${summary.unit.unitNumber} - القسط ${row.installment.sequence} مستحق بتاريخ ${row.installment.dueDate.toString().split(' ').first}.',
             type: NotificationType.installmentDue,
             route: AppRoutes.propertyDetails(propertyId),
             referenceKey: 'due-soon-${row.installment.id}',
@@ -37,9 +37,9 @@ class FinancialNotificationCoordinator {
         if (row.status == InstallmentStatus.overdue) {
           await _notifications.create(
             userId: userId,
-            title: 'Installment overdue',
+            title: 'قسط متأخر',
             body:
-                'Unit ${summary.unit.unitNumber} installment ${row.installment.sequence} is overdue.',
+                'الوحدة ${summary.unit.unitNumber} - القسط ${row.installment.sequence} متأخر عن السداد.',
             type: NotificationType.overdueInstallment,
             route: AppRoutes.propertyDetails(propertyId),
             referenceKey: 'overdue-${row.installment.id}',
@@ -50,8 +50,8 @@ class FinancialNotificationCoordinator {
       if (summary.isFullyPaid) {
         await _notifications.create(
           userId: userId,
-          title: 'Installment plan completed',
-          body: 'Unit ${summary.unit.unitNumber} is now fully paid.',
+          title: 'اكتمل سداد الوحدة',
+          body: 'تم سداد كل أقساط الوحدة ${summary.unit.unitNumber}.',
           type: NotificationType.installmentCompleted,
           route: AppRoutes.propertyDetails(propertyId),
           referenceKey: 'completed-${summary.unit.id}',
@@ -67,9 +67,9 @@ class FinancialNotificationCoordinator {
         if (isDue) {
           await _notifications.create(
             userId: userId,
-            title: 'Supplier payment due',
+            title: 'استحقاق مورد',
             body:
-                '${material.supplierName} still has ${material.amountRemaining.toStringAsFixed(0)} due.',
+                'المورد ${material.supplierName} متبقي له ${material.amountRemaining.toStringAsFixed(0)}.',
             type: NotificationType.supplierPaymentDue,
             route: AppRoutes.expenses,
             referenceKey: 'supplier-due-${material.id}',
