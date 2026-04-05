@@ -9,7 +9,6 @@ import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/partners/domain/partner_ledger_calculator.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/financial_ledger_table.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
-import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -32,7 +31,9 @@ class ExpensesLedgerScreen extends ConsumerWidget {
     final partnersAsync = ref.watch(allPartnersProvider);
     final partnerLedgersAsync = ref.watch(allPartnerLedgersProvider);
 
-    if (materialsAsync.hasError || partnersAsync.hasError || partnerLedgersAsync.hasError) {
+    if (materialsAsync.hasError ||
+        partnersAsync.hasError ||
+        partnerLedgersAsync.hasError) {
       return AppShellScaffold(
         title: 'Expenses',
         subtitle: 'Supplier and partner ledgers',
@@ -48,7 +49,9 @@ class ExpensesLedgerScreen extends ConsumerWidget {
       );
     }
 
-    if (!materialsAsync.hasValue || !partnersAsync.hasValue || !partnerLedgersAsync.hasValue) {
+    if (!materialsAsync.hasValue ||
+        !partnersAsync.hasValue ||
+        !partnerLedgersAsync.hasValue) {
       return const AppShellScaffold(
         title: 'Expenses',
         subtitle: 'Supplier and partner ledgers',
@@ -104,11 +107,26 @@ class ExpensesLedgerScreen extends ConsumerWidget {
             subtitle: 'Paid vs owed by supplier',
             rows: materialSnapshot.supplierSummaries,
             columns: [
-              LedgerColumn(label: 'Supplier', valueBuilder: (row) => Text(row.supplierName)),
-              LedgerColumn(label: 'Invoices', valueBuilder: (row) => Text('${row.invoiceCount}')),
-              LedgerColumn(label: 'Purchased', valueBuilder: (row) => Text(row.totalPurchased.egp)),
-              LedgerColumn(label: 'Paid', valueBuilder: (row) => Text(row.totalPaid.egp)),
-              LedgerColumn(label: 'Remaining', valueBuilder: (row) => Text(row.totalRemaining.egp)),
+              LedgerColumn(
+                label: 'Supplier',
+                valueBuilder: (row) => Text(row.supplierName),
+              ),
+              LedgerColumn(
+                label: 'Invoices',
+                valueBuilder: (row) => Text('${row.invoiceCount}'),
+              ),
+              LedgerColumn(
+                label: 'Purchased',
+                valueBuilder: (row) => Text(row.totalPurchased.egp),
+              ),
+              LedgerColumn(
+                label: 'Paid',
+                valueBuilder: (row) => Text(row.totalPaid.egp),
+              ),
+              LedgerColumn(
+                label: 'Remaining',
+                valueBuilder: (row) => Text(row.totalRemaining.egp),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -117,11 +135,27 @@ class ExpensesLedgerScreen extends ConsumerWidget {
             subtitle: 'Total paid, owed, and balance by partner',
             rows: partnerSnapshot,
             columns: [
-              LedgerColumn(label: 'Partner', valueBuilder: (row) => Text(row.partner.name)),
-              LedgerColumn(label: 'Paid', valueBuilder: (row) => Text(row.totalPaid.egp)),
-              LedgerColumn(label: 'Owed', valueBuilder: (row) => Text(row.totalOwed.egp)),
-              LedgerColumn(label: 'Balance', valueBuilder: (row) => Text(row.balance.egp)),
-              LedgerColumn(label: 'Last updated', valueBuilder: (row) => Text(row.lastUpdated.toString().split(' ').first)),
+              LedgerColumn(
+                label: 'Partner',
+                valueBuilder: (row) => Text(row.partner.name),
+              ),
+              LedgerColumn(
+                label: 'Paid',
+                valueBuilder: (row) => Text(row.totalPaid.egp),
+              ),
+              LedgerColumn(
+                label: 'Owed',
+                valueBuilder: (row) => Text(row.totalOwed.egp),
+              ),
+              LedgerColumn(
+                label: 'Balance',
+                valueBuilder: (row) => Text(row.balance.egp),
+              ),
+              LedgerColumn(
+                label: 'Last updated',
+                valueBuilder: (row) =>
+                    Text(row.lastUpdated.toString().split(' ').first),
+              ),
             ],
           ),
         ],

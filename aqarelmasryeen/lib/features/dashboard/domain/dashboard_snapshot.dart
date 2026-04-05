@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
@@ -118,7 +119,9 @@ class DashboardSnapshotBuilder {
           title: record.effectivePayerName.isEmpty
               ? 'Payment received'
               : record.effectivePayerName,
-          subtitle: record.paymentSource.isEmpty ? record.paymentMethod.label : record.paymentSource,
+          subtitle: record.paymentSource.isEmpty
+              ? record.paymentMethod.label
+              : record.paymentSource,
           amount: record.amount,
           date: record.receivedAt,
           type: DashboardRecordType.payment,
@@ -151,10 +154,17 @@ class DashboardSnapshotBuilder {
       final month = DateTime(now.year, now.month - i);
       final nextMonth = DateTime(month.year, month.month + 1);
       final expenseValue = materials
-          .where((item) => !item.date.isBefore(month) && item.date.isBefore(nextMonth))
+          .where(
+            (item) =>
+                !item.date.isBefore(month) && item.date.isBefore(nextMonth),
+          )
           .fold<double>(0, (sum, item) => sum + item.totalPrice);
       final paymentValue = payments
-          .where((item) => !item.receivedAt.isBefore(month) && item.receivedAt.isBefore(nextMonth))
+          .where(
+            (item) =>
+                !item.receivedAt.isBefore(month) &&
+                item.receivedAt.isBefore(nextMonth),
+          )
           .fold<double>(0, (sum, item) => sum + item.amount);
 
       buckets.add(

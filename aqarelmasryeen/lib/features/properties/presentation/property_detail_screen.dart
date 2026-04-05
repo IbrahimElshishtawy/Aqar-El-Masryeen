@@ -29,27 +29,40 @@ import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final propertyDetailsProvider = StreamProvider.autoDispose.family<PropertyProject?, String>(
-  (ref, propertyId) => ref.watch(propertyRepositoryProvider).watchProperty(propertyId),
-);
-final propertyUnitsProvider = StreamProvider.autoDispose.family<List<UnitSale>, String>(
-  (ref, propertyId) => ref.watch(salesRepositoryProvider).watchByProperty(propertyId),
-);
-final propertyInstallmentsProvider = StreamProvider.autoDispose.family<List<Installment>, String>(
-  (ref, propertyId) => ref.watch(installmentRepositoryProvider).watchInstallmentsByProperty(propertyId),
-);
-final propertyPaymentsProvider = StreamProvider.autoDispose.family<List<PaymentRecord>, String>(
-  (ref, propertyId) => ref.watch(paymentRepositoryProvider).watchByProperty(propertyId),
-);
-final propertyMaterialsProvider = StreamProvider.autoDispose.family<List<MaterialExpenseEntry>, String>(
-  (ref, propertyId) => ref.watch(materialExpenseRepositoryProvider).watchByProperty(propertyId),
-);
+final propertyDetailsProvider = StreamProvider.autoDispose
+    .family<PropertyProject?, String>(
+      (ref, propertyId) =>
+          ref.watch(propertyRepositoryProvider).watchProperty(propertyId),
+    );
+final propertyUnitsProvider = StreamProvider.autoDispose
+    .family<List<UnitSale>, String>(
+      (ref, propertyId) =>
+          ref.watch(salesRepositoryProvider).watchByProperty(propertyId),
+    );
+final propertyInstallmentsProvider = StreamProvider.autoDispose
+    .family<List<Installment>, String>(
+      (ref, propertyId) => ref
+          .watch(installmentRepositoryProvider)
+          .watchInstallmentsByProperty(propertyId),
+    );
+final propertyPaymentsProvider = StreamProvider.autoDispose
+    .family<List<PaymentRecord>, String>(
+      (ref, propertyId) =>
+          ref.watch(paymentRepositoryProvider).watchByProperty(propertyId),
+    );
+final propertyMaterialsProvider = StreamProvider.autoDispose
+    .family<List<MaterialExpenseEntry>, String>(
+      (ref, propertyId) => ref
+          .watch(materialExpenseRepositoryProvider)
+          .watchByProperty(propertyId),
+    );
 final propertyPartnersProvider = StreamProvider.autoDispose<List<Partner>>(
   (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
 );
-final propertyPartnerLedgerProvider = StreamProvider.autoDispose<List<PartnerLedgerEntry>>(
-  (ref) => ref.watch(partnerLedgerRepositoryProvider).watchAll(),
-);
+final propertyPartnerLedgerProvider =
+    StreamProvider.autoDispose<List<PartnerLedgerEntry>>(
+      (ref) => ref.watch(partnerLedgerRepositoryProvider).watchAll(),
+    );
 
 class PropertyDetailScreen extends ConsumerStatefulWidget {
   const PropertyDetailScreen({super.key, required this.propertyId});
@@ -57,7 +70,8 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
   final String propertyId;
 
   @override
-  ConsumerState<PropertyDetailScreen> createState() => _PropertyDetailScreenState();
+  ConsumerState<PropertyDetailScreen> createState() =>
+      _PropertyDetailScreenState();
 }
 
 class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
@@ -113,16 +127,21 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => MaterialExpenseFormSheet(propertyId: widget.propertyId, entry: entry),
+      builder: (_) =>
+          MaterialExpenseFormSheet(propertyId: widget.propertyId, entry: entry),
     );
   }
 
-  Future<void> _showPartnerLedgerSheet({required Partner partner, PartnerLedgerEntry? entry}) {
+  Future<void> _showPartnerLedgerSheet({
+    required Partner partner,
+    PartnerLedgerEntry? entry,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => PartnerLedgerEntryFormSheet(partner: partner, entry: entry),
+      builder: (_) =>
+          PartnerLedgerEntryFormSheet(partner: partner, entry: entry),
     );
   }
 
@@ -133,8 +152,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             title: Text(title),
             content: Text(message),
             actions: [
-              TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-              FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Confirm')),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Confirm'),
+              ),
             ],
           ),
         ) ??
@@ -150,14 +175,16 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) return;
     await ref.read(salesRepositoryProvider).delete(unit.id);
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.userId,
-      actorName: session.profile?.name ?? 'Partner',
-      action: 'unit_deleted',
-      entityType: 'unit',
-      entityId: unit.id,
-      metadata: {'propertyId': widget.propertyId},
-    );
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.userId,
+          actorName: session.profile?.name ?? 'Partner',
+          action: 'unit_deleted',
+          entityType: 'unit',
+          entityId: unit.id,
+          metadata: {'propertyId': widget.propertyId},
+        );
   }
 
   Future<void> _deleteInstallment(Installment installment) async {
@@ -166,7 +193,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       'The installment and its linked payments will be removed.',
     );
     if (!confirmed) return;
-    await ref.read(installmentRepositoryProvider).deleteInstallment(installment.id);
+    await ref
+        .read(installmentRepositoryProvider)
+        .deleteInstallment(installment.id);
   }
 
   Future<void> _deletePayment(PaymentRecord payment) async {
@@ -193,20 +222,29 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       'This protected partner ledger entry will be archived.',
     );
     if (!confirmed) return;
-    await ref.read(partnerLedgerRepositoryProvider).softDeleteAuthorized(entry.id);
+    await ref
+        .read(partnerLedgerRepositoryProvider)
+        .softDeleteAuthorized(entry.id);
   }
 
   @override
   Widget build(BuildContext context) {
     final propertyAsync = ref.watch(propertyDetailsProvider(widget.propertyId));
     final unitsAsync = ref.watch(propertyUnitsProvider(widget.propertyId));
-    final installmentsAsync = ref.watch(propertyInstallmentsProvider(widget.propertyId));
-    final paymentsAsync = ref.watch(propertyPaymentsProvider(widget.propertyId));
-    final materialsAsync = ref.watch(propertyMaterialsProvider(widget.propertyId));
+    final installmentsAsync = ref.watch(
+      propertyInstallmentsProvider(widget.propertyId),
+    );
+    final paymentsAsync = ref.watch(
+      propertyPaymentsProvider(widget.propertyId),
+    );
+    final materialsAsync = ref.watch(
+      propertyMaterialsProvider(widget.propertyId),
+    );
     final partnersAsync = ref.watch(propertyPartnersProvider);
     final partnerLedgerAsync = ref.watch(propertyPartnerLedgerProvider);
 
-    final hasError = propertyAsync.hasError ||
+    final hasError =
+        propertyAsync.hasError ||
         unitsAsync.hasError ||
         installmentsAsync.hasError ||
         paymentsAsync.hasError ||
@@ -233,7 +271,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       );
     }
 
-    final waiting = !propertyAsync.hasValue ||
+    final waiting =
+        !propertyAsync.hasValue ||
         !unitsAsync.hasValue ||
         !installmentsAsync.hasValue ||
         !paymentsAsync.hasValue ||
@@ -275,7 +314,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       installments: installments,
       payments: payments,
     );
-    final materialsSnapshot = const MaterialsLedgerCalculator().build(materials);
+    final materialsSnapshot = const MaterialsLedgerCalculator().build(
+      materials,
+    );
     final partnerHistory = partnerLedgers
         .where((item) => item.propertyId == widget.propertyId)
         .toList();
@@ -286,25 +327,33 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       ledgerEntries: partnerHistory,
     );
 
-    final totalSalesValue =
-        unitSummaries.fold<double>(0, (sum, item) => sum + item.totalContractAmount);
-    final totalPaidInstallments =
-        unitSummaries.fold<double>(0, (sum, item) => sum + item.totalPaidInstallmentsAmount);
+    final totalSalesValue = unitSummaries.fold<double>(
+      0,
+      (sum, item) => sum + item.totalContractAmount,
+    );
+    final totalPaidInstallments = unitSummaries.fold<double>(
+      0,
+      (sum, item) => sum + item.totalPaidInstallmentsAmount,
+    );
     final totalRemainingInstallments = unitSummaries.fold<double>(
       0,
       (sum, item) => sum + item.totalRemainingInstallmentsAmount,
     );
-    final overdueInstallments =
-        unitSummaries.fold<int>(0, (sum, item) => sum + item.overdueInstallmentsCount);
+    final overdueInstallments = unitSummaries.fold<int>(
+      0,
+      (sum, item) => sum + item.overdueInstallmentsCount,
+    );
 
     if (session != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        ref.read(financialNotificationCoordinatorProvider).syncPropertyAlerts(
-          userId: session.userId,
-          propertyId: widget.propertyId,
-          unitSummaries: unitSummaries,
-          materials: materials,
-        );
+        ref
+            .read(financialNotificationCoordinatorProvider)
+            .syncPropertyAlerts(
+              userId: session.userId,
+              propertyId: widget.propertyId,
+              unitSummaries: unitSummaries,
+              materials: materials,
+            );
       });
     }
 
@@ -372,7 +421,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           for (final summary in unitSummaries) ...[
             _UnitSalesPanel(
               summary: summary,
-              payments: payments.where((item) => item.unitId == summary.unit.id).toList(),
+              payments: payments
+                  .where((item) => item.unitId == summary.unit.id)
+                  .toList(),
               onEditUnit: () => _showUnitSheet(unit: summary.unit),
               onDeleteUnit: () => _deleteUnit(summary.unit),
               onAddInstallment: () => _showInstallmentSheet(
@@ -387,8 +438,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               ),
               onDeleteInstallment: _deleteInstallment,
               onViewInstallment: _showInstallmentPaymentsDialog,
-              onAddPayment: (installmentId) =>
-                  _showPaymentSheet(unit: summary.unit, installmentId: installmentId),
+              onAddPayment: (installmentId) => _showPaymentSheet(
+                unit: summary.unit,
+                installmentId: installmentId,
+              ),
               onEditPayment: (payment) =>
                   _showPaymentSheet(unit: summary.unit, payment: payment),
               onDeletePayment: _deletePayment,
@@ -397,30 +450,56 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           ],
           FinancialLedgerTable<MaterialExpenseEntry>(
             title: 'Building Materials Ledger',
-            subtitle: '${materials.length} invoice(s) - total ${materialsSnapshot.overallTotal.egp}',
+            subtitle:
+                '${materials.length} invoice(s) - total ${materialsSnapshot.overallTotal.egp}',
             rows: materials,
             addLabel: 'Add invoice',
             onAdd: _showMaterialSheet,
             onEdit: (entry) => _showMaterialSheet(entry: entry),
             onDelete: _deleteMaterial,
             columns: [
-              LedgerColumn(label: 'Date', valueBuilder: (row) => Text(row.date.formatShort())),
+              LedgerColumn(
+                label: 'Date',
+                valueBuilder: (row) => Text(row.date.formatShort()),
+              ),
               LedgerColumn(
                 label: 'Material',
                 valueBuilder: (row) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(row.itemName, maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text(row.materialCategory.label, style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      row.itemName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      row.materialCategory.label,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ),
-              LedgerColumn(label: 'Supplier', valueBuilder: (row) => Text(row.supplierName)),
-              LedgerColumn(label: 'Qty', valueBuilder: (row) => Text('${row.quantity}')),
-              LedgerColumn(label: 'Total', valueBuilder: (row) => Text(row.totalPrice.egp)),
-              LedgerColumn(label: 'Paid', valueBuilder: (row) => Text(row.amountPaid.egp)),
-              LedgerColumn(label: 'Remaining', valueBuilder: (row) => Text(row.amountRemaining.egp)),
+              LedgerColumn(
+                label: 'Supplier',
+                valueBuilder: (row) => Text(row.supplierName),
+              ),
+              LedgerColumn(
+                label: 'Qty',
+                valueBuilder: (row) => Text('${row.quantity}'),
+              ),
+              LedgerColumn(
+                label: 'Total',
+                valueBuilder: (row) => Text(row.totalPrice.egp),
+              ),
+              LedgerColumn(
+                label: 'Paid',
+                valueBuilder: (row) => Text(row.amountPaid.egp),
+              ),
+              LedgerColumn(
+                label: 'Remaining',
+                valueBuilder: (row) => Text(row.amountRemaining.egp),
+              ),
               LedgerColumn(
                 label: 'Status',
                 valueBuilder: (row) => FinancialStatusChip(
@@ -431,9 +510,18 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             ],
             totalsFooter: LedgerTotalsFooter(
               children: [
-                LedgerFooterValue(label: 'Overall total', value: materialsSnapshot.overallTotal.egp),
-                LedgerFooterValue(label: 'Paid', value: materialsSnapshot.overallPaid.egp),
-                LedgerFooterValue(label: 'Remaining', value: materialsSnapshot.overallRemaining.egp),
+                LedgerFooterValue(
+                  label: 'Overall total',
+                  value: materialsSnapshot.overallTotal.egp,
+                ),
+                LedgerFooterValue(
+                  label: 'Paid',
+                  value: materialsSnapshot.overallPaid.egp,
+                ),
+                LedgerFooterValue(
+                  label: 'Remaining',
+                  value: materialsSnapshot.overallRemaining.egp,
+                ),
               ],
             ),
           ),
@@ -443,11 +531,26 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             subtitle: 'Outstanding balances and purchase totals by supplier',
             rows: materialsSnapshot.supplierSummaries,
             columns: [
-              LedgerColumn(label: 'Supplier', valueBuilder: (row) => Text(row.supplierName)),
-              LedgerColumn(label: 'Invoices', valueBuilder: (row) => Text('${row.invoiceCount}')),
-              LedgerColumn(label: 'Purchased', valueBuilder: (row) => Text(row.totalPurchased.egp)),
-              LedgerColumn(label: 'Paid', valueBuilder: (row) => Text(row.totalPaid.egp)),
-              LedgerColumn(label: 'Remaining', valueBuilder: (row) => Text(row.totalRemaining.egp)),
+              LedgerColumn(
+                label: 'Supplier',
+                valueBuilder: (row) => Text(row.supplierName),
+              ),
+              LedgerColumn(
+                label: 'Invoices',
+                valueBuilder: (row) => Text('${row.invoiceCount}'),
+              ),
+              LedgerColumn(
+                label: 'Purchased',
+                valueBuilder: (row) => Text(row.totalPurchased.egp),
+              ),
+              LedgerColumn(
+                label: 'Paid',
+                valueBuilder: (row) => Text(row.totalPaid.egp),
+              ),
+              LedgerColumn(
+                label: 'Remaining',
+                valueBuilder: (row) => Text(row.totalRemaining.egp),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -456,17 +559,39 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             subtitle: 'Protected settlement flow with paid, owed, and balances',
             rows: partnerSummaries,
             columns: [
-              LedgerColumn(label: 'Partner', valueBuilder: (row) => Text(row.partner.name)),
-              LedgerColumn(label: 'Total paid', valueBuilder: (row) => Text(row.totalPaid.egp)),
-              LedgerColumn(label: 'Total owed', valueBuilder: (row) => Text(row.totalOwed.egp)),
-              LedgerColumn(label: 'Balance', valueBuilder: (row) => Text(row.balance.egp)),
-              LedgerColumn(label: 'Last updated', valueBuilder: (row) => Text(row.lastUpdated.formatShort())),
-              LedgerColumn(label: 'Notes', valueBuilder: (row) => Text(row.notes.isEmpty ? '-' : row.notes)),
+              LedgerColumn(
+                label: 'Partner',
+                valueBuilder: (row) => Text(row.partner.name),
+              ),
+              LedgerColumn(
+                label: 'Total paid',
+                valueBuilder: (row) => Text(row.totalPaid.egp),
+              ),
+              LedgerColumn(
+                label: 'Total owed',
+                valueBuilder: (row) => Text(row.totalOwed.egp),
+              ),
+              LedgerColumn(
+                label: 'Balance',
+                valueBuilder: (row) => Text(row.balance.egp),
+              ),
+              LedgerColumn(
+                label: 'Last updated',
+                valueBuilder: (row) => Text(row.lastUpdated.formatShort()),
+              ),
+              LedgerColumn(
+                label: 'Notes',
+                valueBuilder: (row) =>
+                    Text(row.notes.isEmpty ? '-' : row.notes),
+              ),
             ],
-            onView: (row) => _showPartnerHistoryDialog(row.partner, partnerHistory),
+            onView: (row) =>
+                _showPartnerHistoryDialog(row.partner, partnerHistory),
             onEdit: (row) => _showPartnerLedgerSheet(partner: row.partner),
             addLabel: 'Authorized action',
-            onAdd: partners.isEmpty ? null : () => _showPartnerLedgerSheet(partner: partners.first),
+            onAdd: partners.isEmpty
+                ? null
+                : () => _showPartnerLedgerSheet(partner: partners.first),
           ),
           if (partnerHistory.isNotEmpty) ...[
             const SizedBox(height: 16),
@@ -478,16 +603,30 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 LedgerColumn(
                   label: 'Partner',
                   valueBuilder: (row) => Text(
-                    partners.firstWhere((item) => item.id == row.partnerId).name,
+                    partners
+                        .firstWhere((item) => item.id == row.partnerId)
+                        .name,
                   ),
                 ),
-                LedgerColumn(label: 'Type', valueBuilder: (row) => Text(row.entryType.label)),
-                LedgerColumn(label: 'Amount', valueBuilder: (row) => Text(row.amount.egp)),
-                LedgerColumn(label: 'Notes', valueBuilder: (row) => Text(row.notes.isEmpty ? '-' : row.notes)),
+                LedgerColumn(
+                  label: 'Type',
+                  valueBuilder: (row) => Text(row.entryType.label),
+                ),
+                LedgerColumn(
+                  label: 'Amount',
+                  valueBuilder: (row) => Text(row.amount.egp),
+                ),
+                LedgerColumn(
+                  label: 'Notes',
+                  valueBuilder: (row) =>
+                      Text(row.notes.isEmpty ? '-' : row.notes),
+                ),
               ],
               onDelete: _deletePartnerLedger,
               onEdit: (row) => _showPartnerLedgerSheet(
-                partner: partners.firstWhere((item) => item.id == row.partnerId),
+                partner: partners.firstWhere(
+                  (item) => item.id == row.partnerId,
+                ),
                 entry: row,
               ),
             ),
@@ -506,7 +645,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     return '';
   }
 
-  Future<void> _showInstallmentPaymentsDialog(InstallmentComputedRow row) async {
+  Future<void> _showInstallmentPaymentsDialog(
+    InstallmentComputedRow row,
+  ) async {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -521,7 +662,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                     for (final payment in row.payments)
                       ListTile(
                         contentPadding: EdgeInsets.zero,
-                        title: Text(payment.effectivePayerName.isEmpty ? 'Unspecified payer' : payment.effectivePayerName),
+                        title: Text(
+                          payment.effectivePayerName.isEmpty
+                              ? 'Unspecified payer'
+                              : payment.effectivePayerName,
+                        ),
                         subtitle: Text(payment.receivedAt.formatShort()),
                         trailing: Text(payment.amount.egp),
                       ),
@@ -532,7 +677,10 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     );
   }
 
-  Future<void> _showPartnerHistoryDialog(Partner partner, List<PartnerLedgerEntry> entries) async {
+  Future<void> _showPartnerHistoryDialog(
+    Partner partner,
+    List<PartnerLedgerEntry> entries,
+  ) async {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -559,13 +707,16 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   }
 
   Color _statusColor(Enum value) {
-    if (value == InstallmentStatus.paid || value == SupplierInvoiceStatus.paid) {
+    if (value == InstallmentStatus.paid ||
+        value == SupplierInvoiceStatus.paid) {
       return Colors.green;
     }
-    if (value == InstallmentStatus.partiallyPaid || value == SupplierInvoiceStatus.partiallyPaid) {
+    if (value == InstallmentStatus.partiallyPaid ||
+        value == SupplierInvoiceStatus.partiallyPaid) {
       return Colors.orange;
     }
-    if (value == InstallmentStatus.overdue || value == SupplierInvoiceStatus.overdue) {
+    if (value == InstallmentStatus.overdue ||
+        value == SupplierInvoiceStatus.overdue) {
       return Colors.redAccent;
     }
     return Colors.blueGrey;
@@ -645,13 +796,19 @@ class _UnitSalesPanel extends StatelessWidget {
             Expanded(
               child: Text(
                 'Unit ${summary.unit.unitNumber} • ${summary.unit.customerName.isEmpty ? 'Unassigned' : summary.unit.customerName}',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
               ),
             ),
-            IconButton(onPressed: onEditUnit, icon: const Icon(Icons.edit_outlined)),
-            IconButton(onPressed: onDeleteUnit, icon: const Icon(Icons.delete_outline)),
+            IconButton(
+              onPressed: onEditUnit,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
+              onPressed: onDeleteUnit,
+              icon: const Icon(Icons.delete_outline),
+            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -679,19 +836,24 @@ class _UnitSalesPanel extends StatelessWidget {
             SummaryCard(
               label: 'Remaining',
               value: summary.totalRemaining.egp,
-              subtitle: '${summary.unpaidInstallmentsCount} unpaid installment(s)',
+              subtitle:
+                  '${summary.unpaidInstallmentsCount} unpaid installment(s)',
               icon: Icons.schedule_outlined,
             ),
             SummaryCard(
               label: 'Projected completion',
               value: projectedCompletion,
-              subtitle: durationDays <= 0 ? 'Complete or due now' : '$durationDays day(s) remaining',
+              subtitle: durationDays <= 0
+                  ? 'Complete or due now'
+                  : '$durationDays day(s) remaining',
               icon: Icons.event_available_outlined,
             ),
             SummaryCard(
               label: 'Installment status',
-              value: '${summary.paidInstallmentsCount}/${summary.totalInstallmentsCount} paid',
-              subtitle: '${summary.partiallyPaidInstallmentsCount} partial • ${summary.overdueInstallmentsCount} overdue',
+              value:
+                  '${summary.paidInstallmentsCount}/${summary.totalInstallmentsCount} paid',
+              subtitle:
+                  '${summary.partiallyPaidInstallmentsCount} partial • ${summary.overdueInstallmentsCount} overdue',
               icon: Icons.table_chart_outlined,
             ),
           ],
@@ -699,7 +861,8 @@ class _UnitSalesPanel extends StatelessWidget {
         const SizedBox(height: 12),
         FinancialLedgerTable<InstallmentComputedRow>(
           title: 'Installment Sheet',
-          subtitle: '${summary.installmentRows.length} row(s) - remaining ${summary.totalRemainingInstallmentsAmount.egp}',
+          subtitle:
+              '${summary.installmentRows.length} row(s) - remaining ${summary.totalRemainingInstallmentsAmount.egp}',
           rows: summary.installmentRows,
           addLabel: 'Add installment',
           onAdd: onAddInstallment,
@@ -707,12 +870,31 @@ class _UnitSalesPanel extends StatelessWidget {
           onEdit: (row) => onEditInstallment(row.installment),
           onDelete: (row) => onDeleteInstallment(row.installment),
           columns: [
-            LedgerColumn(label: '#', valueBuilder: (row) => Text('${row.installment.sequence}')),
-            LedgerColumn(label: 'Due date', valueBuilder: (row) => Text(row.installment.dueDate.formatShort())),
-            LedgerColumn(label: 'Amount due', valueBuilder: (row) => Text(row.installment.amount.egp)),
-            LedgerColumn(label: 'Payer', valueBuilder: (row) => Text(row.payerSummary)),
-            LedgerColumn(label: 'Amount paid', valueBuilder: (row) => Text(row.amountPaid.egp)),
-            LedgerColumn(label: 'Remaining', valueBuilder: (row) => Text(row.remainingAmount.egp)),
+            LedgerColumn(
+              label: '#',
+              valueBuilder: (row) => Text('${row.installment.sequence}'),
+            ),
+            LedgerColumn(
+              label: 'Due date',
+              valueBuilder: (row) =>
+                  Text(row.installment.dueDate.formatShort()),
+            ),
+            LedgerColumn(
+              label: 'Amount due',
+              valueBuilder: (row) => Text(row.installment.amount.egp),
+            ),
+            LedgerColumn(
+              label: 'Payer',
+              valueBuilder: (row) => Text(row.payerSummary),
+            ),
+            LedgerColumn(
+              label: 'Amount paid',
+              valueBuilder: (row) => Text(row.amountPaid.egp),
+            ),
+            LedgerColumn(
+              label: 'Remaining',
+              valueBuilder: (row) => Text(row.remainingAmount.egp),
+            ),
             LedgerColumn(
               label: 'Status',
               valueBuilder: (row) => FinancialStatusChip(
@@ -726,32 +908,71 @@ class _UnitSalesPanel extends StatelessWidget {
                     : Colors.blueGrey,
               ),
             ),
-            LedgerColumn(label: 'Notes', valueBuilder: (row) => Text(row.installment.notes.isEmpty ? '-' : row.installment.notes)),
+            LedgerColumn(
+              label: 'Notes',
+              valueBuilder: (row) => Text(
+                row.installment.notes.isEmpty ? '-' : row.installment.notes,
+              ),
+            ),
           ],
           totalsFooter: LedgerTotalsFooter(
             children: [
-              LedgerFooterValue(label: 'Schedule count', value: '${summary.installmentScheduleCount}'),
-              LedgerFooterValue(label: 'Paid installments', value: '${summary.paidInstallmentsCount}'),
-              LedgerFooterValue(label: 'Partial', value: '${summary.partiallyPaidInstallmentsCount}'),
-              LedgerFooterValue(label: 'Overdue', value: '${summary.overdueInstallmentsCount}'),
+              LedgerFooterValue(
+                label: 'Schedule count',
+                value: '${summary.installmentScheduleCount}',
+              ),
+              LedgerFooterValue(
+                label: 'Paid installments',
+                value: '${summary.paidInstallmentsCount}',
+              ),
+              LedgerFooterValue(
+                label: 'Partial',
+                value: '${summary.partiallyPaidInstallmentsCount}',
+              ),
+              LedgerFooterValue(
+                label: 'Overdue',
+                value: '${summary.overdueInstallmentsCount}',
+              ),
             ],
           ),
         ),
         const SizedBox(height: 12),
         FinancialLedgerTable<PaymentRecord>(
           title: 'Installment Payments',
-          subtitle: '${payments.length} payment(s) - total ${payments.fold<double>(0, (sum, item) => sum + item.amount).egp}',
+          subtitle:
+              '${payments.length} payment(s) - total ${payments.fold<double>(0, (sum, item) => sum + item.amount).egp}',
           rows: payments,
           columns: [
-            LedgerColumn(label: 'Date', valueBuilder: (row) => Text(row.receivedAt.formatShort())),
-            LedgerColumn(label: 'Payer', valueBuilder: (row) => Text(row.effectivePayerName.isEmpty ? '-' : row.effectivePayerName)),
-            LedgerColumn(label: 'Source', valueBuilder: (row) => Text(row.paymentSource.isEmpty ? '-' : row.paymentSource)),
-            LedgerColumn(label: 'Installment', valueBuilder: (row) => Text(row.installmentId ?? '-')),
-            LedgerColumn(label: 'Amount', valueBuilder: (row) => Text(row.amount.egp)),
+            LedgerColumn(
+              label: 'Date',
+              valueBuilder: (row) => Text(row.receivedAt.formatShort()),
+            ),
+            LedgerColumn(
+              label: 'Payer',
+              valueBuilder: (row) => Text(
+                row.effectivePayerName.isEmpty ? '-' : row.effectivePayerName,
+              ),
+            ),
+            LedgerColumn(
+              label: 'Source',
+              valueBuilder: (row) =>
+                  Text(row.paymentSource.isEmpty ? '-' : row.paymentSource),
+            ),
+            LedgerColumn(
+              label: 'Installment',
+              valueBuilder: (row) => Text(row.installmentId ?? '-'),
+            ),
+            LedgerColumn(
+              label: 'Amount',
+              valueBuilder: (row) => Text(row.amount.egp),
+            ),
           ],
           onEdit: onEditPayment,
           onDelete: onDeletePayment,
-          onAdd: summary.installmentRows.isEmpty ? null : () => onAddPayment(summary.installmentRows.first.installment.id),
+          onAdd: summary.installmentRows.isEmpty
+              ? null
+              : () =>
+                    onAddPayment(summary.installmentRows.first.installment.id),
           addLabel: 'Record payment',
         ),
       ],

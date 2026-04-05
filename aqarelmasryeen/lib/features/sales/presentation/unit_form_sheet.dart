@@ -45,8 +45,12 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     _areaController = TextEditingController(
       text: unit == null ? '' : unit.area.toStringAsFixed(0),
     );
-    _customerNameController = TextEditingController(text: unit?.customerName ?? '');
-    _customerPhoneController = TextEditingController(text: unit?.customerPhone ?? '');
+    _customerNameController = TextEditingController(
+      text: unit?.customerName ?? '',
+    );
+    _customerPhoneController = TextEditingController(
+      text: unit?.customerPhone ?? '',
+    );
     _saleAmountController = TextEditingController(
       text: unit == null ? '' : unit.saleAmount.toStringAsFixed(0),
     );
@@ -122,18 +126,20 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     );
 
     await ref.read(salesRepositoryProvider).save(unit);
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.userId,
-      actorName: session.profile?.name ?? 'Partner',
-      action: widget.unit == null ? 'unit_created' : 'unit_updated',
-      entityType: 'unit',
-      entityId: unit.id.isEmpty ? unit.unitNumber : unit.id,
-      metadata: {
-        'propertyId': widget.propertyId,
-        'contractAmount': unit.contractAmount,
-        'status': unit.status.name,
-      },
-    );
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.userId,
+          actorName: session.profile?.name ?? 'Partner',
+          action: widget.unit == null ? 'unit_created' : 'unit_updated',
+          entityType: 'unit',
+          entityId: unit.id.isEmpty ? unit.unitNumber : unit.id,
+          metadata: {
+            'propertyId': widget.propertyId,
+            'contractAmount': unit.contractAmount,
+            'status': unit.status.name,
+          },
+        );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -245,7 +251,9 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'Down payment'),
+                    decoration: const InputDecoration(
+                      labelText: 'Down payment',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),

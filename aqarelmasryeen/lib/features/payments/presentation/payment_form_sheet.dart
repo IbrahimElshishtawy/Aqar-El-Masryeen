@@ -51,7 +51,9 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
     _amountController = TextEditingController(
       text: payment == null ? '' : payment.amount.toStringAsFixed(0),
     );
-    _sourceController = TextEditingController(text: payment?.paymentSource ?? '');
+    _sourceController = TextEditingController(
+      text: payment?.paymentSource ?? '',
+    );
     _notesController = TextEditingController(text: payment?.notes ?? '');
     _paymentMethod = payment?.paymentMethod ?? PaymentMethod.bankTransfer;
     _receivedAt = payment?.receivedAt ?? DateTime.now();
@@ -85,47 +87,60 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
     if (session == null) return;
 
     setState(() => _saving = true);
-    final savedId = await ref.read(paymentRepositoryProvider).save(
-      PaymentRecord(
-        id: widget.payment?.id ?? '',
-        propertyId: widget.propertyId,
-        unitId: _unitController.text.trim(),
-        payerName: _payerController.text.trim(),
-        customerName: _payerController.text.trim(),
-        installmentId: widget.payment?.installmentId ?? widget.installmentId,
-        amount: double.parse(_amountController.text.trim()),
-        receivedAt: _receivedAt,
-        paymentMethod: _paymentMethod,
-        paymentSource: _sourceController.text.trim(),
-        notes: _notesController.text.trim(),
-        createdAt:
-            widget.payment?.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
-        updatedAt: DateTime.now(),
-        createdBy: widget.payment?.createdBy ?? session.userId,
-        updatedBy: session.userId,
-      ),
-    );
+    final savedId = await ref
+        .read(paymentRepositoryProvider)
+        .save(
+          PaymentRecord(
+            id: widget.payment?.id ?? '',
+            propertyId: widget.propertyId,
+            unitId: _unitController.text.trim(),
+            payerName: _payerController.text.trim(),
+            customerName: _payerController.text.trim(),
+            installmentId:
+                widget.payment?.installmentId ?? widget.installmentId,
+            amount: double.parse(_amountController.text.trim()),
+            receivedAt: _receivedAt,
+            paymentMethod: _paymentMethod,
+            paymentSource: _sourceController.text.trim(),
+            notes: _notesController.text.trim(),
+            createdAt:
+                widget.payment?.createdAt ??
+                DateTime.fromMillisecondsSinceEpoch(0),
+            updatedAt: DateTime.now(),
+            createdBy: widget.payment?.createdBy ?? session.userId,
+            updatedBy: session.userId,
+          ),
+        );
 
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.userId,
-      actorName: session.profile?.name ?? 'Partner',
-      action: widget.payment == null ? 'payment_created' : 'payment_updated',
-      entityType: 'payment',
-      entityId: savedId,
-      metadata: {
-        'propertyId': widget.propertyId,
-        'installmentId': widget.installmentId ?? widget.payment?.installmentId,
-      },
-    );
-    await ref.read(notificationRepositoryProvider).create(
-      userId: session.userId,
-      title: widget.payment == null ? 'Payment received' : 'Payment updated',
-      body: _payerController.text.trim().isEmpty
-          ? 'Incoming payment recorded'
-          : _payerController.text.trim(),
-      type: NotificationType.paymentReceived,
-      route: '/properties/${widget.propertyId}',
-    );
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.userId,
+          actorName: session.profile?.name ?? 'Partner',
+          action: widget.payment == null
+              ? 'payment_created'
+              : 'payment_updated',
+          entityType: 'payment',
+          entityId: savedId,
+          metadata: {
+            'propertyId': widget.propertyId,
+            'installmentId':
+                widget.installmentId ?? widget.payment?.installmentId,
+          },
+        );
+    await ref
+        .read(notificationRepositoryProvider)
+        .create(
+          userId: session.userId,
+          title: widget.payment == null
+              ? 'Payment received'
+              : 'Payment updated',
+          body: _payerController.text.trim().isEmpty
+              ? 'Incoming payment recorded'
+              : _payerController.text.trim(),
+          type: NotificationType.paymentReceived,
+          route: '/properties/${widget.propertyId}',
+        );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -150,7 +165,9 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(labelText: 'Amount'),
               validator: (value) {
                 final parsed = double.tryParse((value ?? '').trim());

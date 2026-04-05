@@ -189,5 +189,6 @@ extension EnumLabelX on Enum {
       case PartnerLedgerEntryType.adjustment:
         return 'Adjustment';
     }
+    return name;
   }
 }

@@ -53,7 +53,9 @@ class _MaterialExpenseFormSheetState
     _totalPriceController = TextEditingController(
       text: entry == null ? '' : entry.totalPrice.toStringAsFixed(0),
     );
-    _supplierController = TextEditingController(text: entry?.supplierName ?? '');
+    _supplierController = TextEditingController(
+      text: entry?.supplierName ?? '',
+    );
     _amountPaidController = TextEditingController(
       text: entry == null ? '' : entry.amountPaid.toStringAsFixed(0),
     );
@@ -113,38 +115,50 @@ class _MaterialExpenseFormSheetState
       totalPrice: totalPrice,
       supplierName: _supplierController.text.trim(),
       amountPaid: amountPaid,
-      amountRemaining: (totalPrice - amountPaid).clamp(0, totalPrice).toDouble(),
+      amountRemaining: (totalPrice - amountPaid)
+          .clamp(0, totalPrice)
+          .toDouble(),
       dueDate: _dueDate,
       notes: _notesController.text.trim(),
       createdBy: widget.entry?.createdBy ?? session.userId,
       updatedBy: session.userId,
-      createdAt: widget.entry?.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+      createdAt:
+          widget.entry?.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
       updatedAt: DateTime.now(),
       archived: false,
     );
 
-    final savedId = await ref.read(materialExpenseRepositoryProvider).save(entry);
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.userId,
-      actorName: session.profile?.name ?? 'Partner',
-      action: widget.entry == null
-          ? 'material_expense_created'
-          : 'material_expense_updated',
-      entityType: 'material_expense',
-      entityId: savedId,
-      metadata: {'propertyId': widget.propertyId, 'amount': entry.totalPrice},
-    );
-    await ref.read(notificationRepositoryProvider).create(
-      userId: session.userId,
-      title: entry.totalPrice >= 100000
-          ? 'Large expense recorded'
-          : 'Material expense updated',
-      body: '${entry.itemName} - ${entry.supplierName}',
-      type: entry.totalPrice >= 100000
-          ? NotificationType.largeExpenseRecorded
-          : NotificationType.expenseAdded,
-      route: '/properties/${widget.propertyId}',
-    );
+    final savedId = await ref
+        .read(materialExpenseRepositoryProvider)
+        .save(entry);
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.userId,
+          actorName: session.profile?.name ?? 'Partner',
+          action: widget.entry == null
+              ? 'material_expense_created'
+              : 'material_expense_updated',
+          entityType: 'material_expense',
+          entityId: savedId,
+          metadata: {
+            'propertyId': widget.propertyId,
+            'amount': entry.totalPrice,
+          },
+        );
+    await ref
+        .read(notificationRepositoryProvider)
+        .create(
+          userId: session.userId,
+          title: entry.totalPrice >= 100000
+              ? 'Large expense recorded'
+              : 'Material expense updated',
+          body: '${entry.itemName} - ${entry.supplierName}',
+          type: entry.totalPrice >= 100000
+              ? NotificationType.largeExpenseRecorded
+              : NotificationType.expenseAdded,
+          route: '/properties/${widget.propertyId}',
+        );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -152,7 +166,9 @@ class _MaterialExpenseFormSheetState
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: widget.entry == null ? 'Add Material Invoice' : 'Edit Material Invoice',
+      title: widget.entry == null
+          ? 'Add Material Invoice'
+          : 'Edit Material Invoice',
       child: Form(
         key: _formKey,
         child: Column(
@@ -215,7 +231,9 @@ class _MaterialExpenseFormSheetState
             const SizedBox(height: 12),
             TextFormField(
               controller: _totalPriceController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(labelText: 'Total price'),
               validator: (value) {
                 if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
@@ -234,7 +252,9 @@ class _MaterialExpenseFormSheetState
             const SizedBox(height: 12),
             TextFormField(
               controller: _amountPaidController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(labelText: 'Amount paid'),
             ),
             const SizedBox(height: 12),

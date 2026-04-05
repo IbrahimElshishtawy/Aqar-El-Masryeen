@@ -18,12 +18,17 @@ class FinancialNotificationCoordinator {
   }) async {
     for (final summary in unitSummaries) {
       for (final row in summary.installmentRows) {
-        final daysUntilDue = row.installment.dueDate.difference(DateTime.now()).inDays;
-        if (row.status == InstallmentStatus.pending && daysUntilDue >= 0 && daysUntilDue <= 7) {
+        final daysUntilDue = row.installment.dueDate
+            .difference(DateTime.now())
+            .inDays;
+        if (row.status == InstallmentStatus.pending &&
+            daysUntilDue >= 0 &&
+            daysUntilDue <= 7) {
           await _notifications.create(
             userId: userId,
             title: 'Installment due soon',
-            body: 'Unit ${summary.unit.unitNumber} installment ${row.installment.sequence} is due on ${row.installment.dueDate.toString().split(' ').first}.',
+            body:
+                'Unit ${summary.unit.unitNumber} installment ${row.installment.sequence} is due on ${row.installment.dueDate.toString().split(' ').first}.',
             type: NotificationType.installmentDue,
             route: AppRoutes.propertyDetails(propertyId),
             referenceKey: 'due-soon-${row.installment.id}',
@@ -33,7 +38,8 @@ class FinancialNotificationCoordinator {
           await _notifications.create(
             userId: userId,
             title: 'Installment overdue',
-            body: 'Unit ${summary.unit.unitNumber} installment ${row.installment.sequence} is overdue.',
+            body:
+                'Unit ${summary.unit.unitNumber} installment ${row.installment.sequence} is overdue.',
             type: NotificationType.overdueInstallment,
             route: AppRoutes.propertyDetails(propertyId),
             referenceKey: 'overdue-${row.installment.id}',
@@ -55,12 +61,15 @@ class FinancialNotificationCoordinator {
 
     for (final material in materials) {
       if (material.amountRemaining > 0 && material.dueDate != null) {
-        final isDue = !material.dueDate!.isAfter(DateTime.now().add(const Duration(days: 7)));
+        final isDue = !material.dueDate!.isAfter(
+          DateTime.now().add(const Duration(days: 7)),
+        );
         if (isDue) {
           await _notifications.create(
             userId: userId,
             title: 'Supplier payment due',
-            body: '${material.supplierName} still has ${material.amountRemaining.toStringAsFixed(0)} due.',
+            body:
+                '${material.supplierName} still has ${material.amountRemaining.toStringAsFixed(0)} due.',
             type: NotificationType.supplierPaymentDue,
             route: AppRoutes.expenses,
             referenceKey: 'supplier-due-${material.id}',
@@ -71,6 +80,9 @@ class FinancialNotificationCoordinator {
   }
 }
 
-final financialNotificationCoordinatorProvider = Provider<FinancialNotificationCoordinator>(
-  (ref) => FinancialNotificationCoordinator(ref.watch(notificationRepositoryProvider)),
-);
+final financialNotificationCoordinatorProvider =
+    Provider<FinancialNotificationCoordinator>(
+      (ref) => FinancialNotificationCoordinator(
+        ref.watch(notificationRepositoryProvider),
+      ),
+    );

@@ -35,10 +35,13 @@ class PartnerLedgerCalculator {
         materialExpenses.fold<double>(0, (sum, item) => sum + item.totalPrice);
 
     return partners.map((partner) {
-      final partnerEntries = ledgerEntries
-          .where((entry) => !entry.archived && entry.partnerId == partner.id)
-          .toList()
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      final partnerEntries =
+          ledgerEntries
+              .where(
+                (entry) => !entry.archived && entry.partnerId == partner.id,
+              )
+              .toList()
+            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       final authorizedPaid = partnerEntries
           .where(
             (entry) =>
@@ -52,7 +55,9 @@ class PartnerLedgerCalculator {
           .fold<double>(0, (sum, expense) => sum + expense.amount);
       final totalPaid = authorizedPaid + directExpensePaid;
       final expectedShare = totalExpenseExposure * partner.shareRatio;
-      final totalOwed = (expectedShare - totalPaid).clamp(0, expectedShare).toDouble();
+      final totalOwed = (expectedShare - totalPaid)
+          .clamp(0, expectedShare)
+          .toDouble();
       final balance = totalPaid - expectedShare;
       final lastUpdated =
           partnerEntries.firstOrNull?.updatedAt ?? partner.updatedAt;

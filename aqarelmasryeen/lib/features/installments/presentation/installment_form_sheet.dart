@@ -95,25 +95,28 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
       status: widget.installment == null ? status : widget.installment!.status,
       notes: _notesController.text.trim(),
       createdAt:
-          widget.installment?.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+          widget.installment?.createdAt ??
+          DateTime.fromMillisecondsSinceEpoch(0),
       updatedAt: DateTime.now(),
       createdBy: widget.installment?.createdBy ?? session.userId,
       updatedBy: session.userId,
     );
 
     await ref.read(installmentRepositoryProvider).saveInstallment(installment);
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.userId,
-      actorName: session.profile?.name ?? 'Partner',
-      action: widget.installment == null
-          ? 'installment_created'
-          : 'installment_updated',
-      entityType: 'installment',
-      entityId: installment.id.isEmpty
-          ? '${widget.unitId}_${installment.sequence}'
-          : installment.id,
-      metadata: {'propertyId': widget.propertyId, 'unitId': widget.unitId},
-    );
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.userId,
+          actorName: session.profile?.name ?? 'Partner',
+          action: widget.installment == null
+              ? 'installment_created'
+              : 'installment_updated',
+          entityType: 'installment',
+          entityId: installment.id.isEmpty
+              ? '${widget.unitId}_${installment.sequence}'
+              : installment.id,
+          metadata: {'propertyId': widget.propertyId, 'unitId': widget.unitId},
+        );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -121,7 +124,9 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: widget.installment == null ? 'Add Installment' : 'Edit Installment',
+      title: widget.installment == null
+          ? 'Add Installment'
+          : 'Edit Installment',
       child: Form(
         key: _formKey,
         child: Column(

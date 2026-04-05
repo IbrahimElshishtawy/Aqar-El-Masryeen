@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:collection/collection.dart';
 

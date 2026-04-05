@@ -102,8 +102,7 @@ class FinancialLedgerTable<T> extends StatelessWidget {
                     columns: [
                       for (final column in columns)
                         DataColumn(label: Text(column.label)),
-                      if (_hasActions)
-                        const DataColumn(label: Text('Actions')),
+                      if (_hasActions) const DataColumn(label: Text('Actions')),
                     ],
                     rows: [
                       for (final row in rows)
@@ -111,12 +110,15 @@ class FinancialLedgerTable<T> extends StatelessWidget {
                           cells: [
                             for (final column in columns)
                               DataCell(column.valueBuilder(row)),
-                            if (_hasActions) DataCell(_ActionsRow<T>(
-                              row: row,
-                              onEdit: onEdit,
-                              onDelete: onDelete,
-                              onView: onView,
-                            )),
+                            if (_hasActions)
+                              DataCell(
+                                _ActionsRow<T>(
+                                  row: row,
+                                  onEdit: onEdit,
+                                  onDelete: onDelete,
+                                  onView: onView,
+                                ),
+                              ),
                           ],
                         ),
                     ],
@@ -167,10 +169,7 @@ class FinancialStatusChip extends StatelessWidget {
 }
 
 class LedgerTotalsFooter extends StatelessWidget {
-  const LedgerTotalsFooter({
-    super.key,
-    required this.children,
-  });
+  const LedgerTotalsFooter({super.key, required this.children});
 
   final List<Widget> children;
 
@@ -215,9 +214,9 @@ class LedgerFooterValue extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
           ),
         ],
       ),

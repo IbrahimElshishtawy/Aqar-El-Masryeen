@@ -74,7 +74,9 @@ class PartnerLedgerRepository {
   }
 }
 
-final partnerLedgerRepositoryProvider = Provider<PartnerLedgerRepository>((ref) {
+final partnerLedgerRepositoryProvider = Provider<PartnerLedgerRepository>((
+  ref,
+) {
   return PartnerLedgerRepository(
     ref.watch(firestoreProvider),
     ref.watch(uuidProvider),

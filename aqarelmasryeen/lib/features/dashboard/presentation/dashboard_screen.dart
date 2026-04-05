@@ -43,7 +43,8 @@ class DashboardScreen extends ConsumerWidget {
     final materialsAsync = ref.watch(dashboardMaterialsProvider);
     final partnersAsync = ref.watch(dashboardPartnersProvider);
 
-    final hasError = propertiesAsync.hasError ||
+    final hasError =
+        propertiesAsync.hasError ||
         unitsAsync.hasError ||
         paymentsAsync.hasError ||
         materialsAsync.hasError ||
@@ -178,8 +179,14 @@ class DashboardScreen extends ConsumerWidget {
                   )
                 : Column(
                     children: [
-                      for (var index = 0; index < snapshot.recentRecords.length; index++) ...[
-                        _RecentRecordTile(record: snapshot.recentRecords[index]),
+                      for (
+                        var index = 0;
+                        index < snapshot.recentRecords.length;
+                        index++
+                      ) ...[
+                        _RecentRecordTile(
+                          record: snapshot.recentRecords[index],
+                        ),
                         if (index != snapshot.recentRecords.length - 1)
                           const Divider(height: 24),
                       ],
@@ -267,9 +274,9 @@ class _RecentRecordTile extends StatelessWidget {
             children: [
               Text(
                 record.title,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
               Text('${record.propertyName} • ${record.subtitle}'),
@@ -281,9 +288,9 @@ class _RecentRecordTile extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           '${isExpense ? '-' : '+'}${record.amount.egp}',
-          style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
       ],
     );

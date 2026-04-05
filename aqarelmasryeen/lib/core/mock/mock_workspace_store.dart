@@ -132,9 +132,10 @@ class MockWorkspaceStore {
     _payments.toList()..sort((a, b) => b.receivedAt.compareTo(a.receivedAt)),
   );
 
-  List<PaymentRecord> paymentsByProperty(String propertyId) => List.unmodifiable(
-    allPayments().where((item) => item.propertyId == propertyId).toList(),
-  );
+  List<PaymentRecord> paymentsByProperty(String propertyId) =>
+      List.unmodifiable(
+        allPayments().where((item) => item.propertyId == propertyId).toList(),
+      );
 
   List<PaymentRecord> paymentsByUnit(String unitId) => List.unmodifiable(
     allPayments().where((item) => item.unitId == unitId).toList(),
@@ -162,28 +163,37 @@ class MockWorkspaceStore {
         ? _activity
         : _activity.where((item) {
             final scopedPropertyId = item.metadata['propertyId'] as String?;
-            return scopedPropertyId == propertyId || item.entityId == propertyId;
+            return scopedPropertyId == propertyId ||
+                item.entityId == propertyId;
           }).toList();
     return List.unmodifiable(
       source.toList()..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
     );
   }
 
-  List<AppNotificationItem> notificationsFor(String userId) => List.unmodifiable(
-    _notifications.where((item) => item.userId == userId).toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
-  );
+  List<AppNotificationItem> notificationsFor(String userId) =>
+      List.unmodifiable(
+        _notifications.where((item) => item.userId == userId).toList()
+          ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+      );
 
   List<PropertyStorageFile> filesFor(String propertyId) => List.unmodifiable(
     _files.where((item) => item.fullPath.contains('/$propertyId/')).toList(),
   );
 
   Future<void> saveProperty(PropertyProject property) async {
-    _upsert(_properties, property.id, property.copyWith(updatedAt: DateTime.now()));
+    _upsert(
+      _properties,
+      property.id,
+      property.copyWith(updatedAt: DateTime.now()),
+    );
     _emit();
   }
 
-  Future<void> archiveProperty(String propertyId, {required String actorId}) async {
+  Future<void> archiveProperty(
+    String propertyId, {
+    required String actorId,
+  }) async {
     final current = propertyById(propertyId);
     if (current == null) return;
     await saveProperty(
@@ -310,7 +320,9 @@ class MockWorkspaceStore {
   }
 
   Future<void> softDeletePartnerLedgerEntry(String entryId) async {
-    final index = _partnerLedgerEntries.indexWhere((item) => item.id == entryId);
+    final index = _partnerLedgerEntries.indexWhere(
+      (item) => item.id == entryId,
+    );
     if (index == -1) return;
     _partnerLedgerEntries[index] = _partnerLedgerEntries[index].copyWith(
       archived: true,
@@ -330,7 +342,9 @@ class MockWorkspaceStore {
   }
 
   Future<void> markNotificationRead(String notificationId) async {
-    final index = _notifications.indexWhere((item) => item.id == notificationId);
+    final index = _notifications.indexWhere(
+      (item) => item.id == notificationId,
+    );
     if (index == -1) return;
     _notifications[index] = _notifications[index].copyWith(isRead: true);
     _emit();
@@ -862,7 +876,7 @@ class MockWorkspaceStore {
   }
 
   void _upsert<T>(List<T> items, String id, T value) {
-    final index = items.indexWhere((item) => _idOf(item) == id);
+    final index = items.indexWhere((item) => _idOf(item as Object) == id);
     if (index == -1) {
       items.add(value);
     } else {

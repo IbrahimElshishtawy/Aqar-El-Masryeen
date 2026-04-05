@@ -66,31 +66,36 @@ class _PartnerLedgerEntryFormSheetState
       authorizedBy: session.userId,
       createdBy: widget.entry?.createdBy ?? session.userId,
       updatedBy: session.userId,
-      createdAt: widget.entry?.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+      createdAt:
+          widget.entry?.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
       updatedAt: DateTime.now(),
       archived: false,
     );
 
-    final savedId = await ref.read(partnerLedgerRepositoryProvider).saveAuthorized(
-      entry,
-    );
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.userId,
-      actorName: session.profile?.name ?? 'Partner',
-      action: widget.entry == null
-          ? 'partner_ledger_created'
-          : 'partner_ledger_updated',
-      entityType: 'partner_ledger',
-      entityId: savedId,
-      metadata: {'partnerId': widget.partner.id, 'amount': entry.amount},
-    );
-    await ref.read(notificationRepositoryProvider).create(
-      userId: session.userId,
-      title: 'Important ledger update',
-      body: '${widget.partner.name} ledger updated',
-      type: NotificationType.ledgerUpdated,
-      route: '/expenses',
-    );
+    final savedId = await ref
+        .read(partnerLedgerRepositoryProvider)
+        .saveAuthorized(entry);
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.userId,
+          actorName: session.profile?.name ?? 'Partner',
+          action: widget.entry == null
+              ? 'partner_ledger_created'
+              : 'partner_ledger_updated',
+          entityType: 'partner_ledger',
+          entityId: savedId,
+          metadata: {'partnerId': widget.partner.id, 'amount': entry.amount},
+        );
+    await ref
+        .read(notificationRepositoryProvider)
+        .create(
+          userId: session.userId,
+          title: 'Important ledger update',
+          body: '${widget.partner.name} ledger updated',
+          type: NotificationType.ledgerUpdated,
+          route: '/expenses',
+        );
 
     if (mounted) Navigator.of(context).pop();
   }
@@ -122,7 +127,9 @@ class _PartnerLedgerEntryFormSheetState
             const SizedBox(height: 12),
             TextFormField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(labelText: 'Amount'),
               validator: (value) {
                 if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
@@ -142,7 +149,9 @@ class _PartnerLedgerEntryFormSheetState
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               value: _authorized,
-              title: const Text('I confirm this is an authorized ledger action'),
+              title: const Text(
+                'I confirm this is an authorized ledger action',
+              ),
               onChanged: (value) => setState(() => _authorized = value),
             ),
             const SizedBox(height: 18),

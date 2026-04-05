@@ -35,7 +35,8 @@ class MaterialExpenseRepository {
   Stream<List<MaterialExpenseEntry>> watchByProperty(String propertyId) {
     if (AppConfig.useMockData) {
       return MockWorkspaceStore.instance.watch(
-        () => MockWorkspaceStore.instance.materialExpensesByProperty(propertyId),
+        () =>
+            MockWorkspaceStore.instance.materialExpensesByProperty(propertyId),
       );
     }
 

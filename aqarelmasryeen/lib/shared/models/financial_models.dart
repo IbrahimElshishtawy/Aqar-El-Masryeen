@@ -240,7 +240,8 @@ class Installment {
   final String updatedBy;
   final String notes;
 
-  double get remainingAmount => (amount - paidAmount).clamp(0, amount).toDouble();
+  double get remainingAmount =>
+      (amount - paidAmount).clamp(0, amount).toDouble();
 
   bool get isOverdue =>
       remainingAmount > 0 &&
