@@ -63,7 +63,7 @@ class ExpensesLedgerScreen extends ConsumerWidget {
     final materialSnapshot = const MaterialsLedgerCalculator().build(materials);
     final partnerSnapshot = const PartnerLedgerCalculator().build(
       partners: partners,
-      expenses: const [],
+      expenses: const <ExpenseRecord>[],
       materialExpenses: materials,
       ledgerEntries: partnerLedgers,
     );

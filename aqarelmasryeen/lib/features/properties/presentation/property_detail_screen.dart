@@ -9,6 +9,7 @@ import 'package:aqarelmasryeen/features/expenses/domain/materials_ledger_calcula
 import 'package:aqarelmasryeen/features/expenses/presentation/material_expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
 import 'package:aqarelmasryeen/features/installments/presentation/installment_form_sheet.dart';
+import 'package:aqarelmasryeen/features/notifications/data/financial_notification_coordinator.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_ledger_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/partners/domain/partner_ledger_calculator.dart';
@@ -267,6 +268,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final materials = materialsAsync.value!;
     final partners = partnersAsync.value!;
     final partnerLedgers = partnerLedgerAsync.value!;
+    final session = ref.watch(authSessionProvider).valueOrNull;
 
     final unitSummaries = const UnitSalesCalculator().build(
       units: units,
@@ -279,7 +281,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         .toList();
     final partnerSummaries = const PartnerLedgerCalculator().build(
       partners: partners,
-      expenses: const [],
+      expenses: const <ExpenseRecord>[],
       materialExpenses: materials,
       ledgerEntries: partnerHistory,
     );
@@ -294,6 +296,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     );
     final overdueInstallments =
         unitSummaries.fold<int>(0, (sum, item) => sum + item.overdueInstallmentsCount);
+
+    if (session != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(financialNotificationCoordinatorProvider).syncPropertyAlerts(
+          userId: session.userId,
+          propertyId: widget.propertyId,
+          unitSummaries: unitSummaries,
+          materials: materials,
+        );
+      });
+    }
 
     return AppShellScaffold(
       title: property.name,
