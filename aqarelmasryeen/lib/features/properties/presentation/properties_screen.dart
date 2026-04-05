@@ -36,23 +36,23 @@ class PropertiesScreen extends ConsumerWidget {
         expensesAsync.hasError ||
         paymentsAsync.hasError) {
       return AppShellScaffold(
-        title: 'Properties',
-        subtitle: 'Financial health by asset',
+        title: 'المشروعات',
+        subtitle: 'ملخص الأداء المالي لكل مشروع',
         currentIndex: 1,
         actions: [
           IconButton(
-            tooltip: 'Add property',
+            tooltip: 'إضافة مشروع',
             onPressed: () => context.push('${AppRoutes.properties}/new'),
             icon: const Icon(Icons.add_circle_outline_rounded),
           ),
         ],
         child: EmptyStateView(
-          title: 'Unable to load properties',
+          title: 'تعذر تحميل المشروعات',
           message:
               propertiesAsync.error?.toString() ??
               expensesAsync.error?.toString() ??
               paymentsAsync.error?.toString() ??
-              'Unknown error',
+              'حدث خطأ غير متوقع',
         ),
       );
     }
@@ -61,8 +61,8 @@ class PropertiesScreen extends ConsumerWidget {
         !expensesAsync.hasValue ||
         !paymentsAsync.hasValue) {
       return const AppShellScaffold(
-        title: 'Properties',
-        subtitle: 'Financial health by asset',
+        title: 'المشروعات',
+        subtitle: 'ملخص الأداء المالي لكل مشروع',
         currentIndex: 1,
         child: Center(child: CircularProgressIndicator()),
       );
@@ -83,12 +83,12 @@ class PropertiesScreen extends ConsumerWidget {
     );
 
     return AppShellScaffold(
-      title: 'Properties',
-      subtitle: 'Financial health by asset',
+      title: 'المشروعات',
+      subtitle: 'ملخص الأداء المالي لكل مشروع',
       currentIndex: 1,
       actions: [
         IconButton(
-          tooltip: 'Add property',
+          tooltip: 'إضافة مشروع',
           onPressed: () => context.push('${AppRoutes.properties}/new'),
           icon: const Icon(Icons.add_circle_outline_rounded),
         ),
@@ -100,24 +100,24 @@ class PropertiesScreen extends ConsumerWidget {
             builder: (context, constraints) {
               final cards = [
                 SummaryCard(
-                  label: 'Properties',
+                  label: 'المشروعات',
                   value: '${summaries.length}',
-                  subtitle: 'Active portfolio entries',
+                  subtitle: 'المشروعات النشطة داخل المحفظة',
                   icon: Icons.apartment_rounded,
                   emphasis: true,
                 ),
                 Row(
                   children: [
                     SummaryCard(
-                      label: 'Expenses',
+                      label: 'المصروفات',
                       value: totalExpenses.egp,
-                      subtitle: 'All property expenses',
+                      subtitle: 'إجمالي مصروفات المشروعات',
                       icon: Icons.north_east_rounded,
                     ),
                     SummaryCard(
-                      label: 'Payments',
+                      label: 'التحصيلات',
                       value: totalPayments.egp,
-                      subtitle: 'All property payments',
+                      subtitle: 'إجمالي تحصيلات المشروعات',
                       icon: Icons.south_west_rounded,
                     ),
                   ],
@@ -149,9 +149,9 @@ class PropertiesScreen extends ConsumerWidget {
           const SizedBox(height: 12),
           if (summaries.isEmpty)
             const EmptyStateView(
-              title: 'No properties yet',
+              title: 'لا توجد مشروعات بعد',
               message:
-                  'Properties will appear here once your workspace is populated.',
+                  'ستظهر المشروعات هنا بعد إضافة البيانات إلى مساحة العمل.',
             )
           else
             LayoutBuilder(
@@ -271,7 +271,7 @@ class _PropertySummaryCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: _MiniStat(
-                        label: 'Expenses',
+                        label: 'المصروفات',
                         value: summary.totalExpenses.egp,
                         compact: isCompact,
                       ),
@@ -279,7 +279,7 @@ class _PropertySummaryCard extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _MiniStat(
-                        label: 'Payments',
+                        label: 'التحصيلات',
                         value: summary.totalPayments.egp,
                         compact: isCompact,
                       ),
@@ -307,7 +307,7 @@ class _PropertySummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  'Balance ${summary.balance.egp}',
+                  'الرصيد ${summary.balance.egp}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.titleSmall?.copyWith(

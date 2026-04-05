@@ -104,7 +104,7 @@ class DashboardSnapshotBuilder {
       ...materials.map(
         (record) => DashboardRecentRecord(
           id: record.id,
-          propertyName: propertyNames[record.propertyId] ?? 'Unknown property',
+          propertyName: propertyNames[record.propertyId] ?? 'مشروع غير معروف',
           title: record.itemName,
           subtitle: record.supplierName,
           amount: record.totalPrice,
@@ -115,9 +115,9 @@ class DashboardSnapshotBuilder {
       ...payments.map(
         (record) => DashboardRecentRecord(
           id: record.id,
-          propertyName: propertyNames[record.propertyId] ?? 'Unknown property',
+          propertyName: propertyNames[record.propertyId] ?? 'مشروع غير معروف',
           title: record.effectivePayerName.isEmpty
-              ? 'Payment received'
+              ? 'دفعة محصلة'
               : record.effectivePayerName,
           subtitle: record.paymentSource.isEmpty
               ? record.paymentMethod.label
@@ -147,7 +147,7 @@ class DashboardSnapshotBuilder {
     required List<PaymentRecord> payments,
   }) {
     final now = DateTime.now();
-    final formatter = DateFormat('MMM');
+    final formatter = DateFormat('MMM', 'ar_EG');
     final buckets = <DashboardChartBucket>[];
 
     for (var i = 5; i >= 0; i--) {

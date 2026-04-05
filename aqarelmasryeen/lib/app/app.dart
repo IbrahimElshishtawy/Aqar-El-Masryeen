@@ -67,11 +67,16 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
     bool wrapChildWithSessionListener = false,
   }) {
     Widget builder(BuildContext context, Widget? child) {
-      final safeChild = child ?? const SizedBox.shrink();
-      if (!wrapChildWithSessionListener) {
-        return safeChild;
+      Widget safeChild = Directionality(
+        textDirection: TextDirection.rtl,
+        child: child ?? const SizedBox.shrink(),
+      );
+
+      if (wrapChildWithSessionListener) {
+        safeChild = SessionActivityListener(child: safeChild);
       }
-      return SessionActivityListener(child: safeChild);
+
+      return safeChild;
     }
 
     if (routerConfig != null) {
@@ -83,8 +88,8 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
         themeMode: ThemeMode.light,
         routerConfig: routerConfig,
         builder: builder,
-        locale: const Locale('ar'),
-        supportedLocales: const [Locale('ar'), Locale('en')],
+        locale: const Locale('ar', 'EG'),
+        supportedLocales: const [Locale('ar', 'EG')],
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
@@ -101,8 +106,8 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
       themeMode: ThemeMode.light,
       home: home,
       builder: builder,
-      locale: const Locale('ar'),
-      supportedLocales: const [Locale('ar'), Locale('en')],
+      locale: const Locale('ar', 'EG'),
+      supportedLocales: const [Locale('ar', 'EG')],
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
@@ -125,7 +130,7 @@ class _AppBootstrapScreen extends StatelessWidget {
             children: const [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('جاري تجهيز مساحة العمل...'),
+              Text('جار تجهيز مساحة العمل...'),
             ],
           ),
         ),

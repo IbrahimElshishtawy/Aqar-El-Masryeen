@@ -51,19 +51,19 @@ class DashboardScreen extends ConsumerWidget {
         partnersAsync.hasError;
     if (hasError) {
       return AppShellScaffold(
-        title: 'Home',
-        subtitle: 'Portfolio overview',
+        title: 'الرئيسية',
+        subtitle: 'ملخص المبيعات والتحصيلات والمصروفات',
         currentIndex: 0,
         actions: _actions(context),
         child: EmptyStateView(
-          title: 'Unable to load dashboard',
+          title: 'تعذر تحميل لوحة المتابعة',
           message:
               propertiesAsync.error?.toString() ??
               unitsAsync.error?.toString() ??
               paymentsAsync.error?.toString() ??
               materialsAsync.error?.toString() ??
               partnersAsync.error?.toString() ??
-              'Unknown error',
+              'حدث خطأ غير متوقع',
         ),
       );
     }
@@ -74,8 +74,8 @@ class DashboardScreen extends ConsumerWidget {
         !materialsAsync.hasValue ||
         !partnersAsync.hasValue) {
       return AppShellScaffold(
-        title: 'Home',
-        subtitle: 'Portfolio overview',
+        title: 'الرئيسية',
+        subtitle: 'ملخص المبيعات والتحصيلات والمصروفات',
         currentIndex: 0,
         actions: _actions(context),
         child: const Center(child: CircularProgressIndicator()),
@@ -91,8 +91,8 @@ class DashboardScreen extends ConsumerWidget {
     );
 
     return AppShellScaffold(
-      title: 'Home',
-      subtitle: 'Portfolio overview',
+      title: 'الرئيسية',
+      subtitle: 'ملخص المبيعات والتحصيلات والمصروفات',
       currentIndex: 0,
       actions: _actions(context),
       child: ListView(
@@ -101,46 +101,46 @@ class DashboardScreen extends ConsumerWidget {
           _DashboardCardGrid(
             cards: [
               SummaryCard(
-                label: 'Properties',
+                label: 'المشروعات',
                 value: '${snapshot.propertyCount}',
-                subtitle: 'Total number of properties',
+                subtitle: 'إجمالي عدد المشروعات',
                 icon: Icons.apartment_rounded,
                 emphasis: true,
               ),
               SummaryCard(
-                label: 'Sales value',
+                label: 'قيمة المبيعات',
                 value: snapshot.totalSalesValue.egp,
-                subtitle: 'All contract sales',
+                subtitle: 'إجمالي العقود المباعة',
                 icon: Icons.sell_outlined,
               ),
               SummaryCard(
-                label: 'Expenses value',
+                label: 'قيمة المصروفات',
                 value: snapshot.totalExpenses.egp,
-                subtitle: 'Materials and supplier invoices',
+                subtitle: 'مواد البناء وفواتير الموردين',
                 icon: Icons.receipt_long_outlined,
               ),
               SummaryCard(
-                label: 'Paid installments',
+                label: 'الأقساط المحصلة',
                 value: snapshot.totalPaidInstallments.egp,
-                subtitle: 'Received collections',
+                subtitle: 'التحصيلات المستلمة',
                 icon: Icons.payments_outlined,
               ),
               SummaryCard(
-                label: 'Remaining installments',
+                label: 'الأقساط المتبقية',
                 value: snapshot.totalRemainingInstallments.egp,
-                subtitle: 'Outstanding customer balance',
+                subtitle: 'أرصدة العملاء المتبقية',
                 icon: Icons.schedule_outlined,
               ),
               SummaryCard(
-                label: 'Supplier dues',
+                label: 'مستحقات الموردين',
                 value: snapshot.pendingSupplierDues.egp,
-                subtitle: 'Pending supplier obligations',
+                subtitle: 'التزامات الموردين المفتوحة',
                 icon: Icons.inventory_2_outlined,
               ),
               SummaryCard(
-                label: 'Partner contributions',
+                label: 'مساهمات الشركاء',
                 value: snapshot.partnerContributionTotal.egp,
-                subtitle: 'Recorded partner capital',
+                subtitle: 'رؤوس الأموال المسجلة',
                 icon: Icons.groups_outlined,
               ),
             ],
@@ -149,8 +149,8 @@ class DashboardScreen extends ConsumerWidget {
           DashboardFinanceChart(buckets: snapshot.chart),
           const SizedBox(height: 12),
           AppPanel(
-            title: 'Quick Links',
-            subtitle: 'Open the new finance ledgers directly',
+            title: 'روابط سريعة',
+            subtitle: 'افتح الجداول المالية مباشرة',
             child: Wrap(
               spacing: 12,
               runSpacing: 12,
@@ -158,24 +158,24 @@ class DashboardScreen extends ConsumerWidget {
                 OutlinedButton.icon(
                   onPressed: () => context.push(AppRoutes.properties),
                   icon: const Icon(Icons.apartment_outlined),
-                  label: const Text('Properties'),
+                  label: const Text('المشروعات'),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => context.push(AppRoutes.expenses),
                   icon: const Icon(Icons.receipt_long_outlined),
-                  label: const Text('Expenses'),
+                  label: const Text('المصروفات'),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 12),
           AppPanel(
-            title: 'Recent activity',
-            subtitle: 'Latest payment and supplier activity',
+            title: 'آخر الأنشطة',
+            subtitle: 'آخر التحصيلات وحركة الموردين',
             child: snapshot.recentRecords.isEmpty
                 ? const Padding(
                     padding: EdgeInsets.symmetric(vertical: 24),
-                    child: Text('No financial activity yet.'),
+                    child: Text('لا توجد حركة مالية حتى الآن.'),
                   )
                 : Column(
                     children: [
@@ -279,7 +279,7 @@ class _RecentRecordTile extends StatelessWidget {
                 ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
-              Text('${record.propertyName} • ${record.subtitle}'),
+              Text('${record.propertyName} - ${record.subtitle}'),
               const SizedBox(height: 4),
               Text(record.date.formatWithTime()),
             ],

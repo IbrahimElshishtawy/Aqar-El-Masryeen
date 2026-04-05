@@ -1,10 +1,10 @@
 import 'package:aqarelmasryeen/core/constants/app_breakpoints.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
+import 'package:aqarelmasryeen/core/widgets/app_top_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class AppShellScaffold extends ConsumerWidget {
+class AppShellScaffold extends StatelessWidget {
   const AppShellScaffold({
     super.key,
     required this.title,
@@ -46,35 +46,11 @@ class AppShellScaffold extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final safeIndex = currentIndex.clamp(0, _destinations.length - 1);
-    final canPop = Navigator.of(context).canPop();
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: canPop,
-        toolbarHeight: subtitle == null ? 68 : 92,
-        titleSpacing: canPop ? null : 20,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-            if (subtitle != null) ...[
-              const SizedBox(height: 2),
-              Text(
-                subtitle!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-            ],
-          ],
-        ),
-        actions: actions,
-      ),
+      appBar: AppTopBar(title: title, subtitle: subtitle, actions: actions),
       floatingActionButton: floatingActionButton,
       body: SafeArea(
         bottom: false,
@@ -96,6 +72,13 @@ class AppShellScaffold extends ConsumerWidget {
                   color: Theme.of(context).colorScheme.surface,
                   borderRadius: BorderRadius.circular(22),
                   border: Border.all(color: const Color(0xFFD8D8D2)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.04),
+                      blurRadius: 18,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
                 ),
                 child: NavigationBar(
                   selectedIndex: safeIndex,

@@ -39,17 +39,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final profile = session?.profile;
     final name = profile?.fullName.isNotEmpty == true
         ? profile!.fullName
-        : 'Workspace partner';
+        : 'شريك مساحة العمل';
     final email = profile?.email.isNotEmpty == true
         ? profile!.email
-        : (session?.email ?? 'No email saved');
+        : (session?.email ?? 'لا يوجد بريد إلكتروني محفوظ');
     final phone = profile?.phone.isNotEmpty == true
         ? profile!.phone
-        : (session?.phoneNumber ?? 'No phone saved');
+        : (session?.phoneNumber ?? 'لا يوجد رقم هاتف محفوظ');
 
     return AppShellScaffold(
-      title: 'Profile',
-      subtitle: 'Partner account and security',
+      title: 'الحساب',
+      subtitle: 'بيانات الشريك وإعدادات الأمان',
       currentIndex: 2,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -85,7 +85,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      const Text('2-partner workspace'),
+                      const Text('ملف المستخدم داخل مساحة العمل'),
                     ],
                   ),
                 ),
@@ -94,34 +94,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           const SizedBox(height: 12),
           AppPanel(
-            title: 'Contact',
+            title: 'بيانات التواصل',
             child: Column(
               children: [
-                _ProfileRow(label: 'Email', value: email),
+                _ProfileRow(label: 'البريد', value: email),
                 const Divider(height: 24),
-                _ProfileRow(label: 'Phone', value: phone),
+                _ProfileRow(label: 'الهاتف', value: phone),
               ],
             ),
           ),
           const SizedBox(height: 12),
           AppPanel(
-            title: 'Security',
+            title: 'الأمان',
             child: Column(
               children: [
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Security and settings'),
-                  subtitle: const Text('Biometrics, app lock, trusted device'),
+                  title: const Text('الأمان والإعدادات'),
+                  subtitle: const Text(
+                    'البصمة وقفل التطبيق والجهاز الموثوق',
+                  ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push(AppRoutes.settings),
                 ),
                 const Divider(height: 12),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Logout'),
-                  subtitle: const Text(
-                    'End the current session on this device',
-                  ),
+                  title: const Text('تسجيل الخروج'),
+                  subtitle: const Text('إنهاء الجلسة الحالية على هذا الجهاز'),
                   trailing: _signingOut
                       ? const SizedBox(
                           width: 20,

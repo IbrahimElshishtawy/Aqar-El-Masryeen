@@ -20,8 +20,8 @@ class DashboardFinanceChart extends StatelessWidget {
     final topValue = maxValue == 0 ? 1.0 : maxValue * 1.2;
 
     return AppPanel(
-      title: 'Financial movement',
-      subtitle: 'Expenses versus payments over the last six months',
+      title: 'الحركة المالية',
+      subtitle: 'مقارنة بين المصروفات والتحصيلات خلال آخر ستة أشهر',
       child: Column(
         children: [
           SizedBox(
@@ -102,9 +102,9 @@ class DashboardFinanceChart extends StatelessWidget {
           const SizedBox(height: 12),
           const Row(
             children: [
-              _ChartLegend(color: Color(0xFF111111), label: 'Payments'),
+              _ChartLegend(color: Color(0xFF111111), label: 'التحصيلات'),
               SizedBox(width: 16),
-              _ChartLegend(color: Color(0xFFB3B3AB), label: 'Expenses'),
+              _ChartLegend(color: Color(0xFFB3B3AB), label: 'المصروفات'),
             ],
           ),
         ],

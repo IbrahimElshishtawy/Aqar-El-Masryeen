@@ -27,20 +27,26 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: background,
+      visualDensity: VisualDensity.adaptivePlatformDensity,
       textTheme: GoogleFonts.ibmPlexSansArabicTextTheme().apply(
         bodyColor: ink,
         displayColor: ink,
       ),
       appBarTheme: const AppBarTheme(
         centerTitle: false,
-        backgroundColor: background,
+        backgroundColor: Colors.transparent,
         foregroundColor: ink,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        toolbarHeight: 76,
+        titleSpacing: 20,
+        iconTheme: IconThemeData(color: ink, size: 22),
+        actionsIconTheme: IconThemeData(color: ink, size: 22),
         titleTextStyle: TextStyle(
           color: ink,
           fontSize: 22,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           letterSpacing: -0.4,
         ),
       ),
@@ -86,6 +92,18 @@ class AppTheme {
             color: states.contains(WidgetState.selected) ? ink : secondary,
           ),
         ),
+      ),
+      tabBarTheme: TabBarThemeData(
+        dividerColor: Colors.transparent,
+        indicator: BoxDecoration(
+          color: panel,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: ink,
+        unselectedLabelColor: secondary,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
