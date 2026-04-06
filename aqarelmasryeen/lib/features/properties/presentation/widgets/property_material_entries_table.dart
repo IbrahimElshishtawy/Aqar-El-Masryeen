@@ -44,6 +44,7 @@ class PropertyMaterialEntriesTable extends StatelessWidget {
       title: title,
       subtitle: '${sortedRows.length} صف - الإجمالي ${total.egp}',
       rows: sortedRows,
+      forceTableLayout: true,
       onAdd: onAdd,
       addLabel: addLabel,
       onEdit: onEdit,

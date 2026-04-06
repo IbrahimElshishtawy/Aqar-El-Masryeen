@@ -284,6 +284,7 @@ class _UnitHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final unit = data.summary.unit;
     final customerName = unit.customerName.trim().isEmpty
         ? 'عميل غير محدد'
@@ -291,17 +292,14 @@ class _UnitHeroCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(32),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF123A33), Color(0xFF1B5C50)],
-        ),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x26000000),
-            blurRadius: 24,
-            offset: Offset(0, 12),
+            color: Color(0x12000000),
+            blurRadius: 18,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -317,24 +315,23 @@ class _UnitHeroCard extends StatelessWidget {
                   children: [
                     Text(
                       'الوحدة ${unit.unitNumber}',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       '${data.property.name} • ${data.property.location}',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.secondary,
+                      ),
                     ),
                     const SizedBox(height: 10),
                     Text(
                       customerName,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        color: Colors.white,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: theme.colorScheme.onSurface,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -342,7 +339,7 @@ class _UnitHeroCard extends StatelessWidget {
                 ),
               ),
               PopupMenuButton<VoidCallback>(
-                iconColor: Colors.white,
+                iconColor: theme.colorScheme.onSurface,
                 onSelected: (callback) => callback(),
                 itemBuilder: (_) => [
                   PopupMenuItem<VoidCallback>(
@@ -358,26 +355,16 @@ class _UnitHeroCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 18),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              _HeroPill(
-                label: 'الهاتف',
-                value: unit.customerPhone.trim().isEmpty
-                    ? '-'
-                    : unit.customerPhone,
+          _UnitInfoTable(
+            rows: [
+              MapEntry(
+                'الهاتف',
+                unit.customerPhone.trim().isEmpty ? '-' : unit.customerPhone,
               ),
-              _HeroPill(label: 'النوع', value: unit.unitType.label),
-              _HeroPill(label: 'الدور', value: '${unit.floor}'),
-              _HeroPill(
-                label: 'المساحة',
-                value: '${formatUnitArea(unit.area)} م²',
-              ),
-              _HeroPill(
-                label: 'نظام السداد',
-                value: unit.paymentPlanType.label,
-              ),
+              MapEntry('النوع', unit.unitType.label),
+              MapEntry('الدور', '${unit.floor}'),
+              MapEntry('المساحة', '${formatUnitArea(unit.area)} م²'),
+              MapEntry('نظام السداد', unit.paymentPlanType.label),
             ],
           ),
           const SizedBox(height: 14),
@@ -401,38 +388,67 @@ class _UnitHeroCard extends StatelessWidget {
   }
 }
 
-class _HeroPill extends StatelessWidget {
-  const _HeroPill({required this.label, required this.value});
+class _UnitInfoTable extends StatelessWidget {
+  const _UnitInfoTable({required this.rows});
 
-  final String label;
-  final String value;
+  final List<MapEntry<String, String>> rows;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        color: const Color(0xFFF8F8F4),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Table(
+        columnWidths: const {
+          0: FlexColumnWidth(1.15),
+          1: FlexColumnWidth(1.85),
+        },
         children: [
-          Text(
-            label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.white70),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
+          for (var index = 0; index < rows.length; index++)
+            TableRow(
+              decoration: BoxDecoration(
+                border: index == rows.length - 1
+                    ? null
+                    : const Border(
+                        bottom: BorderSide(color: Color(0xFFD8D8D2)),
+                      ),
+              ),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  child: Text(
+                    rows[index].key,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.secondary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  child: Text(
+                    rows[index].value,
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
         ],
       ),
     );
@@ -452,12 +468,16 @@ class _ResponsiveGrid extends StatelessWidget {
             ? 3
             : constraints.maxWidth >= 560
             ? 2
+            : constraints.maxWidth >= 330
+            ? 2
             : 1;
         final ratio = count == 1
-            ? 1.55
-            : constraints.maxWidth < 700
+            ? 1.95
+            : constraints.maxWidth < 420
             ? 1.12
-            : 1.32;
+            : constraints.maxWidth < 700
+            ? 1.28
+            : 1.42;
         return GridView.count(
           crossAxisCount: count,
           childAspectRatio: ratio,

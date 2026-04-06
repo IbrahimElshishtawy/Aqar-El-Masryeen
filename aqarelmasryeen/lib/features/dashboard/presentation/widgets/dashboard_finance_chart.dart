@@ -11,100 +11,282 @@ class DashboardFinanceChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final maxValue = buckets.fold<double>(0, (current, bucket) {
       final bucketMax = bucket.expenses > bucket.payments
           ? bucket.expenses
           : bucket.payments;
       return current > bucketMax ? current : bucketMax;
     });
+    final totalExpenses = buckets.fold<double>(
+      0,
+      (sum, bucket) => sum + bucket.expenses,
+    );
+    final totalPayments = buckets.fold<double>(
+      0,
+      (sum, bucket) => sum + bucket.payments,
+    );
     final topValue = maxValue == 0 ? 1.0 : maxValue * 1.2;
 
+    const expensesColor = Color(0xFFBBB6A9);
+    const paymentsColor = Color(0xFF111111);
+    const paymentsLabel = 'Ø§Ù„ØªØ­ØµÙŠÙ„Ø§Øª';
+    const expensesLabel = 'Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª';
+
     return AppPanel(
-      title: 'الحركة المالية',
-      subtitle: 'مقارنة بين المصروفات والتحصيلات خلال آخر ستة أشهر',
+      title: 'Ø§Ù„Ø­Ø±ÙƒØ© Ø§Ù„Ù…Ø§Ù„ÙŠØ©',
+      subtitle:
+          'Ù…Ù‚Ø§Ø±Ù†Ø© Ø¨ÙŠÙ† Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª ÙˆØ§Ù„ØªØ­ØµÙŠÙ„Ø§Øª Ø®Ù„Ø§Ù„ Ø¢Ø®Ø± Ø³ØªØ© Ø£Ø´Ù‡Ø±',
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            height: 220,
-            child: BarChart(
-              BarChartData(
-                maxY: topValue,
-                alignment: BarChartAlignment.spaceAround,
-                gridData: FlGridData(
-                  drawVerticalLine: false,
-                  getDrawingHorizontalLine: (value) =>
-                      const FlLine(color: Color(0xFFE5E5DE), strokeWidth: 1),
-                ),
-                borderData: FlBorderData(show: false),
-                titlesData: FlTitlesData(
-                  topTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  rightTitles: const AxisTitles(
-                    sideTitles: SideTitles(showTitles: false),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 48,
-                      getTitlesWidget: (value, meta) {
-                        if (value == 0) return const SizedBox.shrink();
-                        return Text(
-                          value.egp,
-                          style: Theme.of(context).textTheme.labelSmall,
-                        );
-                      },
-                    ),
-                  ),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        final index = value.toInt();
-                        if (index < 0 || index >= buckets.length) {
-                          return const SizedBox.shrink();
-                        }
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            buckets[index].label,
-                            style: Theme.of(context).textTheme.labelMedium,
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _FinanceSummaryChip(
+                label: paymentsLabel,
+                value: totalPayments.egp,
+                color: paymentsColor,
+              ),
+              _FinanceSummaryChip(
+                label: expensesLabel,
+                value: totalExpenses.egp,
+                color: expensesColor,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFFFFFEFB), Color(0xFFF6F4EC)],
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFD8D8D2)),
+            ),
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 220,
+                  child: LineChart(
+                    LineChartData(
+                      minX: 0,
+                      maxX: (buckets.length - 1).toDouble(),
+                      minY: 0,
+                      maxY: topValue,
+                      lineTouchData: LineTouchData(
+                        handleBuiltInTouches: true,
+                        touchTooltipData: LineTouchTooltipData(
+                          fitInsideHorizontally: true,
+                          fitInsideVertically: true,
+                          tooltipRoundedRadius: 14,
+                          tooltipPadding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 8,
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                barGroups: [
-                  for (var index = 0; index < buckets.length; index++)
-                    BarChartGroupData(
-                      x: index,
-                      barsSpace: 6,
-                      barRods: [
-                        BarChartRodData(
-                          toY: buckets[index].expenses,
-                          width: 10,
-                          color: const Color(0xFFB3B3AB),
-                          borderRadius: BorderRadius.circular(4),
+                          tooltipBorder: BorderSide(
+                            color: Colors.black.withValues(alpha: 0.06),
+                          ),
+                          getTooltipColor: (_) => Colors.white,
+                          getTooltipItems: (spots) {
+                            return spots.map((spot) {
+                              final isPayments = spot.barIndex == 1;
+                              return LineTooltipItem(
+                                '${buckets[spot.x.toInt()].label}\n${spot.y.egp}',
+                                theme.textTheme.labelMedium!.copyWith(
+                                  color: isPayments
+                                      ? paymentsColor
+                                      : expensesColor,
+                                  fontWeight: FontWeight.w700,
+                                  height: 1.35,
+                                ),
+                              );
+                            }).toList();
+                          },
                         ),
-                        BarChartRodData(
-                          toY: buckets[index].payments,
-                          width: 10,
-                          color: const Color(0xFF111111),
-                          borderRadius: BorderRadius.circular(4),
+                      ),
+                      gridData: FlGridData(
+                        drawVerticalLine: false,
+                        horizontalInterval: topValue / 4,
+                        getDrawingHorizontalLine: (value) => FlLine(
+                          color: const Color(0xFFD9D7CF).withValues(alpha: 0.8),
+                          strokeWidth: 1,
+                        ),
+                      ),
+                      borderData: FlBorderData(show: false),
+                      titlesData: FlTitlesData(
+                        topTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: const AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 42,
+                            interval: topValue / 4,
+                            getTitlesWidget: (value, meta) {
+                              if (value <= 0) {
+                                return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: const EdgeInsetsDirectional.only(
+                                  end: 8,
+                                ),
+                                child: Text(
+                                  _compactCurrency(value),
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.secondary,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 30,
+                            getTitlesWidget: (value, meta) {
+                              final index = value.toInt();
+                              if (index < 0 || index >= buckets.length) {
+                                return const SizedBox.shrink();
+                              }
+                              return Padding(
+                                padding: const EdgeInsets.only(top: 10),
+                                child: Text(
+                                  buckets[index].label,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                      lineBarsData: [
+                        _buildSeries(
+                          buckets: buckets,
+                          selector: (bucket) => bucket.expenses,
+                          color: expensesColor,
+                        ),
+                        _buildSeries(
+                          buckets: buckets,
+                          selector: (bucket) => bucket.payments,
+                          color: paymentsColor,
                         ),
                       ],
                     ),
-                ],
-              ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Row(
+                  children: [
+                    _ChartLegend(color: paymentsColor, label: paymentsLabel),
+                    SizedBox(width: 12),
+                    _ChartLegend(color: expensesColor, label: expensesLabel),
+                  ],
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 12),
-          const Row(
+        ],
+      ),
+    );
+  }
+}
+
+LineChartBarData _buildSeries({
+  required List<DashboardChartBucket> buckets,
+  required double Function(DashboardChartBucket bucket) selector,
+  required Color color,
+}) {
+  return LineChartBarData(
+    isCurved: true,
+    curveSmoothness: 0.28,
+    color: color,
+    barWidth: 3,
+    isStrokeCapRound: true,
+    belowBarData: BarAreaData(show: true, color: color.withValues(alpha: 0.08)),
+    dotData: FlDotData(
+      show: true,
+      getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+        radius: 3.8,
+        color: color,
+        strokeWidth: 2,
+        strokeColor: Colors.white,
+      ),
+    ),
+    spots: [
+      for (var index = 0; index < buckets.length; index++)
+        FlSpot(index.toDouble(), selector(buckets[index])),
+    ],
+  );
+}
+
+String _compactCurrency(double value) {
+  if (value >= 1000000) {
+    return '${(value / 1000000).toStringAsFixed(value >= 10000000 ? 0 : 1)}M';
+  }
+  if (value >= 1000) {
+    return '${(value / 1000).toStringAsFixed(value >= 100000 ? 0 : 1)}K';
+  }
+  return value.toStringAsFixed(0);
+}
+
+class _FinanceSummaryChip extends StatelessWidget {
+  const _FinanceSummaryChip({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _ChartLegend(color: Color(0xFF111111), label: 'التحصيلات'),
-              SizedBox(width: 16),
-              _ChartLegend(color: Color(0xFFB3B3AB), label: 'المصروفات'),
+              Text(
+                label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.secondary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
         ],
@@ -121,17 +303,32 @@ class _ChartLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 10,
-          height: 10,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 8),
-        Text(label),
-      ],
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

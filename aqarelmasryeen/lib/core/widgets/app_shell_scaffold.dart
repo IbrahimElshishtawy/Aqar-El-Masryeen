@@ -42,6 +42,12 @@ class AppShellScaffold extends StatelessWidget {
       selectedIcon: Icons.apartment_rounded,
     ),
     _ShellDestination(
+      route: AppRoutes.partners,
+      label: 'الشركاء',
+      icon: Icons.groups_outlined,
+      selectedIcon: Icons.groups_rounded,
+    ),
+    _ShellDestination(
       route: AppRoutes.profileHome,
       label: 'الحساب',
       icon: Icons.person_outline_rounded,

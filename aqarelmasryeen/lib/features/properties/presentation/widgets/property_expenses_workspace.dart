@@ -217,6 +217,7 @@ class _DailyExpensesView extends StatelessWidget {
           title: 'ملخص يومي للمصاريف',
           subtitle: 'كل يوم ظاهر بإجماليه وحصتي وحصة ${data.counterpartLabel}.',
           rows: data.dailyExpenseRows,
+          forceTableLayout: true,
           showRowNumbers: false,
           sheetLabel: 'ورقة اليوميات',
           columns: [
@@ -257,6 +258,7 @@ class _DailyExpensesView extends StatelessWidget {
           subtitle:
               'جدول يومي شبيه بالإكسل يوضح البيان، الدافع، والإجمالي مع التقسيم بيني وبين ${data.counterpartLabel}.',
           rows: data.expenseLedgerRows,
+          forceTableLayout: true,
           onAdd: onAddExpense,
           addLabel: 'إضافة مصروف',
           onEdit: (row) => onEditExpense(row.expense),
@@ -344,6 +346,7 @@ class _DailyExpensesView extends StatelessWidget {
           title: 'موقف الشركاء',
           subtitle: 'عرض سريع لمن دفع كام وعليه كام داخل العقار.',
           rows: data.partnerSummaries,
+          forceTableLayout: true,
           sheetLabel: 'شيت الشركاء',
           columns: [
             LedgerColumn(
@@ -457,6 +460,7 @@ class _MaterialsView extends StatelessWidget {
           title: 'شيت الموردين',
           subtitle: 'من اشتريت منه بكام، دفعت له كام، ولسه عليك كام.',
           rows: data.materialsSnapshot.supplierSummaries,
+          forceTableLayout: true,
           showRowNumbers: false,
           sheetLabel: 'شيت الموردين',
           onView: onOpenSupplierSheet,
@@ -598,14 +602,18 @@ class _ResponsiveGrid extends StatelessWidget {
       builder: (context, constraints) {
         final count = constraints.maxWidth >= 960
             ? 4
-            : constraints.maxWidth >= 560
+            : constraints.maxWidth >= 700
+            ? 2
+            : constraints.maxWidth >= 330
             ? 2
             : 1;
         final ratio = count == 1
-            ? 1.55
-            : constraints.maxWidth < 700
+            ? 1.18
+            : constraints.maxWidth < 480
+            ? 1.02
+            : constraints.maxWidth < 760
             ? 1.12
-            : 1.35;
+            : 1.3;
         return GridView.count(
           crossAxisCount: count,
           childAspectRatio: ratio,

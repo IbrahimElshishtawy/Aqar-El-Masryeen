@@ -579,19 +579,17 @@ class _PropertyHeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(32),
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF103A32), Color(0xFF1C6154)],
-        ),
+        color: theme.colorScheme.surface,
+        border: Border.all(color: const Color(0xFFD8D8D2)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x26000000),
-            blurRadius: 24,
-            offset: Offset(0, 12),
+            color: Color(0x12000000),
+            blurRadius: 18,
+            offset: Offset(0, 8),
           ),
         ],
       ),
@@ -610,16 +608,16 @@ class _PropertyHeroCard extends StatelessWidget {
                       data.property.name,
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
-                            color: Colors.white,
+                            color: theme.colorScheme.onSurface,
                             fontWeight: FontWeight.w800,
                           ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       data.property.location,
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.secondary,
+                      ),
                     ),
                   ],
                 ),
@@ -630,13 +628,14 @@ class _PropertyHeroCard extends StatelessWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.14),
+                  color: const Color(0xFFF8F8F4),
                   borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFD8D8D2)),
                 ),
                 child: Text(
                   data.property.status.label,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Colors.white,
+                    color: theme.colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -703,24 +702,24 @@ class _HeroMetric extends StatelessWidget {
       constraints: const BoxConstraints(minWidth: 120),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.12),
+        color: const Color(0xFFF8F8F4),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: Colors.white70),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -742,10 +741,10 @@ class _PrimarySwitchCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: const Color(0xFFF3F5F0),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFD9DED6)),
       ),
       child: Row(
@@ -788,36 +787,52 @@ class _PrimarySwitchChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          color: selected ? const Color(0xFF123A33) : Colors.transparent,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w800,
-                color: selected ? Colors.white : const Color(0xFF17352F),
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 170;
+        return InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(14),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 12 : 14,
+              vertical: isCompact ? 10 : 12,
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: selected ? Colors.white70 : const Color(0xFF68766C),
-              ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              color: selected ? const Color(0xFF123A33) : Colors.transparent,
             ),
-          ],
-        ),
-      ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: selected ? Colors.white : const Color(0xFF17352F),
+                  ),
+                ),
+                if (!isCompact) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: selected
+                          ? Colors.white70
+                          : const Color(0xFF68766C),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

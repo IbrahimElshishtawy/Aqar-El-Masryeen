@@ -50,7 +50,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return AppShellScaffold(
       title: 'الحساب',
       subtitle: 'بيانات الشريك وإعدادات الأمان',
-      currentIndex: 2,
+      currentIndex: 3,
       actions: [
         TextButton.icon(
           onPressed: () => context.push(AppRoutes.expensesTab('resources')),

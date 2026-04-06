@@ -20,6 +20,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _shareController;
   late final TextEditingController _contributionController;
+  bool _linkToCurrentAccount = false;
   bool _saving = false;
 
   @override
@@ -36,6 +37,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
           ? '0'
           : widget.partner!.contributionTotal.toStringAsFixed(0),
     );
+    _linkToCurrentAccount = (widget.partner?.userId ?? '').isNotEmpty;
   }
 
   @override
@@ -55,7 +57,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
     final now = DateTime.now();
     final partner = Partner(
       id: widget.partner?.id ?? '',
-      userId: widget.partner?.userId ?? '',
+      userId: _linkToCurrentAccount ? session.userId : '',
       name: _nameController.text.trim(),
       shareRatio: (double.tryParse(_shareController.text.trim()) ?? 0) / 100,
       contributionTotal:
@@ -78,6 +80,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
           metadata: {
             'shareRatio': partner.shareRatio,
             'contributionTotal': partner.contributionTotal,
+            'linkedToCurrentUser': _linkToCurrentAccount,
           },
         );
 
@@ -121,6 +124,17 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
               ),
               decoration: const InputDecoration(
                 labelText: 'المساهمات الرأسمالية',
+              ),
+            ),
+            const SizedBox(height: 12),
+            SwitchListTile.adaptive(
+              contentPadding: EdgeInsets.zero,
+              value: _linkToCurrentAccount,
+              onChanged: (value) =>
+                  setState(() => _linkToCurrentAccount = value),
+              title: const Text('ربط هذا الشريك بالحساب الحالي'),
+              subtitle: const Text(
+                'عند التفعيل ستظهر بيانات هذا الشريك مباشرة داخل الرئيسية ولوحة المتابعة.',
               ),
             ),
             const SizedBox(height: 18),

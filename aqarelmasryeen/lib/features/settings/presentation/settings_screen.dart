@@ -45,7 +45,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return AppShellScaffold(
       title: 'الإعدادات',
       subtitle: 'الأمان وتفضيلات مساحة العمل',
-      currentIndex: 2,
+      currentIndex: 3,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [

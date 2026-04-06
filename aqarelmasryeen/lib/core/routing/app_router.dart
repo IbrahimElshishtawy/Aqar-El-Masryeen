@@ -11,6 +11,7 @@ import 'package:aqarelmasryeen/features/auth/presentation/screens/register_scree
 import 'package:aqarelmasryeen/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/expenses_ledger_screen.dart';
 import 'package:aqarelmasryeen/features/notifications/presentation/notifications_center_screen.dart';
+import 'package:aqarelmasryeen/features/partners/presentation/partners_screen.dart';
 import 'package:aqarelmasryeen/features/profile/presentation/profile_screen.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/properties_screen.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/property_detail_screen.dart';
@@ -114,6 +115,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: AppRoutes.partners,
+        pageBuilder: (context, state) =>
+            _buildAppPage(state: state, child: const PartnersScreen()),
       ),
       GoRoute(
         path: AppRoutes.profileHome,
