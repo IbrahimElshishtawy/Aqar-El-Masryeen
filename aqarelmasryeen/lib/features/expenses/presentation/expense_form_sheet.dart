@@ -110,7 +110,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
         .read(activityRepositoryProvider)
         .log(
           actorId: session.userId,
-          actorName: session.profile?.name ?? 'Partner',
+          actorName: session.profile?.name ?? 'شريك',
           action: widget.expense == null
               ? 'expense_created'
               : 'expense_updated',
@@ -122,7 +122,9 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
         .read(notificationRepositoryProvider)
         .create(
           userId: session.userId,
-          title: widget.expense == null ? 'Expense created' : 'Expense updated',
+          title: widget.expense == null
+              ? 'تمت إضافة مصروف'
+              : 'تم تحديث المصروف',
           body: _descriptionController.text.trim(),
           type: NotificationType.expenseAdded,
           route: '/properties/${widget.propertyId}',
@@ -134,18 +136,16 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
   @override
   Widget build(BuildContext context) {
     return AppFormSheet(
-      title: widget.expense == null ? 'Add expense' : 'Edit expense',
+      title: widget.expense == null ? 'إضافة مصروف' : 'تعديل مصروف',
       child: Form(
         key: _formKey,
         child: Column(
           children: [
             TextFormField(
               controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Title / description',
-              ),
+              decoration: const InputDecoration(labelText: 'البيان / الوصف'),
               validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'Enter a title.' : null,
+                  (value ?? '').trim().isEmpty ? 'أدخل البيان.' : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -153,11 +153,11 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'Amount'),
+              decoration: const InputDecoration(labelText: 'المبلغ'),
               validator: (value) {
                 final parsed = double.tryParse((value ?? '').trim());
                 if (parsed == null || parsed <= 0) {
-                  return 'Enter a valid amount.';
+                  return 'أدخل مبلغًا صحيحًا.';
                 }
                 return null;
               },
@@ -173,7 +173,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
                   .toList(),
               onChanged: (value) =>
                   setState(() => _category = value ?? _category),
-              decoration: const InputDecoration(labelText: 'Category'),
+              decoration: const InputDecoration(labelText: 'الفئة'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
@@ -187,9 +187,9 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
                   )
                   .toList(),
               onChanged: (value) => setState(() => _partnerId = value ?? ''),
-              decoration: const InputDecoration(labelText: 'Paid by'),
+              decoration: const InputDecoration(labelText: 'دُفع بواسطة'),
               validator: (value) =>
-                  (value ?? '').isEmpty ? 'Select a partner.' : null,
+                  (value ?? '').isEmpty ? 'اختر الشريك الدافع.' : null,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<PaymentMethod>(
@@ -202,13 +202,13 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
                   .toList(),
               onChanged: (value) =>
                   setState(() => _paymentMethod = value ?? _paymentMethod),
-              decoration: const InputDecoration(labelText: 'Payment method'),
+              decoration: const InputDecoration(labelText: 'طريقة الدفع'),
             ),
             const SizedBox(height: 12),
             InkWell(
               onTap: _pickDate,
               child: InputDecorator(
-                decoration: const InputDecoration(labelText: 'Date'),
+                decoration: const InputDecoration(labelText: 'التاريخ'),
                 child: Row(
                   children: [
                     Expanded(child: Text(_selectedDate.formatShort())),
@@ -222,14 +222,14 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
               controller: _notesController,
               minLines: 2,
               maxLines: 4,
-              decoration: const InputDecoration(labelText: 'Notes'),
+              decoration: const InputDecoration(labelText: 'ملاحظات'),
             ),
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'Saving...' : 'Save expense'),
+                child: Text(_saving ? 'جاري الحفظ...' : 'حفظ المصروف'),
               ),
             ),
           ],

@@ -16,6 +16,9 @@ class AppRoutes {
   static const settings = '/settings';
   static const notifications = '/notifications';
 
+  static String expensesTab(String tab) =>
+      Uri(path: expenses, queryParameters: {'tab': tab}).toString();
+
   static String propertyDetails(String propertyId) => '/properties/$propertyId';
 
   static String editProperty(String propertyId) =>

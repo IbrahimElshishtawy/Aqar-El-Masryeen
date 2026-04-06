@@ -38,6 +38,7 @@ class _MaterialExpenseFormSheetState
   late DateTime _date;
   late DateTime _dueDate;
   bool _saving = false;
+  bool _syncingTotalPrice = false;
 
   @override
   void initState() {
@@ -63,6 +64,9 @@ class _MaterialExpenseFormSheetState
     _category = entry?.materialCategory ?? MaterialCategory.brick;
     _date = entry?.date ?? DateTime.now();
     _dueDate = entry?.dueDate ?? DateTime.now();
+    _quantityController.addListener(_syncTotalPrice);
+    _unitPriceController.addListener(_syncTotalPrice);
+    _syncTotalPrice();
   }
 
   @override
@@ -94,6 +98,36 @@ class _MaterialExpenseFormSheetState
         }
       });
     }
+  }
+
+  void _syncTotalPrice() {
+    if (_syncingTotalPrice) {
+      return;
+    }
+
+    final quantity = double.tryParse(_quantityController.text.trim());
+    final unitPrice = double.tryParse(_unitPriceController.text.trim());
+    if (quantity == null ||
+        unitPrice == null ||
+        quantity <= 0 ||
+        unitPrice <= 0) {
+      if (widget.entry == null &&
+          _totalPriceController.text.trim().isNotEmpty) {
+        _syncingTotalPrice = true;
+        _totalPriceController.clear();
+        _syncingTotalPrice = false;
+      }
+      return;
+    }
+
+    final computedTotal = (quantity * unitPrice).toStringAsFixed(0);
+    if (_totalPriceController.text.trim() == computedTotal) {
+      return;
+    }
+
+    _syncingTotalPrice = true;
+    _totalPriceController.text = computedTotal;
+    _syncingTotalPrice = false;
   }
 
   Future<void> _submit() async {
@@ -231,10 +265,14 @@ class _MaterialExpenseFormSheetState
             const SizedBox(height: 12),
             TextFormField(
               controller: _totalPriceController,
+              readOnly: true,
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
-              decoration: const InputDecoration(labelText: 'إجمالي الفاتورة'),
+              decoration: const InputDecoration(
+                labelText: 'إجمالي الفاتورة',
+                helperText: 'يتم حسابه تلقائيًا من الكمية وسعر الوحدة',
+              ),
               validator: (value) {
                 if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
                   return 'أدخل إجمالي الفاتورة.';

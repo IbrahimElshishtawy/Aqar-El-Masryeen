@@ -79,15 +79,20 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       archived: false,
     );
 
-    final propertyId = await ref.read(propertyRepositoryProvider).save(property);
-    await ref.read(activityRepositoryProvider).log(
-      actorId: session.userId,
-      actorName: ref.read(authSessionProvider).value?.profile?.name ?? 'شريك',
-      action: existing == null ? 'property_created' : 'property_updated',
-      entityType: 'property',
-      entityId: propertyId,
-      metadata: {'name': property.name, 'status': property.status.label},
-    );
+    final propertyId = await ref
+        .read(propertyRepositoryProvider)
+        .save(property);
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.userId,
+          actorName:
+              ref.read(authSessionProvider).value?.profile?.name ?? 'شريك',
+          action: existing == null ? 'property_created' : 'property_updated',
+          entityType: 'property',
+          entityId: propertyId,
+          metadata: {'name': property.name, 'status': property.status.label},
+        );
 
     if (mounted) {
       setState(() => _saving = false);

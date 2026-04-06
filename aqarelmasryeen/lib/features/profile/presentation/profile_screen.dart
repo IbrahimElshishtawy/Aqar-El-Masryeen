@@ -51,6 +51,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       title: 'الحساب',
       subtitle: 'بيانات الشريك وإعدادات الأمان',
       currentIndex: 2,
+      actions: [
+        TextButton.icon(
+          onPressed: () => context.push(AppRoutes.expensesTab('resources')),
+          icon: const Icon(Icons.inventory_2_outlined),
+          label: const Text('الموارد'),
+        ),
+      ],
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
@@ -111,9 +118,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('الأمان والإعدادات'),
-                  subtitle: const Text(
-                    'البصمة وقفل التطبيق والجهاز الموثوق',
-                  ),
+                  subtitle: const Text('البصمة وقفل التطبيق والجهاز الموثوق'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => context.push(AppRoutes.settings),
                 ),

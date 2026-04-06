@@ -127,7 +127,8 @@ class PropertyExpensesTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppPanel(
       title: title,
-      subtitle: subtitle ?? '${expenses.length} سجل - الإجمالي ${totalAmount.egp}',
+      subtitle:
+          subtitle ?? '${expenses.length} سجل - الإجمالي ${totalAmount.egp}',
       trailing: FilledButton.icon(
         onPressed: onAdd,
         icon: const Icon(Icons.add),
@@ -262,7 +263,8 @@ class PropertyPaymentsTable extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppPanel(
       title: title,
-      subtitle: subtitle ?? '${payments.length} سجل - الإجمالي ${totalAmount.egp}',
+      subtitle:
+          subtitle ?? '${payments.length} سجل - الإجمالي ${totalAmount.egp}',
       trailing: FilledButton.icon(
         onPressed: onAdd,
         icon: const Icon(Icons.add),
