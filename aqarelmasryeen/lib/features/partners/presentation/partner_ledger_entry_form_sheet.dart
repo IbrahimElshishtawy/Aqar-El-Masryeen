@@ -13,10 +13,12 @@ class PartnerLedgerEntryFormSheet extends ConsumerStatefulWidget {
   const PartnerLedgerEntryFormSheet({
     super.key,
     required this.partner,
+    required this.propertyId,
     this.entry,
   });
 
   final Partner partner;
+  final String propertyId;
   final PartnerLedgerEntry? entry;
 
   @override
@@ -59,7 +61,7 @@ class _PartnerLedgerEntryFormSheetState
     final entry = PartnerLedgerEntry(
       id: widget.entry?.id ?? '',
       partnerId: widget.partner.id,
-      propertyId: widget.entry?.propertyId ?? '',
+      propertyId: widget.entry?.propertyId ?? widget.propertyId,
       entryType: _entryType,
       amount: double.parse(_amountController.text.trim()),
       notes: _notesController.text.trim(),

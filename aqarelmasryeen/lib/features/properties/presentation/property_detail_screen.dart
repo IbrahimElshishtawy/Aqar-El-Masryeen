@@ -1,5 +1,6 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
+import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
@@ -30,6 +31,7 @@ import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 final propertyDetailsProvider = StreamProvider.autoDispose
     .family<PropertyProject?, String>(
@@ -72,9 +74,14 @@ final propertyPartnerLedgerProvider =
     );
 
 class PropertyDetailScreen extends ConsumerStatefulWidget {
-  const PropertyDetailScreen({super.key, required this.propertyId});
+  const PropertyDetailScreen({
+    super.key,
+    required this.propertyId,
+    this.unitId,
+  });
 
   final String propertyId;
+  final String? unitId;
 
   @override
   ConsumerState<PropertyDetailScreen> createState() =>
@@ -84,7 +91,6 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
 class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
   final _salesSectionKey = GlobalKey();
   final _expensesSectionKey = GlobalKey();
-  final Map<String, GlobalKey> _unitSectionKeys = {};
   int _expensesWorkbookTabIndex = 0;
 
   Future<void> _showUnitSheet({UnitSale? unit}) {
@@ -93,44 +99,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       isScrollControlled: true,
       useSafeArea: true,
       builder: (_) => UnitFormSheet(propertyId: widget.propertyId, unit: unit),
-    );
-  }
-
-  Future<void> _showInstallmentSheet({
-    required UnitSale unit,
-    required String planId,
-    Installment? installment,
-    int? suggestedSequence,
-  }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => InstallmentFormSheet(
-        propertyId: widget.propertyId,
-        unitId: unit.id,
-        planId: planId,
-        installment: installment,
-        suggestedSequence: suggestedSequence,
-      ),
-    );
-  }
-
-  Future<void> _showPaymentSheet({
-    required UnitSale unit,
-    String? installmentId,
-    PaymentRecord? payment,
-  }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => PaymentFormSheet(
-        propertyId: widget.propertyId,
-        initialUnitId: unit.id,
-        installmentId: installmentId,
-        payment: payment,
-      ),
     );
   }
 
@@ -200,6 +168,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           entityId: unit.id,
           metadata: {'propertyId': widget.propertyId},
         );
+    if (mounted && widget.unitId != null) {
+      context.pop();
+    }
   }
 
   Future<void> _deleteInstallment(Installment installment) async {
@@ -251,10 +222,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     );
   }
 
-  GlobalKey _unitSectionKey(String unitId) {
-    return _unitSectionKeys.putIfAbsent(unitId, GlobalKey.new);
-  }
-
   Future<void> _showSupplierEntriesSheet(
     SupplierLedgerSummary summary,
     List<MaterialExpenseEntry> rows,
@@ -287,6 +254,130 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final paymentsAsync = ref.watch(
       propertyPaymentsProvider(widget.propertyId),
     );
+    final session = ref.watch(authSessionProvider).valueOrNull;
+
+    if (widget.unitId != null) {
+      final hasUnitError =
+          propertyAsync.hasError ||
+          unitsAsync.hasError ||
+          installmentsAsync.hasError ||
+          paymentsAsync.hasError;
+      if (hasUnitError) {
+        return AppShellScaffold(
+          title: 'الوحدة',
+          subtitle: 'تفاصيل البيع والتحصيل',
+          currentIndex: 1,
+          child: EmptyStateView(
+            title: 'تعذر تحميل بيانات الوحدة',
+            message:
+                propertyAsync.error?.toString() ??
+                unitsAsync.error?.toString() ??
+                installmentsAsync.error?.toString() ??
+                paymentsAsync.error?.toString() ??
+                'حدث خطأ غير متوقع',
+          ),
+        );
+      }
+
+      final waitingForUnit =
+          !propertyAsync.hasValue ||
+          !unitsAsync.hasValue ||
+          !installmentsAsync.hasValue ||
+          !paymentsAsync.hasValue;
+      if (waitingForUnit) {
+        return const AppShellScaffold(
+          title: 'الوحدة',
+          subtitle: 'تفاصيل البيع والتحصيل',
+          currentIndex: 1,
+          child: Center(child: CircularProgressIndicator()),
+        );
+      }
+
+      final property = propertyAsync.value;
+      if (property == null) {
+        return const AppShellScaffold(
+          title: 'الوحدة',
+          subtitle: 'تفاصيل البيع والتحصيل',
+          currentIndex: 1,
+          child: EmptyStateView(
+            title: 'المشروع غير موجود',
+            message: 'لا يمكن فتح الوحدة لأن المشروع غير متاح الآن.',
+          ),
+        );
+      }
+
+      final units = unitsAsync.value!;
+      final installments = installmentsAsync.value!;
+      final payments = paymentsAsync.value!;
+      final unitSummaries = const UnitSalesCalculator().build(
+        units: units,
+        installments: installments,
+        payments: payments,
+      );
+
+      UnitSaleComputedSummary? selectedSummary;
+      for (final summary in unitSummaries) {
+        if (summary.unit.id == widget.unitId) {
+          selectedSummary = summary;
+          break;
+        }
+      }
+
+      if (selectedSummary == null) {
+        return AppShellScaffold(
+          title: property.name,
+          subtitle: property.location,
+          currentIndex: 1,
+          child: const EmptyStateView(
+            title: 'الوحدة غير موجودة',
+            message: 'هذه الوحدة لم تعد متاحة داخل هذا المشروع.',
+          ),
+        );
+      }
+
+      final UnitSaleComputedSummary summary = selectedSummary;
+
+      return AppShellScaffold(
+        title: 'الوحدة ${summary.unit.unitNumber}',
+        subtitle: property.name,
+        currentIndex: 1,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          children: [
+            _UnitIdentitySection(property: property, summary: summary),
+            const SizedBox(height: 16),
+            _UnitSalesPanel(
+              summary: summary,
+              payments: payments
+                  .where((item) => item.unitId == summary.unit.id)
+                  .toList(),
+              onEditUnit: () => _showUnitSheet(unit: summary.unit),
+              onDeleteUnit: () => _deleteUnit(summary.unit),
+              onAddInstallment: () => _showInstallmentSheet(
+                unit: summary.unit,
+                planId: _planIdFor(summary.unit.id, installments),
+                suggestedSequence: summary.installmentRows.length + 1,
+              ),
+              onEditInstallment: (installment) => _showInstallmentSheet(
+                unit: summary.unit,
+                planId: installment.planId,
+                installment: installment,
+              ),
+              onDeleteInstallment: _deleteInstallment,
+              onViewInstallment: _showInstallmentPaymentsDialog,
+              onAddPayment: (installmentId) => _showPaymentSheet(
+                unit: summary.unit,
+                installmentId: installmentId,
+              ),
+              onEditPayment: (payment) =>
+                  _showPaymentSheet(unit: summary.unit, payment: payment),
+              onDeletePayment: _deletePayment,
+            ),
+          ],
+        ),
+      );
+    }
+
     final expensesAsync = ref.watch(
       propertyExpensesProvider(widget.propertyId),
     );
@@ -364,7 +455,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     final materials = materialsAsync.value!;
     final partners = partnersAsync.value!;
     final partnerLedgers = partnerLedgerAsync.value!;
-    final session = ref.watch(authSessionProvider).valueOrNull;
 
     final unitSummaries = const UnitSalesCalculator().build(
       units: units,
@@ -511,6 +601,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             ],
           ),
           const SizedBox(height: 16),
+          _UnitsOverviewSection(
+            summaries: unitSummaries,
+            onAddUnit: () => _showUnitSheet(),
+            onOpenUnit: (summary) => context.push(
+              AppRoutes.propertyUnitDetails(widget.propertyId, summary.unit.id),
+            ),
+          ),
+          const SizedBox(height: 16),
           _SectionShortcuts(
             salesCount: unitSummaries.length,
             salesTotal: totalSalesValue,
@@ -539,7 +637,9 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 'ملخص شبيه بالإكسل لكل وحدة سكنية مع حالة الأقساط والمدفوع والمتبقي.',
             rows: unitSummaries,
             sheetLabel: 'شيت مبيعات الوحدات',
-            onView: (row) => _scrollToSection(_unitSectionKey(row.unit.id)),
+            onView: (row) => context.push(
+              AppRoutes.propertyUnitDetails(widget.propertyId, row.unit.id),
+            ),
             columns: [
               LedgerColumn(
                 label: 'الوحدة / العميل',
@@ -667,40 +767,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               ],
             ),
           ),
-          if (unitSummaries.isNotEmpty) const SizedBox(height: 16),
-          for (final summary in unitSummaries) ...[
-            Container(
-              key: _unitSectionKey(summary.unit.id),
-              child: _UnitSalesPanel(
-                summary: summary,
-                payments: payments
-                    .where((item) => item.unitId == summary.unit.id)
-                    .toList(),
-                onEditUnit: () => _showUnitSheet(unit: summary.unit),
-                onDeleteUnit: () => _deleteUnit(summary.unit),
-                onAddInstallment: () => _showInstallmentSheet(
-                  unit: summary.unit,
-                  planId: _planIdFor(summary.unit.id, installments),
-                  suggestedSequence: summary.installmentRows.length + 1,
-                ),
-                onEditInstallment: (installment) => _showInstallmentSheet(
-                  unit: summary.unit,
-                  planId: installment.planId,
-                  installment: installment,
-                ),
-                onDeleteInstallment: _deleteInstallment,
-                onViewInstallment: _showInstallmentPaymentsDialog,
-                onAddPayment: (installmentId) => _showPaymentSheet(
-                  unit: summary.unit,
-                  installmentId: installmentId,
-                ),
-                onEditPayment: (payment) =>
-                    _showPaymentSheet(unit: summary.unit, payment: payment),
-                onDeletePayment: _deletePayment,
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
           Container(
             key: _expensesSectionKey,
             child: _SpreadsheetSectionBanner(
@@ -1746,9 +1812,14 @@ class _SummaryGrid extends StatelessWidget {
       builder: (context, constraints) {
         final count = constraints.maxWidth >= 960
             ? 3
-            : constraints.maxWidth >= 620
+            : constraints.maxWidth >= 300
             ? 2
             : 1;
+        final childAspectRatio = count == 1
+            ? 1.45
+            : constraints.maxWidth < 620
+            ? 1.02
+            : 1.55;
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -1757,12 +1828,292 @@ class _SummaryGrid extends StatelessWidget {
             crossAxisCount: count,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: count == 1 ? 2.5 : 1.6,
+            childAspectRatio: childAspectRatio,
           ),
           itemBuilder: (context, index) => cards[index],
         );
       },
     );
+  }
+}
+
+class _UnitsOverviewSection extends StatelessWidget {
+  const _UnitsOverviewSection({
+    required this.summaries,
+    required this.onAddUnit,
+    required this.onOpenUnit,
+  });
+
+  final List<UnitSaleComputedSummary> summaries;
+  final VoidCallback onAddUnit;
+  final ValueChanged<UnitSaleComputedSummary> onOpenUnit;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppPanel(
+      title: 'الوحدات',
+      subtitle: summaries.isEmpty
+          ? 'أضيفي وحدة أولًا ثم افتحي تفاصيل الأقساط والتحصيل.'
+          : '${summaries.length} وحدة جاهزة للعرض قبل التفاصيل',
+      trailing: FilledButton.icon(
+        onPressed: onAddUnit,
+        icon: const Icon(Icons.add),
+        label: const Text('إضافة وحدة'),
+      ),
+      child: summaries.isEmpty
+          ? const EmptyStateView(
+              title: 'لا توجد وحدات بعد',
+              message:
+                  'ستظهر هنا كروت الوحدات بمجرد إضافة أول وحدة داخل العقار.',
+            )
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 1100
+                    ? 3
+                    : constraints.maxWidth >= 700
+                    ? 2
+                    : 1;
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: summaries.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: columns == 1
+                        ? 1.18
+                        : columns == 2
+                        ? 1.02
+                        : 1.08,
+                  ),
+                  itemBuilder: (context, index) => _UnitOverviewCard(
+                    summary: summaries[index],
+                    onTap: () => onOpenUnit(summaries[index]),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
+class _UnitOverviewCard extends StatelessWidget {
+  const _UnitOverviewCard({required this.summary, required this.onTap});
+
+  final UnitSaleComputedSummary summary;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final customerName = summary.unit.customerName.trim().isEmpty
+        ? 'عميل غير محدد'
+        : summary.unit.customerName;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFFFDFDF9),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFD8D8D2)),
+        ),
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'الوحدة ${summary.unit.unitNumber}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        customerName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.secondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FinancialStatusChip(
+                  label: _unitAlertLabelForSummary(summary),
+                  color: _unitAlertColorForSummary(summary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _UnitMetricChip(
+                  label: 'الإجمالي',
+                  value: summary.totalContractAmount.egp,
+                ),
+                _UnitMetricChip(
+                  label: 'المدفوع',
+                  value: summary.totalPaidSoFar.egp,
+                ),
+                _UnitMetricChip(
+                  label: 'المتبقي',
+                  value: summary.totalRemaining.egp,
+                ),
+                _UnitMetricChip(
+                  label: 'الأقساط',
+                  value:
+                      '${summary.paidInstallmentsCount}/${summary.totalInstallmentsCount}',
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: FilledButton.tonalIcon(
+                onPressed: onTap,
+                icon: const Icon(Icons.visibility_outlined),
+                label: const Text('فتح التفاصيل'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UnitMetricChip extends StatelessWidget {
+  const _UnitMetricChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 112),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F4EE),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UnitIdentitySection extends StatelessWidget {
+  const _UnitIdentitySection({required this.property, required this.summary});
+
+  final PropertyProject property;
+  final UnitSaleComputedSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final unit = summary.unit;
+    final customerName = unit.customerName.trim().isEmpty
+        ? 'عميل غير محدد'
+        : unit.customerName;
+    final customerPhone = unit.customerPhone.trim().isEmpty
+        ? '-'
+        : unit.customerPhone;
+
+    return AppPanel(
+      title: 'بيانات الوحدة',
+      subtitle: '${property.name} • ${property.location}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _UnitMetricChip(label: 'العميل', value: customerName),
+              _UnitMetricChip(label: 'الهاتف', value: customerPhone),
+              _UnitMetricChip(label: 'النوع', value: unit.unitType.label),
+              _UnitMetricChip(label: 'الدور', value: '${unit.floor}'),
+              _UnitMetricChip(
+                label: 'المساحة',
+                value: '${_formatUnitArea(unit.area)} م²',
+              ),
+              _UnitMetricChip(
+                label: 'نظام السداد',
+                value: unit.paymentPlanType.label,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FinancialStatusChip(
+                label: unit.status.label,
+                color: _unitStatusColor(unit.status),
+              ),
+              FinancialStatusChip(
+                label: _unitAlertLabelForSummary(summary),
+                color: _unitAlertColorForSummary(summary),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _formatUnitArea(double area) {
+  final hasFraction = area.truncateToDouble() != area;
+  return area.toStringAsFixed(hasFraction ? 1 : 0);
+}
+
+Color _unitStatusColor(UnitStatus status) {
+  switch (status) {
+    case UnitStatus.available:
+      return Colors.blueGrey;
+    case UnitStatus.reserved:
+      return Colors.orange;
+    case UnitStatus.sold:
+      return Colors.green;
+    case UnitStatus.cancelled:
+      return Colors.redAccent;
   }
 }
 
@@ -2316,6 +2667,7 @@ class _UnitSalesPanel extends StatelessWidget {
           subtitle:
               '${summary.installmentRows.length} صف - متبقي ${summary.totalRemainingInstallmentsAmount.egp}',
           rows: summary.installmentRows,
+          forceTableLayout: true,
           addLabel: 'إضافة قسط',
           onAdd: onAddInstallment,
           onView: onViewInstallment,
@@ -2417,6 +2769,7 @@ class _UnitSalesPanel extends StatelessWidget {
           subtitle:
               '${payments.length} دفعة - الإجمالي ${payments.fold<double>(0, (sum, item) => sum + item.amount).egp}',
           rows: payments,
+          forceTableLayout: true,
           sheetLabel: 'ورقة إكسل التحصيل',
           columns: [
             LedgerColumn(

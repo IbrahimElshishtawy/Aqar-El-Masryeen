@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
+import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/core/widgets/summary_card.dart';
@@ -9,14 +10,18 @@ import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/domain/materials_ledger_calculator.dart';
+import 'package:aqarelmasryeen/features/expenses/presentation/expense_form_sheet.dart';
+import 'package:aqarelmasryeen/features/expenses/presentation/material_expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_ledger_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/partners/domain/partner_ledger_calculator.dart';
+import 'package:aqarelmasryeen/features/partners/presentation/partner_ledger_entry_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/financial_ledger_table.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
+import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -162,6 +167,10 @@ class ExpensesLedgerScreen extends ConsumerWidget {
         title: 'المصاريف',
         subtitle: 'جداول عربية شبيهة بالإكسل لكل البيانات المالية',
         currentIndex: 1,
+        automaticallyImplyLeading: false,
+        titleActions: [
+          _ExpensesTopBarActions(properties: properties, partners: partners),
+        ],
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
@@ -251,6 +260,252 @@ class ExpensesLedgerScreen extends ConsumerWidget {
   }
 }
 
+class _ExpensesTopBarActions extends StatelessWidget {
+  const _ExpensesTopBarActions({
+    required this.properties,
+    required this.partners,
+  });
+
+  final List<PropertyProject> properties;
+  final List<Partner> partners;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = DefaultTabController.maybeOf(context);
+    if (controller == null) {
+      return const SizedBox.shrink();
+    }
+
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final tabIndex = controller.index;
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _TopBarIconButton(
+              icon: Icons.add_rounded,
+              tooltip: _tooltipForTab(tabIndex),
+              onPressed: () => _handleAddPressed(context, tabIndex),
+            ),
+            _TopBarIconButton(
+              icon: Icons.arrow_forward_rounded,
+              tooltip: 'رجوع',
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                  return;
+                }
+                context.go(AppRoutes.properties);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  String _tooltipForTab(int tabIndex) {
+    switch (tabIndex) {
+      case 1:
+        return 'إضافة حركة شريك';
+      case 2:
+        return 'إضافة مورد';
+      default:
+        return 'إضافة مصروف';
+    }
+  }
+
+  Future<void> _handleAddPressed(BuildContext context, int tabIndex) async {
+    switch (tabIndex) {
+      case 1:
+        final partner = await _pickPartner(context);
+        if (partner == null || !context.mounted) return;
+        final property = await _pickProperty(
+          context,
+          title: 'اختاري المشروع المرتبط بالحركة',
+          emptyMessage: 'لا توجد مشروعات متاحة لإضافة حركة شريك.',
+        );
+        if (property == null || !context.mounted) return;
+        await _openFormSheet(
+          context,
+          PartnerLedgerEntryFormSheet(
+            partner: partner,
+            propertyId: property.id,
+          ),
+        );
+        return;
+      case 2:
+        final property = await _pickProperty(
+          context,
+          title: 'اختاري المشروع لإضافة مورد',
+          emptyMessage: 'لا توجد مشروعات متاحة لإضافة مورد.',
+        );
+        if (property == null || !context.mounted) return;
+        await _openFormSheet(
+          context,
+          MaterialExpenseFormSheet(propertyId: property.id),
+        );
+        return;
+      default:
+        final property = await _pickProperty(
+          context,
+          title: 'اختاري المشروع لإضافة مصروف',
+          emptyMessage: 'لا توجد مشروعات متاحة لإضافة مصروف.',
+        );
+        if (property == null || !context.mounted) return;
+        await _openFormSheet(
+          context,
+          ExpenseFormSheet(propertyId: property.id, partners: partners),
+        );
+    }
+  }
+
+  Future<PropertyProject?> _pickProperty(
+    BuildContext context, {
+    required String title,
+    required String emptyMessage,
+  }) async {
+    if (properties.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(emptyMessage)));
+      return null;
+    }
+    if (properties.length == 1) {
+      return properties.first;
+    }
+
+    return showModalBottomSheet<PropertyProject>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => _SelectionSheet<PropertyProject>(
+        title: title,
+        items: properties,
+        labelBuilder: (item) => item.name,
+        onSelected: (item) => Navigator.of(sheetContext).pop(item),
+      ),
+    );
+  }
+
+  Future<Partner?> _pickPartner(BuildContext context) async {
+    if (partners.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('لا يوجد شركاء متاحون لإضافة حركة.')),
+      );
+      return null;
+    }
+    if (partners.length == 1) {
+      return partners.first;
+    }
+
+    return showModalBottomSheet<Partner>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => _SelectionSheet<Partner>(
+        title: 'اختاري الشريك',
+        items: partners,
+        labelBuilder: (item) => item.name,
+        onSelected: (item) => Navigator.of(sheetContext).pop(item),
+      ),
+    );
+  }
+
+  Future<void> _openFormSheet(BuildContext context, Widget child) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => child,
+    );
+  }
+}
+
+class _TopBarIconButton extends StatelessWidget {
+  const _TopBarIconButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      visualDensity: VisualDensity.compact,
+      style: IconButton.styleFrom(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+        side: const BorderSide(color: Color(0xFFD8D8D2)),
+      ),
+      icon: Icon(icon),
+    );
+  }
+}
+
+class _SelectionSheet<T> extends StatelessWidget {
+  const _SelectionSheet({
+    required this.title,
+    required this.items,
+    required this.labelBuilder,
+    required this.onSelected,
+  });
+
+  final String title;
+  final List<T> items;
+  final String Function(T item) labelBuilder;
+  final ValueChanged<T> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 12),
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+              ),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: items.length,
+                separatorBuilder: (_, _) => const Divider(height: 1),
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  return ListTile(
+                    title: Text(labelBuilder(item)),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 16,
+                    ),
+                    onTap: () => onSelected(item),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ExpensesRegisterTab extends StatelessWidget {
   const _ExpensesRegisterTab({
     required this.expenses,
@@ -274,6 +529,7 @@ class _ExpensesRegisterTab extends StatelessWidget {
           subtitle: '${rows.length} حركة - الإجمالي ${totalAmount.egp}',
           rows: rows,
           sheetLabel: 'ورقة المصروفات المباشرة',
+          forceTableLayout: true,
           columns: [
             LedgerColumn(
               label: 'التاريخ',
@@ -398,6 +654,7 @@ class _ResourcesTab extends StatelessWidget {
               '${snapshot.entries.length} صف - إجمالي الموارد ${snapshot.overallTotal.egp}',
           rows: snapshot.entries,
           sheetLabel: 'ورقة الموارد والموردين',
+          forceTableLayout: true,
           columns: [
             LedgerColumn(
               label: 'التاريخ',
@@ -583,6 +840,7 @@ class _PartyFinanceTable extends StatelessWidget {
       subtitle: snapshot.subtitle,
       rows: snapshot.rows,
       sheetLabel: 'ورقة ${snapshot.title}',
+      forceTableLayout: true,
       columns: [
         LedgerColumn(
           label: 'التاريخ',

@@ -26,63 +26,79 @@ class SummaryCard extends StatelessWidget {
         : theme.colorScheme.surface;
     final foreground = emphasis ? Colors.white : theme.colorScheme.onSurface;
 
-    return Container(
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: emphasis ? theme.colorScheme.primary : const Color(0xFFD8D8D2),
-        ),
-      ),
-      padding: const EdgeInsets.all(17),
-      child: splitLayout
-          ? _SplitSummaryContent(
-              label: label,
-              value: value,
-              subtitle: subtitle,
-              icon: icon,
-              foreground: foreground,
-              emphasis: emphasis,
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, color: foreground, size: 18),
-                  const SizedBox(height: 8),
-                ],
-                Text(
-                  label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: emphasis
-                        ? Colors.white70
-                        : theme.colorScheme.secondary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: foreground,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 17,
-                  ),
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    subtitle!,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: emphasis
-                          ? Colors.white70
-                          : theme.colorScheme.secondary,
-                    ),
-                  ),
-                ],
-              ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = !splitLayout && constraints.maxWidth < 180;
+        final secondaryColor = emphasis
+            ? Colors.white70
+            : theme.colorScheme.secondary;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: emphasis
+                  ? theme.colorScheme.primary
+                  : const Color(0xFFD8D8D2),
             ),
+          ),
+          padding: EdgeInsets.all(isCompact ? 14 : 17),
+          child: splitLayout
+              ? _SplitSummaryContent(
+                  label: label,
+                  value: value,
+                  subtitle: subtitle,
+                  icon: icon,
+                  foreground: foreground,
+                  emphasis: emphasis,
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (icon != null) ...[
+                      Icon(icon, color: foreground, size: isCompact ? 17 : 18),
+                      SizedBox(height: isCompact ? 6 : 8),
+                    ],
+                    Text(
+                      label,
+                      maxLines: isCompact ? 2 : 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: secondaryColor,
+                        fontWeight: FontWeight.w600,
+                        fontSize: isCompact ? 11 : 12,
+                      ),
+                    ),
+                    SizedBox(height: isCompact ? 6 : 4),
+                    Text(
+                      value,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: foreground,
+                        fontWeight: FontWeight.w700,
+                        fontSize: isCompact ? 15 : 17,
+                        height: 1.2,
+                      ),
+                    ),
+                    if (subtitle != null) ...[
+                      SizedBox(height: isCompact ? 6 : 8),
+                      Text(
+                        subtitle!,
+                        maxLines: isCompact ? 2 : 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: secondaryColor,
+                          fontSize: isCompact ? 11 : null,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+        );
+      },
     );
   }
 }

@@ -12,8 +12,10 @@ class AppShellScaffold extends StatelessWidget {
     required this.child,
     this.subtitle,
     this.actions,
+    this.titleActions,
     this.floatingActionButton,
     this.showBottomNavigation = true,
+    this.automaticallyImplyLeading = true,
   });
 
   final String title;
@@ -21,8 +23,10 @@ class AppShellScaffold extends StatelessWidget {
   final Widget child;
   final String? subtitle;
   final List<Widget>? actions;
+  final List<Widget>? titleActions;
   final Widget? floatingActionButton;
   final bool showBottomNavigation;
+  final bool automaticallyImplyLeading;
 
   static const _destinations = [
     _ShellDestination(
@@ -50,7 +54,13 @@ class AppShellScaffold extends StatelessWidget {
     final safeIndex = currentIndex.clamp(0, _destinations.length - 1);
 
     return Scaffold(
-      appBar: AppTopBar(title: title, subtitle: subtitle, actions: actions),
+      appBar: AppTopBar(
+        title: title,
+        subtitle: subtitle,
+        actions: actions,
+        titleActions: titleActions,
+        automaticallyImplyLeading: automaticallyImplyLeading,
+      ),
       floatingActionButton: floatingActionButton,
       body: SafeArea(
         bottom: false,

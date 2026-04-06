@@ -35,6 +35,7 @@ class FinancialLedgerTable<T> extends StatelessWidget {
     this.totalsFooter,
     this.sheetLabel,
     this.showRowNumbers = true,
+    this.forceTableLayout = false,
   });
 
   final String title;
@@ -50,6 +51,7 @@ class FinancialLedgerTable<T> extends StatelessWidget {
   final Widget? totalsFooter;
   final String? sheetLabel;
   final bool showRowNumbers;
+  final bool forceTableLayout;
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +74,7 @@ class FinancialLedgerTable<T> extends StatelessWidget {
             );
           }
 
-          final isCompact = constraints.maxWidth < 820;
+          final isCompact = !forceTableLayout && constraints.maxWidth < 820;
           if (isCompact) {
             return Column(
               children: [

@@ -101,6 +101,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   ),
                 ),
               ),
+              GoRoute(
+                path: 'units/:unitId',
+                pageBuilder: (context, state) => _buildAppPage(
+                  state: state,
+                  child: PropertyDetailScreen(
+                    propertyId: state.pathParameters['propertyId'] ?? '',
+                    unitId: state.pathParameters['unitId'] ?? '',
+                  ),
+                ),
+              ),
             ],
           ),
         ],
