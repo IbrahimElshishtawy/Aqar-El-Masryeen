@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 Future<void> bootstrap() async {
   await runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    FirebaseMessagingService.registerBackgroundHandler();
 
     FlutterError.onError = (details) {
       FlutterError.presentError(details);

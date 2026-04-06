@@ -1,17 +1,34 @@
-import 'dart:convert';
+import 'dart:ui' show DartPluginRegistrant;
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:aqarelmasryeen/core/config/app_config.dart';
+import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
 import 'package:aqarelmasryeen/core/services/firebase_initializer.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
-import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  WidgetsFlutterBinding.ensureInitialized();
+  DartPluginRegistrant.ensureInitialized();
   await initializeFirebase();
+
+  // Notification payloads are already displayed by the OS in background states.
+  // We only synthesize a local alert for data-only payloads carrying title/body.
+  if (message.notification != null) {
+    return;
+  }
+
+  final plugin = FlutterLocalNotificationsPlugin();
+  await _initializeLocalNotificationsPlugin(plugin);
+  await _showMessageAsLocalNotification(plugin, message);
 }
 
 void reportToCrashlytics(Object error, StackTrace stackTrace) {
@@ -31,13 +48,17 @@ class NotificationRoutePayload {
 
   static NotificationRoutePayload? tryDecode(String? raw) {
     if (raw == null || raw.isEmpty) return null;
-    final map = jsonDecode(raw) as Map<String, dynamic>;
-    final route = map['route'] as String?;
-    if (route == null) return null;
-    return NotificationRoutePayload(
-      route: route,
-      extraId: map['extraId'] as String?,
-    );
+    try {
+      final map = jsonDecode(raw) as Map<String, dynamic>;
+      final route = map['route'] as String?;
+      if (route == null || route.isEmpty) return null;
+      return NotificationRoutePayload(
+        route: route,
+        extraId: map['extraId'] as String?,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 }
 
@@ -51,7 +72,9 @@ class FirebaseMessagingService {
   final FirebaseMessaging _messaging;
   final FlutterLocalNotificationsPlugin _localNotifications;
   final FirebaseAnalytics _analytics;
+
   static bool _backgroundHandlerRegistered = false;
+
   Future<void>? _initializationFuture;
   StreamSubscription<RemoteMessage>? _onMessageSubscription;
   StreamSubscription<RemoteMessage>? _onMessageOpenedSubscription;
@@ -69,6 +92,7 @@ class FirebaseMessagingService {
     required void Function(NotificationRoutePayload payload) onNotificationTap,
   }) async {
     await initializeFirebase();
+    await _messaging.setAutoInitEnabled(true);
     _initializationFuture ??= _initializeCore(onNotificationTap);
     await _initializationFuture;
     unawaited(_warmUpToken());
@@ -79,6 +103,7 @@ class FirebaseMessagingService {
   ) async {
     await _requestPermissions();
     await _initializeLocalNotifications(onNotificationTap: onNotificationTap);
+    await _handleLocalNotificationLaunch(onNotificationTap);
 
     await _messaging.setForegroundNotificationPresentationOptions(
       alert: true,
@@ -109,16 +134,61 @@ class FirebaseMessagingService {
       }
     }
 
-    _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen((_) {
-      unawaited(_analytics.logEvent(name: 'fcm_token_refreshed'));
+    _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen((token) {
+      unawaited(_handleTokenRefresh(token));
     });
+  }
+
+  Future<void> _handleLocalNotificationLaunch(
+    void Function(NotificationRoutePayload payload) onNotificationTap,
+  ) async {
+    final launchDetails = await _localNotifications
+        .getNotificationAppLaunchDetails();
+    if (launchDetails?.didNotificationLaunchApp != true) {
+      return;
+    }
+
+    final payload = NotificationRoutePayload.tryDecode(
+      launchDetails?.notificationResponse?.payload,
+    );
+    if (payload != null) {
+      onNotificationTap(payload);
+    }
   }
 
   Future<void> _warmUpToken() async {
     try {
-      await _messaging.getToken();
+      final token = await _messaging.getToken();
+      await _syncCurrentToken(token);
     } catch (_) {
       // Token warm-up should never block app startup.
+    }
+  }
+
+  Future<void> _handleTokenRefresh(String token) async {
+    unawaited(_analytics.logEvent(name: 'fcm_token_refreshed'));
+    await _syncCurrentToken(token);
+  }
+
+  Future<void> _syncCurrentToken(String? token) async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final resolvedToken = token?.trim();
+    if (currentUser == null || resolvedToken == null || resolvedToken.isEmpty) {
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection(FirestorePaths.users)
+          .doc(currentUser.uid)
+          .set({
+            'fcmTokens': FieldValue.arrayUnion([resolvedToken]),
+            'lastFcmToken': resolvedToken,
+            'lastFcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+    } catch (error, stackTrace) {
+      debugPrint('Failed to sync FCM token: $error');
+      reportToCrashlytics(error, stackTrace);
     }
   }
 
@@ -127,48 +197,26 @@ class FirebaseMessagingService {
       alert: true,
       badge: true,
       sound: true,
-      provisional: true,
+      provisional: false,
     );
   }
 
   Future<void> _initializeLocalNotifications({
     required void Function(NotificationRoutePayload payload) onNotificationTap,
   }) async {
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iOS = DarwinInitializationSettings();
-
-    await _localNotifications.initialize(
-      settings: const InitializationSettings(android: android, iOS: iOS),
+    await _initializeLocalNotificationsPlugin(
+      _localNotifications,
       onDidReceiveNotificationResponse: (response) {
         final payload = NotificationRoutePayload.tryDecode(response.payload);
-        if (payload != null) onNotificationTap(payload);
+        if (payload != null) {
+          onNotificationTap(payload);
+        }
       },
     );
-
-    const channel = AndroidNotificationChannel(
-      AppConfig.notificationChannelId,
-      AppConfig.notificationChannelName,
-      description: AppConfig.notificationChannelDescription,
-      importance: Importance.max,
-    );
-
-    await _localNotifications
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(channel);
   }
 
   Future<void> _showForegroundNotification(RemoteMessage message) async {
-    final notification = message.notification;
-    if (notification == null) return;
-
-    await showLocalAlert(
-      id: notification.hashCode,
-      title: notification.title ?? '',
-      body: notification.body ?? '',
-      payload: message.data['payload'] as String?,
-    );
+    await _showMessageAsLocalNotification(_localNotifications, message);
   }
 
   Future<void> showLocalAlert({
@@ -181,23 +229,81 @@ class FirebaseMessagingService {
       id: id,
       title: title,
       body: body,
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          AppConfig.notificationChannelId,
-          AppConfig.notificationChannelName,
-          channelDescription: AppConfig.notificationChannelDescription,
-          importance: Importance.max,
-          priority: Priority.high,
-        ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
-      ),
+      notificationDetails: _notificationDetails,
       payload: payload,
     );
   }
 }
+
+Future<void> _initializeLocalNotificationsPlugin(
+  FlutterLocalNotificationsPlugin plugin, {
+  DidReceiveNotificationResponseCallback? onDidReceiveNotificationResponse,
+}) async {
+  const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const iOS = DarwinInitializationSettings();
+
+  await plugin.initialize(
+    settings: const InitializationSettings(android: android, iOS: iOS),
+    onDidReceiveNotificationResponse: onDidReceiveNotificationResponse,
+  );
+
+  const channel = AndroidNotificationChannel(
+    AppConfig.notificationChannelId,
+    AppConfig.notificationChannelName,
+    description: AppConfig.notificationChannelDescription,
+    importance: Importance.max,
+  );
+
+  await plugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >()
+      ?.createNotificationChannel(channel);
+}
+
+Future<void> _showMessageAsLocalNotification(
+  FlutterLocalNotificationsPlugin plugin,
+  RemoteMessage message,
+) async {
+  final title = _resolveNotificationTitle(message);
+  final body = _resolveNotificationBody(message);
+  if (title.isEmpty && body.isEmpty) {
+    return;
+  }
+
+  await plugin.show(
+    id: message.messageId.hashCode ^ title.hashCode ^ body.hashCode,
+    title: title,
+    body: body,
+    notificationDetails: _notificationDetails,
+    payload: message.data['payload'] as String?,
+  );
+}
+
+String _resolveNotificationTitle(RemoteMessage message) {
+  return message.notification?.title?.trim() ??
+      (message.data['title'] as String? ?? '').trim();
+}
+
+String _resolveNotificationBody(RemoteMessage message) {
+  return message.notification?.body?.trim() ??
+      (message.data['body'] as String? ?? '').trim();
+}
+
+const NotificationDetails _notificationDetails = NotificationDetails(
+  android: AndroidNotificationDetails(
+    AppConfig.notificationChannelId,
+    AppConfig.notificationChannelName,
+    channelDescription: AppConfig.notificationChannelDescription,
+    importance: Importance.max,
+    priority: Priority.high,
+    icon: '@mipmap/ic_launcher',
+  ),
+  iOS: DarwinNotificationDetails(
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+  ),
+);
 
 final flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();

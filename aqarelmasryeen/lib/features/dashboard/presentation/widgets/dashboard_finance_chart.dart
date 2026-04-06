@@ -11,6 +11,15 @@ class DashboardFinanceChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const financeTitle =
+        '\u0627\u0644\u062d\u0631\u0643\u0629 \u0627\u0644\u0645\u0627\u0644\u064a\u0629';
+    const financeSubtitle =
+        '\u0645\u0642\u0627\u0631\u0646\u0629 \u0628\u064a\u0646 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a \u0648\u0627\u0644\u062a\u062d\u0635\u064a\u0644\u0627\u062a \u062e\u0644\u0627\u0644 \u0622\u062e\u0631 \u0633\u062a\u0629 \u0623\u0634\u0647\u0631';
+    const paymentsLabel =
+        '\u0627\u0644\u062a\u062d\u0635\u064a\u0644\u0627\u062a';
+    const expensesLabel =
+        '\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a';
+
     final theme = Theme.of(context);
     final maxValue = buckets.fold<double>(0, (current, bucket) {
       final bucketMax = bucket.expenses > bucket.payments
@@ -30,13 +39,10 @@ class DashboardFinanceChart extends StatelessWidget {
 
     const expensesColor = Color(0xFFBBB6A9);
     const paymentsColor = Color(0xFF111111);
-    const paymentsLabel = 'Ø§Ù„ØªØ­ØµÙŠÙ„Ø§Øª';
-    const expensesLabel = 'Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª';
 
     return AppPanel(
-      title: 'Ø§Ù„Ø­Ø±ÙƒØ© Ø§Ù„Ù…Ø§Ù„ÙŠØ©',
-      subtitle:
-          'Ù…Ù‚Ø§Ø±Ù†Ø© Ø¨ÙŠÙ† Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª ÙˆØ§Ù„ØªØ­ØµÙŠÙ„Ø§Øª Ø®Ù„Ø§Ù„ Ø¢Ø®Ø± Ø³ØªØ© Ø£Ø´Ù‡Ø±',
+      title: financeTitle,
+      subtitle: financeSubtitle,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
