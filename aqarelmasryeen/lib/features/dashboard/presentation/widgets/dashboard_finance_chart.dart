@@ -64,7 +64,7 @@ class DashboardFinanceChart extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Container(
-            padding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.topCenter,
@@ -76,8 +76,10 @@ class DashboardFinanceChart extends StatelessWidget {
             ),
             child: Column(
               children: [
+                SizedBox(height: 5),
                 SizedBox(
-                  height: 220,
+                  height: 200,
+                  width: 300,
                   child: LineChart(
                     LineChartData(
                       minX: 0,

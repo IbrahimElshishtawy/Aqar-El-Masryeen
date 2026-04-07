@@ -343,11 +343,17 @@ class _DailyExpensesView extends StatelessWidget {
               ? 'لا توجد حركات يومية مسجلة.'
               : '${data.expenseLedgerRows.length} حركة - جدول يومي مشابه لورقة المصروفات.',
           rows: data.expenseLedgerRows,
-          forceTableLayout: true,
           onAdd: onAddExpense,
           addLabel: 'إضافة مصروف',
           onEdit: (row) => onEditExpense(row.expense),
           onDelete: (row) => onDeleteExpense(row.expense),
+          compactCardBuilder: (context, row, rowNumber, actions) =>
+              _ExpenseLedgerCompactCard(
+                row: row,
+                rowNumber: rowNumber,
+                currentUserId: data.currentUserId,
+                actions: actions,
+              ),
           sheetLabel: 'ورقة تفاصيل المصروفات',
           columns: [
             LedgerColumn(
@@ -411,6 +417,164 @@ class _DailyExpensesView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ExpenseLedgerCompactCard extends StatelessWidget {
+  const _ExpenseLedgerCompactCard({
+    required this.row,
+    required this.rowNumber,
+    required this.currentUserId,
+    required this.actions,
+  });
+
+  final PropertyExpenseLedgerRow row;
+  final int? rowNumber;
+  final String? currentUserId;
+  final Widget? actions;
+
+  @override
+  Widget build(BuildContext context) {
+    final title = row.expense.description.trim().isEmpty
+        ? row.expense.category.label
+        : row.expense.description;
+    final partnerName = row.payer?.name ?? 'غير محدد';
+    final notes = row.expense.notes.trim();
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
+        color: const Color(0xFFFDFDF9),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (rowNumber != null) ...[
+            Text(
+              'حركة ${rowNumber!}',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF5F655B),
+              ),
+            ),
+            const SizedBox(height: 10),
+          ],
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 180, maxWidth: 280),
+                child: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF17352F),
+                  ),
+                ),
+              ),
+              _PartnerChip(
+                label: partnerName,
+                highlight: row.payer?.userId == currentUserId,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _ExpenseDetailPill(
+                label: 'التاريخ',
+                value: row.expense.date.formatShort(),
+              ),
+              _ExpenseDetailPill(
+                label: 'الفئة',
+                value: row.expense.category.label,
+              ),
+              _ExpenseDetailPill(
+                label: 'المبلغ',
+                value: row.expense.amount.egp,
+                emphasize: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'التفاصيل',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            notes.isEmpty ? 'لا توجد ملاحظات.' : notes,
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(height: 1.4),
+          ),
+          if (actions != null) ...[
+            const SizedBox(height: 10),
+            Align(alignment: AlignmentDirectional.centerEnd, child: actions),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpenseDetailPill extends StatelessWidget {
+  const _ExpenseDetailPill({
+    required this.label,
+    required this.value,
+    this.emphasize = false,
+  });
+
+  final String label;
+  final String value;
+  final bool emphasize;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = emphasize
+        ? const Color(0xFF123A33)
+        : Theme.of(context).colorScheme.onSurface;
+    final secondary = emphasize
+        ? const Color(0xFF3D625A)
+        : Theme.of(context).colorScheme.secondary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: emphasize ? const Color(0xFFE8F1EC) : const Color(0xFFF4F6F1),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: secondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              color: foreground,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

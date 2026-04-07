@@ -3,6 +3,14 @@ import 'dart:math' as math;
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:flutter/material.dart';
 
+typedef CompactLedgerCardBuilder<T> =
+    Widget Function(
+      BuildContext context,
+      T row,
+      int? rowNumber,
+      Widget? actions,
+    );
+
 class LedgerColumn<T> {
   const LedgerColumn({
     required this.label,
@@ -36,6 +44,7 @@ class FinancialLedgerTable<T> extends StatelessWidget {
     this.sheetLabel,
     this.showRowNumbers = true,
     this.forceTableLayout = false,
+    this.compactCardBuilder,
   });
 
   final String title;
@@ -52,6 +61,7 @@ class FinancialLedgerTable<T> extends StatelessWidget {
   final String? sheetLabel;
   final bool showRowNumbers;
   final bool forceTableLayout;
+  final CompactLedgerCardBuilder<T>? compactCardBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -79,14 +89,21 @@ class FinancialLedgerTable<T> extends StatelessWidget {
             return Column(
               children: [
                 for (var index = 0; index < rows.length; index++) ...[
-                  _CompactLedgerCard<T>(
-                    row: rows[index],
-                    rowNumber: showRowNumbers ? index + 1 : null,
-                    columns: columns,
-                    onEdit: onEdit,
-                    onDelete: onDelete,
-                    onView: onView,
-                  ),
+                  compactCardBuilder != null
+                      ? compactCardBuilder!(
+                          context,
+                          rows[index],
+                          showRowNumbers ? index + 1 : null,
+                          _buildActions(rows[index]),
+                        )
+                      : _CompactLedgerCard<T>(
+                          row: rows[index],
+                          rowNumber: showRowNumbers ? index + 1 : null,
+                          columns: columns,
+                          onEdit: onEdit,
+                          onDelete: onDelete,
+                          onView: onView,
+                        ),
                   if (index != rows.length - 1) const SizedBox(height: 12),
                 ],
                 if (totalsFooter != null) ...[
@@ -228,6 +245,19 @@ class FinancialLedgerTable<T> extends StatelessWidget {
   }
 
   bool get _hasActions => onEdit != null || onDelete != null || onView != null;
+
+  Widget? _buildActions(T row) {
+    if (!_hasActions) {
+      return null;
+    }
+
+    return _ActionsRow<T>(
+      row: row,
+      onEdit: onEdit,
+      onDelete: onDelete,
+      onView: onView,
+    );
+  }
 
   double get _minimumTableWidth {
     final columnsWidth = columns.fold<double>(

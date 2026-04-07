@@ -16,7 +16,7 @@ class DashboardOverviewSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           DashboardHero(snapshot: snapshot),
-          const SizedBox(height: 12),
+          const SizedBox(height: 5),
           DashboardStatsGrid(
             cards: [
               DashboardStatCard(
@@ -43,18 +43,6 @@ class DashboardOverviewSection extends StatelessWidget {
                 subtitle: 'أرصدة العملاء المتبقية',
                 icon: Icons.schedule_outlined,
               ),
-              DashboardStatCard(
-                label: 'مستحقات الموردين',
-                value: snapshot.pendingSupplierDues.egp,
-                subtitle: 'الالتزامات المفتوحة',
-                icon: Icons.inventory_2_outlined,
-              ),
-              DashboardStatCard(
-                label: 'مساهمات الشركاء',
-                value: snapshot.partnerContributionTotal.egp,
-                subtitle: 'رؤوس الأموال المسجلة',
-                icon: Icons.groups_outlined,
-              ),
             ],
           ),
         ],
@@ -71,10 +59,6 @@ class DashboardHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final netValue = snapshot.totalPaidInstallments - snapshot.totalExpenses;
-    final netColor = netValue >= 0
-        ? const Color(0xFF175546)
-        : const Color(0xFFA34836);
 
     return Container(
       width: double.infinity,
@@ -84,10 +68,10 @@ class DashboardHero extends StatelessWidget {
           end: Alignment.bottomLeft,
           colors: [Color(0xFFFFFEFB), Color(0xFFF3F0E7)],
         ),
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: const Color(0xFFD8D8D2)),
       ),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(13),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -107,8 +91,8 @@ class DashboardHero extends StatelessWidget {
                 ),
               ),
               Container(
-                width: 46,
-                height: 46,
+                width: 26,
+                height: 26,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.92),
                   borderRadius: BorderRadius.circular(14),
@@ -118,7 +102,7 @@ class DashboardHero extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 5),
           Text(
             '${snapshot.propertyCount}',
             style: theme.textTheme.displaySmall?.copyWith(
@@ -133,36 +117,6 @@ class DashboardHero extends StatelessWidget {
                 : 'مشروعات نشطة داخل مساحة العمل',
             style: theme.textTheme.bodyMedium?.copyWith(
               color: theme.colorScheme.secondary,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.84),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFD8D8D2)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.wallet_outlined, size: 18, color: netColor),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'صافي التدفق الحالي',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.secondary,
-                    ),
-                  ),
-                ),
-                Text(
-                  netValue.egp,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: netColor,
-                  ),
-                ),
-              ],
             ),
           ),
         ],
@@ -180,7 +134,7 @@ class DashboardStatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final count = constraints.maxWidth >= 980
+        final count = constraints.maxWidth >= 380
             ? 3
             : constraints.maxWidth >= 300
             ? 2
@@ -227,9 +181,9 @@ class DashboardStatCard extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 180;
-        final cardPadding = isCompact ? 12.0 : 14.0;
-        final badgeSize = isCompact ? 34.0 : 38.0;
+        final isCompact = constraints.maxWidth <= 100;
+        final cardPadding = isCompact ? 15.0 : 14.0;
+        final badgeSize = isCompact ? 30.0 : 30.0;
         final valueStyle =
             (isCompact
                     ? theme.textTheme.titleMedium
@@ -269,7 +223,7 @@ class DashboardStatCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 1),
                   Container(
                     width: badgeSize,
                     height: badgeSize,
@@ -282,14 +236,14 @@ class DashboardStatCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const Spacer(),
+              const SizedBox(height: 30),
               Text(
                 value,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: valueStyle,
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 30),
               Text(
                 subtitle,
                 maxLines: isCompact ? 2 : 1,

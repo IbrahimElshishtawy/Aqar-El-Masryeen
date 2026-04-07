@@ -30,14 +30,8 @@ class PropertiesScreen extends ConsumerWidget {
         value: propertiesAsync,
         loadingLabel: 'جار تحميل المشروعات',
         data: (viewData) => ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: const EdgeInsets.fromLTRB(6, 4, 6, 14),
           children: [
-            ProjectsOverviewSection(
-              projectCount: viewData.summaries.length,
-              totalExpenses: viewData.totalExpenses,
-              totalPayments: viewData.totalPayments,
-            ),
-            const SizedBox(height: 12),
             if (viewData.summaries.isEmpty)
               const EmptyStateView(
                 title: 'لا توجد مشروعات بعد',

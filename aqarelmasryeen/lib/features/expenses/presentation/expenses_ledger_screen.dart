@@ -558,27 +558,14 @@ class _ExpensesRegisterTab extends StatelessWidget {
                   Text(propertyNames[row.propertyId] ?? 'بدون مشروع'),
               minWidth: 170,
             ),
-            // LedgerColumn(
-            //   label: 'الفئة',
-            //   valueBuilder: (row) => Text(row.category.label),
-            //   minWidth: 120,
-            // ),
-            // LedgerColumn(
-            //   label: 'البيان',
-            //   valueBuilder: (row) => Text(row.description),
-            //   minWidth: 180,
-            // ),
+
             LedgerColumn(
               label: 'الدافع',
               valueBuilder: (row) =>
                   Text(partnerNames[row.paidByPartnerId] ?? 'غير محدد'),
               minWidth: 150,
             ),
-            // LedgerColumn(
-            //   label: 'طريقة الدفع',
-            //   valueBuilder: (row) => Text(row.paymentMethod.label),
-            //   minWidth: 130,
-            // ),
+
             LedgerColumn(
               label: 'القيمة',
               valueBuilder: (row) => Text(row.amount.egp),
@@ -884,21 +871,7 @@ class _PartyFinanceTable extends StatelessWidget {
           valueBuilder: (row) => Text(row.projectName),
           minWidth: 160,
         ),
-        // LedgerColumn(
-        //   label: 'نوع الحركة',
-        //   valueBuilder: (row) => Text(row.entryTypeLabel),
-        //   minWidth: 130,
-        // ),
-        // LedgerColumn(
-        //   label: 'التفصيل',
-        //   valueBuilder: (row) => Text(row.description),
-        //   minWidth: 180,
-        // ),
-        // LedgerColumn(
-        //   label: 'طريقة الدفع',
-        //   valueBuilder: (row) => Text(row.paymentMethodLabel),
-        //   minWidth: 120,
-        // ),
+
         LedgerColumn(
           label: 'القيمة',
           valueBuilder: (row) => Text(row.amount.egp),

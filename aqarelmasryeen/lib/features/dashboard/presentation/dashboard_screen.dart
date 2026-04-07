@@ -26,24 +26,12 @@ class DashboardScreen extends ConsumerWidget {
         value: dashboardAsync,
         loadingLabel: 'جار تحميل لوحة المتابعة',
         data: (viewData) => ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: const EdgeInsets.fromLTRB(6, 1, 6, 4),
           children: [
             DashboardOverviewSection(snapshot: viewData.snapshot),
-            const SizedBox(height: 12),
-            // PartnerConnectionSection(
-            //   currentPartner: viewData.currentPartner,
-            //   totalPartners: viewData.partners.length,
-            //   linkedPartnersCount: viewData.linkedPartnersCount,
-            // ),
-            const SizedBox(height: 12),
-            // PartnersLedgerSection(
-            //   partners: viewData.partners,
-            //   summaries: viewData.partnerSummaries,
-            //   currentUserId: viewData.currentUserId,
-            // ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 5),
             DashboardFinanceChart(buckets: viewData.snapshot.chart),
-            const SizedBox(height: 12),
+            const SizedBox(height: 5),
             AppPanel(
               title: 'روابط سريعة',
               subtitle: 'افتح الجداول والأقسام الأساسية مباشرة',
