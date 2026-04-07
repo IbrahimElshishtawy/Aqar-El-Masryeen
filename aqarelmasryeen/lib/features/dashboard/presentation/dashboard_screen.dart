@@ -33,11 +33,15 @@ class DashboardScreen extends ConsumerWidget {
             PartnerConnectionSection(
               currentPartner: viewData.currentPartner,
               totalPartners: viewData.partners.length,
+              linkedPartnersCount: viewData.linkedPartnersCount,
             ),
             const SizedBox(height: 12),
-            if (viewData.otherPartners.isNotEmpty)
-              OtherPartnersSection(partners: viewData.otherPartners),
-            if (viewData.otherPartners.isNotEmpty) const SizedBox(height: 12),
+            PartnersLedgerSection(
+              partners: viewData.partners,
+              summaries: viewData.partnerSummaries,
+              currentUserId: viewData.currentUserId,
+            ),
+            const SizedBox(height: 12),
             DashboardFinanceChart(buckets: viewData.snapshot.chart),
             const SizedBox(height: 12),
             AppPanel(
