@@ -36,6 +36,8 @@ class PropertyProjectViewData {
     required this.todayDirectExpenses,
     required this.myTodayExpenseShare,
     required this.counterpartTodayExpenseShare,
+    required this.myTotalExpenseShare,
+    required this.counterpartTotalExpenseShare,
   });
 
   final PropertyProject property;
@@ -67,6 +69,8 @@ class PropertyProjectViewData {
   final double todayDirectExpenses;
   final double myTodayExpenseShare;
   final double counterpartTodayExpenseShare;
+  final double myTotalExpenseShare;
+  final double counterpartTotalExpenseShare;
 
   String get myLabel => currentPartner?.name ?? 'حصتي';
 

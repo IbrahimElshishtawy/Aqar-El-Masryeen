@@ -100,6 +100,80 @@ class PropertyUnitDetailView extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
+        FinancialLedgerTable<PaymentRecord>(
+          title: 'شيت التحصيل',
+          subtitle:
+              '${data.payments.length} دفعة - الإجمالي ${data.payments.fold<double>(0, (sum, item) => sum + item.amount).egp}',
+          rows: data.payments,
+          forceTableLayout: true,
+          sheetLabel: 'شيت التحصيل',
+          onEdit: onEditPayment,
+          onDelete: onDeletePayment,
+          onAdd: summary.installmentRows.isEmpty
+              ? null
+              : () =>
+                    onAddPayment(summary.installmentRows.first.installment.id),
+          addLabel: 'إضافة دفعة',
+          columns: [
+            LedgerColumn(
+              label: 'التاريخ',
+              valueBuilder: (row) => Text(row.receivedAt.formatShort()),
+              minWidth: 116,
+            ),
+            LedgerColumn(
+              label: 'العميل / الدافع',
+              valueBuilder: (row) => Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    row.customerName.trim().isEmpty
+                        ? summary.unit.customerName
+                        : row.customerName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    row.effectivePayerName.isEmpty
+                        ? '-'
+                        : row.effectivePayerName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              minWidth: 190,
+            ),
+            LedgerColumn(
+              label: 'طريقة الدفع',
+              valueBuilder: (row) => Text(row.paymentMethod.label),
+              minWidth: 130,
+            ),
+            LedgerColumn(
+              label: 'المصدر',
+              valueBuilder: (row) =>
+                  Text(row.paymentSource.isEmpty ? '-' : row.paymentSource),
+              minWidth: 150,
+            ),
+            LedgerColumn(
+              label: 'القسط',
+              valueBuilder: (row) => Text(
+                row.installmentId == null
+                    ? '-'
+                    : (installmentLabels[row.installmentId!] ?? 'دفعة خاصة'),
+              ),
+              minWidth: 116,
+            ),
+            LedgerColumn(
+              label: 'المبلغ',
+              valueBuilder: (row) => Text(row.amount.egp),
+              minWidth: 124,
+              numeric: true,
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
         FinancialLedgerTable<InstallmentComputedRow>(
           title: 'شيت أقساط الوحدة',
           subtitle:
@@ -191,80 +265,6 @@ class PropertyUnitDetailView extends StatelessWidget {
               ),
             ],
           ),
-        ),
-        const SizedBox(height: 16),
-        FinancialLedgerTable<PaymentRecord>(
-          title: 'شيت التحصيل',
-          subtitle:
-              '${data.payments.length} دفعة - الإجمالي ${data.payments.fold<double>(0, (sum, item) => sum + item.amount).egp}',
-          rows: data.payments,
-          forceTableLayout: true,
-          sheetLabel: 'شيت التحصيل',
-          onEdit: onEditPayment,
-          onDelete: onDeletePayment,
-          onAdd: summary.installmentRows.isEmpty
-              ? null
-              : () =>
-                    onAddPayment(summary.installmentRows.first.installment.id),
-          addLabel: 'إضافة دفعة',
-          columns: [
-            LedgerColumn(
-              label: 'التاريخ',
-              valueBuilder: (row) => Text(row.receivedAt.formatShort()),
-              minWidth: 116,
-            ),
-            LedgerColumn(
-              label: 'العميل / الدافع',
-              valueBuilder: (row) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    row.customerName.trim().isEmpty
-                        ? summary.unit.customerName
-                        : row.customerName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    row.effectivePayerName.isEmpty
-                        ? '-'
-                        : row.effectivePayerName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              minWidth: 190,
-            ),
-            LedgerColumn(
-              label: 'طريقة الدفع',
-              valueBuilder: (row) => Text(row.paymentMethod.label),
-              minWidth: 130,
-            ),
-            LedgerColumn(
-              label: 'المصدر',
-              valueBuilder: (row) =>
-                  Text(row.paymentSource.isEmpty ? '-' : row.paymentSource),
-              minWidth: 150,
-            ),
-            LedgerColumn(
-              label: 'القسط',
-              valueBuilder: (row) => Text(
-                row.installmentId == null
-                    ? '-'
-                    : (installmentLabels[row.installmentId!] ?? 'دفعة خاصة'),
-              ),
-              minWidth: 116,
-            ),
-            LedgerColumn(
-              label: 'المبلغ',
-              valueBuilder: (row) => Text(row.amount.egp),
-              minWidth: 124,
-              numeric: true,
-            ),
-          ],
         ),
       ],
     );

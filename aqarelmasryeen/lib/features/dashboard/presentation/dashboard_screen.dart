@@ -30,17 +30,17 @@ class DashboardScreen extends ConsumerWidget {
           children: [
             DashboardOverviewSection(snapshot: viewData.snapshot),
             const SizedBox(height: 12),
-            PartnerConnectionSection(
-              currentPartner: viewData.currentPartner,
-              totalPartners: viewData.partners.length,
-              linkedPartnersCount: viewData.linkedPartnersCount,
-            ),
+            // PartnerConnectionSection(
+            //   currentPartner: viewData.currentPartner,
+            //   totalPartners: viewData.partners.length,
+            //   linkedPartnersCount: viewData.linkedPartnersCount,
+            // ),
             const SizedBox(height: 12),
-            PartnersLedgerSection(
-              partners: viewData.partners,
-              summaries: viewData.partnerSummaries,
-              currentUserId: viewData.currentUserId,
-            ),
+            // PartnersLedgerSection(
+            //   partners: viewData.partners,
+            //   summaries: viewData.partnerSummaries,
+            //   currentUserId: viewData.currentUserId,
+            // ),
             const SizedBox(height: 12),
             DashboardFinanceChart(buckets: viewData.snapshot.chart),
             const SizedBox(height: 12),

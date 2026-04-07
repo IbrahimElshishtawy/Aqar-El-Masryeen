@@ -182,6 +182,14 @@ class PropertyDetailComposer {
         0,
         (sum, row) => sum + row.counterpartShare,
       ),
+      myTotalExpenseShare: expenseLedgerRows.fold<double>(
+        0,
+        (sum, row) => sum + row.myShare,
+      ),
+      counterpartTotalExpenseShare: expenseLedgerRows.fold<double>(
+        0,
+        (sum, row) => sum + row.counterpartShare,
+      ),
     );
   }
 

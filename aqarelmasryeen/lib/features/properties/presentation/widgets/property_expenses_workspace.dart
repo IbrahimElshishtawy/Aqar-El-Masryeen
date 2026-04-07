@@ -7,7 +7,6 @@ import 'package:aqarelmasryeen/features/partners/domain/partner_ledger_calculato
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/financial_ledger_table.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_material_entries_table.dart';
-import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
@@ -86,22 +85,22 @@ class _ExpensesSummaryGrid extends StatelessWidget {
     return _ResponsiveGrid(
       children: [
         SummaryCard(
-          label: 'مصروفات اليوم',
-          value: data.todayDirectExpenses.egp,
+          label: 'مصروفات العقار',
+          value: data.totalDirectExpenses.egp,
           subtitle: 'إجمالي اليوميات المسجلة داخل العقار',
           icon: Icons.today_outlined,
           emphasis: true,
         ),
         SummaryCard(
           label: data.myLabel,
-          value: data.myTodayExpenseShare.egp,
-          subtitle: 'حصتي التقديرية من مصروفات اليوم',
+          value: data.myTotalExpenseShare.egp,
+          subtitle: 'حصتي التقديرية من مصروفات العقار',
           icon: Icons.person_outline_rounded,
         ),
         SummaryCard(
           label: data.counterpartLabel,
-          value: data.counterpartTodayExpenseShare.egp,
-          subtitle: 'حصة الطرف الآخر من يومية العقار',
+          value: data.counterpartTotalExpenseShare.egp,
+          subtitle: 'حصة الطرف الآخر من مصروفات العقار',
           icon: Icons.group_outlined,
         ),
         SummaryCard(
@@ -226,12 +225,12 @@ class _DailyExpensesView extends StatelessWidget {
               valueBuilder: (row) => Text(row.day.formatShort()),
               minWidth: 116,
             ),
-            LedgerColumn(
-              label: 'عدد الحركات',
-              valueBuilder: (row) => Text('${row.entriesCount}'),
-              minWidth: 108,
-              numeric: true,
-            ),
+            // LedgerColumn(
+            //   label: 'عدد الحركات',
+            //   valueBuilder: (row) => Text('${row.entriesCount}'),
+            //   minWidth: 108,
+            //   numeric: true,
+            // ),
             LedgerColumn(
               label: 'الإجمالي',
               valueBuilder: (row) => Text(row.total.egp),
@@ -279,11 +278,11 @@ class _DailyExpensesView extends StatelessWidget {
               ),
               minWidth: 190,
             ),
-            LedgerColumn(
-              label: 'الفئة',
-              valueBuilder: (row) => Text(row.expense.category.label),
-              minWidth: 120,
-            ),
+            // LedgerColumn(
+            //   label: 'الفئة',
+            //   valueBuilder: (row) => Text(row.expense.category.label),
+            //   minWidth: 120,
+            // ),
             LedgerColumn(
               label: 'الدافع',
               valueBuilder: (row) => _PartnerChip(
