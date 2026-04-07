@@ -98,16 +98,9 @@ class DashboardHero extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ملخص المحفظة',
+                      'ملخص المشاريع ',
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'متابعة سريعة للمشروعات والتحصيلات والسيولة الحالية',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.secondary,
                       ),
                     ),
                   ],

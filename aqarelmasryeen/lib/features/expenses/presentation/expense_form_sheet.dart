@@ -31,9 +31,6 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
   late final TextEditingController _amountController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _notesController;
-  late ExpenseCategory _category;
-  late PaymentMethod _paymentMethod;
-  late String _partnerId;
   late DateTime _selectedDate;
   bool _saving = false;
 
@@ -48,11 +45,6 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
       text: expense?.description ?? '',
     );
     _notesController = TextEditingController(text: expense?.notes ?? '');
-    _category = expense?.category ?? ExpenseCategory.construction;
-    _paymentMethod = expense?.paymentMethod ?? PaymentMethod.bankTransfer;
-    _partnerId =
-        expense?.paidByPartnerId ??
-        (widget.partners.isEmpty ? '' : widget.partners.first.id);
     _selectedDate = expense?.date ?? DateTime.now();
   }
 
@@ -81,6 +73,16 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) return;
 
+    final paidByPartnerId = _resolvePaidByPartnerId(session.userId);
+    if (paidByPartnerId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا يوجد شريك مربوط بالحساب الحالي لإضافة المصروف.'),
+        ),
+      );
+      return;
+    }
+
     setState(() => _saving = true);
     final savedId = await ref
         .read(expenseRepositoryProvider)
@@ -89,10 +91,11 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
             id: widget.expense?.id ?? '',
             propertyId: widget.propertyId,
             amount: double.parse(_amountController.text.trim()),
-            category: _category,
+            category: widget.expense?.category ?? ExpenseCategory.construction,
             description: _descriptionController.text.trim(),
-            paidByPartnerId: _partnerId,
-            paymentMethod: _paymentMethod,
+            paidByPartnerId: paidByPartnerId,
+            paymentMethod:
+                widget.expense?.paymentMethod ?? PaymentMethod.bankTransfer,
             date: _selectedDate,
             attachmentUrl: widget.expense?.attachmentUrl,
             notes: _notesController.text.trim(),
@@ -122,15 +125,25 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
         .read(notificationRepositoryProvider)
         .create(
           userId: session.userId,
-          title: widget.expense == null
-              ? 'تمت إضافة مصروف'
-              : 'تم تحديث المصروف',
+          title: widget.expense == null ? 'تمت إضافة مصروف' : 'تم تحديث المصروف',
           body: _descriptionController.text.trim(),
           type: NotificationType.expenseAdded,
           route: '/properties/${widget.propertyId}',
         );
 
     if (mounted) Navigator.of(context).pop();
+  }
+
+  String _resolvePaidByPartnerId(String currentUserId) {
+    if (widget.expense?.paidByPartnerId.isNotEmpty == true) {
+      return widget.expense!.paidByPartnerId;
+    }
+    for (final partner in widget.partners) {
+      if (partner.userId == currentUserId) {
+        return partner.id;
+      }
+    }
+    return widget.partners.isEmpty ? '' : widget.partners.first.id;
   }
 
   @override
@@ -161,48 +174,6 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
                 }
                 return null;
               },
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<ExpenseCategory>(
-              initialValue: _category,
-              items: ExpenseCategory.values
-                  .map(
-                    (item) =>
-                        DropdownMenuItem(value: item, child: Text(item.label)),
-                  )
-                  .toList(),
-              onChanged: (value) =>
-                  setState(() => _category = value ?? _category),
-              decoration: const InputDecoration(labelText: 'الفئة'),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<String>(
-              initialValue: _partnerId.isEmpty ? null : _partnerId,
-              items: widget.partners
-                  .map(
-                    (partner) => DropdownMenuItem(
-                      value: partner.id,
-                      child: Text(partner.name),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) => setState(() => _partnerId = value ?? ''),
-              decoration: const InputDecoration(labelText: 'دُفع بواسطة'),
-              validator: (value) =>
-                  (value ?? '').isEmpty ? 'اختر الشريك الدافع.' : null,
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<PaymentMethod>(
-              initialValue: _paymentMethod,
-              items: PaymentMethod.values
-                  .map(
-                    (item) =>
-                        DropdownMenuItem(value: item, child: Text(item.label)),
-                  )
-                  .toList(),
-              onChanged: (value) =>
-                  setState(() => _paymentMethod = value ?? _paymentMethod),
-              decoration: const InputDecoration(labelText: 'طريقة الدفع'),
             ),
             const SizedBox(height: 12),
             InkWell(
