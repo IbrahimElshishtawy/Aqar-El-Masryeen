@@ -19,7 +19,9 @@ class PaymentRepository {
 
   Stream<List<PaymentRecord>> watchAll() {
     final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(MockWorkspaceStore.instance.allPayments)
+        ? MockWorkspaceStore.instance.watch(
+            MockWorkspaceStore.instance.allPayments,
+          )
         : _firestore
               .collection(FirestorePaths.payments)
               .orderBy('receivedAt', descending: true)

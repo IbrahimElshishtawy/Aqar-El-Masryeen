@@ -93,7 +93,10 @@ class LocalCacheService {
 
   Future<void> clearByPrefix(String prefix) async {
     final prefs = await _prefs;
-    final matchingKeys = prefs.getKeys().where((key) => key.startsWith(prefix));
+    final matchingKeys = prefs
+        .getKeys()
+        .where((key) => key.startsWith(prefix))
+        .toList(growable: false);
     for (final key in matchingKeys) {
       await prefs.remove(key);
     }
@@ -110,7 +113,8 @@ class LocalCacheService {
     }
     if (value is Map) {
       return value.map(
-        (dynamic key, dynamic item) => MapEntry(key.toString(), _normalize(item)),
+        (dynamic key, dynamic item) =>
+            MapEntry(key.toString(), _normalize(item)),
       );
     }
     return value;

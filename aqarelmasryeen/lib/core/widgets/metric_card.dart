@@ -25,13 +25,12 @@ class MetricCard extends StatelessWidget {
         final cardPadding = isCompact ? 14.0 : 18.0;
         final iconRadius = isCompact ? 18.0 : 22.0;
         final iconSize = isCompact ? 18.0 : 22.0;
-        final labelStyle = (isCompact
-                ? theme.textTheme.bodySmall
-                : theme.textTheme.bodyMedium)
-            ?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
-            );
+        final labelStyle =
+            (isCompact ? theme.textTheme.bodySmall : theme.textTheme.bodyMedium)
+                ?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                );
         final valueStyle =
             (isCompact
                     ? theme.textTheme.titleMedium

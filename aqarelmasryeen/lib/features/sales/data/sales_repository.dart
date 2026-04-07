@@ -19,7 +19,9 @@ class SalesRepository {
 
   Stream<List<UnitSale>> watchAll() {
     final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(MockWorkspaceStore.instance.allUnits)
+        ? MockWorkspaceStore.instance.watch(
+            MockWorkspaceStore.instance.allUnits,
+          )
         : _firestore
               .collection(FirestorePaths.units)
               .orderBy('updatedAt', descending: true)

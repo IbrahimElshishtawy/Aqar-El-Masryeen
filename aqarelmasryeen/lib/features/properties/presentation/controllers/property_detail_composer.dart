@@ -89,12 +89,13 @@ class PropertyDetailComposer {
         .where((row) => _dateOnly(row.expense.date) == today)
         .toList();
 
-    final materialRowsByCategory = <MaterialCategory, List<MaterialExpenseEntry>>{
-      for (final category in MaterialCategory.values)
-        category: activeMaterials
-            .where((entry) => entry.materialCategory == category)
-            .sorted((a, b) => b.date.compareTo(a.date)),
-    };
+    final materialRowsByCategory =
+        <MaterialCategory, List<MaterialExpenseEntry>>{
+          for (final category in MaterialCategory.values)
+            category: activeMaterials
+                .where((entry) => entry.materialCategory == category)
+                .sorted((a, b) => b.date.compareTo(a.date)),
+        };
 
     final featuredMaterialCategories = [
       MaterialCategory.cement,
@@ -167,7 +168,8 @@ class PropertyDetailComposer {
       totalRemainingInstallments: totalRemainingInstallments,
       overdueInstallments: overdueInstallments,
       totalDirectExpenses: totalDirectExpenses,
-      totalProjectExpenses: totalDirectExpenses + materialsSnapshot.overallTotal,
+      totalProjectExpenses:
+          totalDirectExpenses + materialsSnapshot.overallTotal,
       todayDirectExpenses: todayRows.fold<double>(
         0,
         (sum, row) => sum + row.expense.amount,
@@ -195,7 +197,9 @@ class PropertyDetailComposer {
       installments: installments,
       payments: payments,
     );
-    final summary = summaries.firstWhereOrNull((item) => item.unit.id == unitId);
+    final summary = summaries.firstWhereOrNull(
+      (item) => item.unit.id == unitId,
+    );
     if (summary == null) {
       return null;
     }

@@ -10,7 +10,10 @@ class AuthLocalDataSource {
   final SecureStorageService _secureStorage;
 
   Future<void> cacheProfile(AppUser profile) async {
-    await _cache.writeObject(CacheKeys.authProfile(profile.uid), profile.toMap());
+    await _cache.writeObject(
+      CacheKeys.authProfile(profile.uid),
+      profile.toMap(),
+    );
   }
 
   Future<AppUser?> readProfile(String uid) async {

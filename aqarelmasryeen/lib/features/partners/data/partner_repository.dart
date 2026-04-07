@@ -19,7 +19,9 @@ class PartnerRepository {
 
   Stream<List<Partner>> watchPartners() {
     final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(MockWorkspaceStore.instance.partners)
+        ? MockWorkspaceStore.instance.watch(
+            MockWorkspaceStore.instance.partners,
+          )
         : _firestore
               .collection(FirestorePaths.partners)
               .orderBy('createdAt')

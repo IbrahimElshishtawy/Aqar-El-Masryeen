@@ -76,13 +76,16 @@ class DashboardScreen extends ConsumerWidget {
                     )
                   : Column(
                       children: [
-                        for (var index = 0;
-                            index < viewData.snapshot.recentRecords.length;
-                            index++) ...[
+                        for (
+                          var index = 0;
+                          index < viewData.snapshot.recentRecords.length;
+                          index++
+                        ) ...[
                           RecentRecordTile(
                             record: viewData.snapshot.recentRecords[index],
                           ),
-                          if (index != viewData.snapshot.recentRecords.length - 1)
+                          if (index !=
+                              viewData.snapshot.recentRecords.length - 1)
                             const Divider(height: 24),
                         ],
                       ],

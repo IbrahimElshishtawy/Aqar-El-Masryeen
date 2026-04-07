@@ -20,7 +20,9 @@ class ActivityRepository {
   Stream<List<ActivityLogEntry>> watchRecent({String? propertyId}) {
     final source = AppConfig.useMockData
         ? MockWorkspaceStore.instance.watch(
-            () => MockWorkspaceStore.instance.recentActivity(propertyId: propertyId),
+            () => MockWorkspaceStore.instance.recentActivity(
+              propertyId: propertyId,
+            ),
           )
         : (() {
             Query<Map<String, dynamic>> query = _firestore

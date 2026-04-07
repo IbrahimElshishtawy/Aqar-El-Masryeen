@@ -31,7 +31,9 @@ class NotificationRepository {
               .snapshots()
               .map(
                 (snapshot) => snapshot.docs
-                    .map((doc) => AppNotificationItem.fromMap(doc.id, doc.data()))
+                    .map(
+                      (doc) => AppNotificationItem.fromMap(doc.id, doc.data()),
+                    )
                     .toList(),
               );
 

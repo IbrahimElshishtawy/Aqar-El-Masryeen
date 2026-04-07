@@ -27,15 +27,11 @@ class SecuritySetupController extends Notifier<AsyncValue<void>> {
             .read(biometricServiceProvider)
             .getAvailability();
         if (!availability.canUseSecureUnlock) {
-          throw const AppException(
-            'هذا الجهاز لا يدعم التحقق الآمن.',
-          );
+          throw const AppException('هذا الجهاز لا يدعم التحقق الآمن.');
         }
         final authenticated = await ref
             .read(biometricServiceProvider)
-            .authenticate(
-              reason: 'أكد الفتح الآمن لهذا الجهاز الموثوق',
-            );
+            .authenticate(reason: 'أكد الفتح الآمن لهذا الجهاز الموثوق');
         if (!authenticated) {
           throw const AppException(
             'تم إلغاء التحقق من الجهاز. لم يتم حفظ إعدادات الأمان.',

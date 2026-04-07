@@ -142,7 +142,10 @@ class ReportsScreen extends ConsumerWidget {
                 children: [
                   _ReportRow(label: 'إجمالي المبيعات', value: totalSales.egp),
                   const SizedBox(height: 12),
-                  _ReportRow(label: 'إجمالي التحصيلات', value: totalCollected.egp),
+                  _ReportRow(
+                    label: 'إجمالي التحصيلات',
+                    value: totalCollected.egp,
+                  ),
                   const SizedBox(height: 12),
                   _ReportRow(label: 'صافي المتبقي', value: outstanding.egp),
                   const SizedBox(height: 12),
@@ -236,10 +239,7 @@ class _ReportsBanner extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [
-            theme.colorScheme.primary,
-            const Color(0xFF0F766E),
-          ],
+          colors: [theme.colorScheme.primary, const Color(0xFF0F766E)],
           begin: Alignment.topRight,
           end: Alignment.bottomLeft,
         ),

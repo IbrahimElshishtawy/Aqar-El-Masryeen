@@ -77,7 +77,8 @@ class InstallmentRepository {
   Stream<List<Installment>> watchInstallmentsByProperty(String propertyId) {
     final source = AppConfig.useMockData
         ? MockWorkspaceStore.instance.watch(
-            () => MockWorkspaceStore.instance.installmentsByProperty(propertyId),
+            () =>
+                MockWorkspaceStore.instance.installmentsByProperty(propertyId),
           )
         : _firestore
               .collection(FirestorePaths.installments)

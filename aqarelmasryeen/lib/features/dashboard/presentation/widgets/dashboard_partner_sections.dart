@@ -216,7 +216,11 @@ class OtherPartnersSection extends StatelessWidget {
       ),
       child: Column(
         children: [
-          for (var index = 0; index < partners.length && index < 3; index++) ...[
+          for (
+            var index = 0;
+            index < partners.length && index < 3;
+            index++
+          ) ...[
             OtherPartnerRow(partner: partners[index]),
             if (index != partners.length - 1 && index != 2)
               const Divider(height: 24),
@@ -317,10 +321,9 @@ class RecentRecordTile extends StatelessWidget {
             children: [
               Text(
                 record.title,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
               Text('${record.propertyName} - ${record.subtitle}'),
@@ -332,10 +335,9 @@ class RecentRecordTile extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           '${isExpense ? '-' : '+'}${record.amount.egp}',
-          style: Theme.of(context)
-              .textTheme
-              .titleSmall
-              ?.copyWith(fontWeight: FontWeight.w700),
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
         ),
       ],
     );

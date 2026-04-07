@@ -15,6 +15,9 @@ import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+export 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_composer.dart';
+export 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_view_data.dart';
+
 final propertyDetailsProvider = StreamProvider.autoDispose
     .family<PropertyProject?, String>(
       (ref, propertyId) =>
@@ -83,7 +86,9 @@ final propertyProjectViewDataProvider = Provider.autoDispose
         return const AsyncLoading();
       }
 
-      final property = ref.watch(propertyDetailsProvider(propertyId)).valueOrNull;
+      final property = ref
+          .watch(propertyDetailsProvider(propertyId))
+          .valueOrNull;
       if (property == null) {
         return const AsyncData(null);
       }
@@ -95,7 +100,9 @@ final propertyProjectViewDataProvider = Provider.autoDispose
         composer.buildProjectViewData(
           property: property,
           currentUserId: session?.userId,
-          units: ref.watch(propertyUnitsProvider(propertyId)).valueOrNull ?? const [],
+          units:
+              ref.watch(propertyUnitsProvider(propertyId)).valueOrNull ??
+              const [],
           installments:
               ref.watch(propertyInstallmentsProvider(propertyId)).valueOrNull ??
               const [],
@@ -148,7 +155,9 @@ final propertyUnitViewDataProvider = Provider.autoDispose
           property: property,
           unitId: request.unitId,
           units:
-              ref.watch(propertyUnitsProvider(request.propertyId)).valueOrNull ??
+              ref
+                  .watch(propertyUnitsProvider(request.propertyId))
+                  .valueOrNull ??
               const [],
           installments:
               ref
@@ -156,7 +165,9 @@ final propertyUnitViewDataProvider = Provider.autoDispose
                   .valueOrNull ??
               const [],
           payments:
-              ref.watch(propertyPaymentsProvider(request.propertyId)).valueOrNull ??
+              ref
+                  .watch(propertyPaymentsProvider(request.propertyId))
+                  .valueOrNull ??
               const [],
         ),
       );

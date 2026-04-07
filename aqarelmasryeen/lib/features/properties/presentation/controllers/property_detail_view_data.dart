@@ -53,7 +53,8 @@ class PropertyProjectViewData {
   final MaterialsLedgerSnapshot materialsSnapshot;
   final List<MaterialCategory> featuredMaterialCategories;
   final List<MaterialCategoryTotal> featuredMaterialTotals;
-  final Map<MaterialCategory, List<MaterialExpenseEntry>> materialRowsByCategory;
+  final Map<MaterialCategory, List<MaterialExpenseEntry>>
+  materialRowsByCategory;
   final List<PartnerLedgerSummaryRow> partnerSummaries;
   final List<PartnerLedgerEntry> partnerHistory;
   final Map<String, List<PartnerLedgerEntry>> partnerEntriesByPartner;
@@ -73,7 +74,9 @@ class PropertyProjectViewData {
     if (currentPartner == null) {
       return partners;
     }
-    return partners.where((partner) => partner.id != currentPartner!.id).toList();
+    return partners
+        .where((partner) => partner.id != currentPartner!.id)
+        .toList();
   }
 
   String get counterpartLabel {

@@ -87,7 +87,9 @@ class UnitSale {
     final downPayment = parseDouble(data['downPayment']);
     final remainingAmount = parseDouble(
       data['remainingAmount'],
-      fallback: (contractAmount - downPayment).clamp(0, contractAmount).toDouble(),
+      fallback: (contractAmount - downPayment)
+          .clamp(0, contractAmount)
+          .toDouble(),
     );
 
     return UnitSale(

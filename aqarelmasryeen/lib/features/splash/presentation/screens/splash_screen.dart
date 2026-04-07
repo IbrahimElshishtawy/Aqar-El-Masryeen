@@ -30,13 +30,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     _notificationReady = true;
     try {
-      await ref.read(notificationServiceProvider).initialize(
-        onNotificationTap: (payload) {
-          if (mounted) {
-            context.go(payload.route);
-          }
-        },
-      );
+      await ref
+          .read(notificationServiceProvider)
+          .initialize(
+            onNotificationTap: (payload) {
+              if (mounted) {
+                context.go(payload.route);
+              }
+            },
+          );
     } catch (error, stackTrace) {
       debugPrint('Notification initialization failed on splash: $error');
       debugPrintStack(stackTrace: stackTrace, maxFrames: 6);
@@ -97,10 +99,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       Text(
                         AppConfig.appName,
                         textAlign: TextAlign.center,
-                        style: (isCompact
-                                ? theme.textTheme.titleMedium
-                                : theme.textTheme.titleLarge)
-                            ?.copyWith(fontWeight: FontWeight.w700),
+                        style:
+                            (isCompact
+                                    ? theme.textTheme.titleMedium
+                                    : theme.textTheme.titleLarge)
+                                ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 16),
                       decision.when(
@@ -114,7 +117,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         },
                         loading: () => const AppLoadingView(
                           label: 'جار التحقق من الجلسة الحالية',
-                          message: 'يتم استخدام البيانات المحلية أولاً ثم تحديث الحالة عند الحاجة.',
+                          message:
+                              'يتم استخدام البيانات المحلية أولاً ثم تحديث الحالة عند الحاجة.',
                           padding: EdgeInsets.zero,
                         ),
                         error: (error, stackTrace) => Text(

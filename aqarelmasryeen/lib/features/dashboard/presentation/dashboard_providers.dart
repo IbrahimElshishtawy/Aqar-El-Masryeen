@@ -43,14 +43,19 @@ final dashboardViewDataProvider =
         return const AsyncLoading();
       }
 
-      final partners = ref.watch(dashboardPartnersProvider).valueOrNull ?? const [];
+      final partners =
+          ref.watch(dashboardPartnersProvider).valueOrNull ?? const [];
       final session = ref.watch(authSessionProvider).valueOrNull;
       final currentPartner = session == null
           ? null
-          : partners.firstWhereOrNull((partner) => partner.userId == session.userId);
+          : partners.firstWhereOrNull(
+              (partner) => partner.userId == session.userId,
+            );
       final otherPartners = currentPartner == null
           ? partners
-          : partners.where((partner) => partner.id != currentPartner.id).toList();
+          : partners
+                .where((partner) => partner.id != currentPartner.id)
+                .toList();
 
       return AsyncData(
         DashboardViewData(

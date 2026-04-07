@@ -50,9 +50,7 @@ class UnlockController extends Notifier<UnlockState> {
     try {
       final authenticated = await ref
           .read(biometricServiceProvider)
-          .authenticate(
-            reason: 'تحقق لفتح مساحة العمل المحاسبية',
-          );
+          .authenticate(reason: 'تحقق لفتح مساحة العمل المحاسبية');
       if (!authenticated) {
         throw const AppException('تم إلغاء عملية التحقق.');
       }

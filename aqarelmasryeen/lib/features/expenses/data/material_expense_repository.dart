@@ -29,7 +29,9 @@ class MaterialExpenseRepository {
               .snapshots()
               .map(
                 (snapshot) => snapshot.docs
-                    .map((doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()))
+                    .map(
+                      (doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()),
+                    )
                     .toList(),
               );
 
@@ -45,7 +47,9 @@ class MaterialExpenseRepository {
   Stream<List<MaterialExpenseEntry>> watchByProperty(String propertyId) {
     final source = AppConfig.useMockData
         ? MockWorkspaceStore.instance.watch(
-            () => MockWorkspaceStore.instance.materialExpensesByProperty(propertyId),
+            () => MockWorkspaceStore.instance.materialExpensesByProperty(
+              propertyId,
+            ),
           )
         : _firestore
               .collection(FirestorePaths.materialExpenses)
@@ -55,7 +59,9 @@ class MaterialExpenseRepository {
               .snapshots()
               .map(
                 (snapshot) => snapshot.docs
-                    .map((doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()))
+                    .map(
+                      (doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()),
+                    )
                     .toList(),
               );
 

@@ -58,9 +58,13 @@ class FirebaseAuthRepository implements AuthRepository {
         );
       }
 
-      yield* _profileDataSource.watchProfile(user.uid).asyncMap((profile) async {
+      yield* _profileDataSource.watchProfile(user.uid).asyncMap((
+        profile,
+      ) async {
         final resolvedProfile =
-            profile ?? cachedProfile ?? await _profileDataSource.fetchProfile(user.uid);
+            profile ??
+            cachedProfile ??
+            await _profileDataSource.fetchProfile(user.uid);
         await _syncLocalSession(resolvedProfile, user.uid);
         return AppSession.fromFirebaseUser(
           firebaseUser: user,
@@ -107,7 +111,9 @@ class FirebaseAuthRepository implements AuthRepository {
       );
       final user = credential.user;
       if (user == null) {
-        throw const AppException('Ù„Ù… ÙŠØªÙ… Ø¥Ø±Ø¬Ø§Ø¹ Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ø¹Ø¯ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø­Ø³Ø§Ø¨.');
+        throw const AppException(
+          'Ù„Ù… ÙŠØªÙ… Ø¥Ø±Ø¬Ø§Ø¹ Ù…Ø³ØªØ®Ø¯Ù… Ø¨Ø¹Ø¯ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø­Ø³Ø§Ø¨.',
+        );
       }
 
       await _authDataSource.updateDisplayName(user, normalizedName);
@@ -183,7 +189,8 @@ class FirebaseAuthRepository implements AuthRepository {
           await _notificationRepository.createSecurityNotification(
             userId: user.uid,
             title: 'ØªÙ… Ø§ÙƒØªØ´Ø§Ù Ø¬Ù‡Ø§Ø² Ù…ÙˆØ«ÙˆÙ‚ Ø¬Ø¯ÙŠØ¯',
-            body: 'ØªÙ… Ø§Ø³ØªØ®Ø¯Ø§Ù… ${deviceInfo.deviceName} Ù„ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„.',
+            body:
+                'ØªÙ… Ø§Ø³ØªØ®Ø¯Ø§Ù… ${deviceInfo.deviceName} Ù„ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„.',
             route: AppRoutes.settings,
           );
         }
@@ -242,7 +249,9 @@ class FirebaseAuthRepository implements AuthRepository {
   }) async {
     final user = _authDataSource.currentUser;
     if (user == null) {
-      throw const AppException('Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ù…Ø³ØªØ®Ø¯Ù… Ù…Ø³Ø¬Ù„ Ø­Ø§Ù„ÙŠÙ‹Ø§.');
+      throw const AppException(
+        'Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ù…Ø³ØªØ®Ø¯Ù… Ù…Ø³Ø¬Ù„ Ø­Ø§Ù„ÙŠÙ‹Ø§.',
+      );
     }
 
     final normalizedName = fullName.trim();
@@ -253,7 +262,9 @@ class FirebaseAuthRepository implements AuthRepository {
     );
 
     try {
-      final profileEmail = authEmail?.isNotEmpty == true ? authEmail! : requestedEmail;
+      final profileEmail = authEmail?.isNotEmpty == true
+          ? authEmail!
+          : requestedEmail;
 
       if (!hasEmailProvider || authEmail == null || authEmail.isEmpty) {
         if ((password ?? '').isEmpty) {
@@ -309,7 +320,9 @@ class FirebaseAuthRepository implements AuthRepository {
   }) async {
     final user = _authDataSource.currentUser;
     if (user == null) {
-      throw const AppException('Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ù…Ø³ØªØ®Ø¯Ù… Ù…Ø³Ø¬Ù„ Ø­Ø§Ù„ÙŠÙ‹Ø§.');
+      throw const AppException(
+        'Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ù…Ø³ØªØ®Ø¯Ù… Ù…Ø³Ø¬Ù„ Ø­Ø§Ù„ÙŠÙ‹Ø§.',
+      );
     }
 
     try {

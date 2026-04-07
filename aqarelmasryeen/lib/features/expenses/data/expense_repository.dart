@@ -19,7 +19,9 @@ class ExpenseRepository {
 
   Stream<List<ExpenseRecord>> watchAll() {
     final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(MockWorkspaceStore.instance.allExpenses)
+        ? MockWorkspaceStore.instance.watch(
+            MockWorkspaceStore.instance.allExpenses,
+          )
         : _firestore
               .collection(FirestorePaths.expenses)
               .where('archived', isEqualTo: false)

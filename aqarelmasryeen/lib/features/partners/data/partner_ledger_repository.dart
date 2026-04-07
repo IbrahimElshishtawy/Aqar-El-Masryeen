@@ -29,7 +29,9 @@ class PartnerLedgerRepository {
               .snapshots()
               .map(
                 (snapshot) => snapshot.docs
-                    .map((doc) => PartnerLedgerEntry.fromMap(doc.id, doc.data()))
+                    .map(
+                      (doc) => PartnerLedgerEntry.fromMap(doc.id, doc.data()),
+                    )
                     .toList(),
               );
 

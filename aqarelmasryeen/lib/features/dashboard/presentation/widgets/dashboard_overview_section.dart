@@ -238,7 +238,9 @@ class DashboardStatCard extends StatelessWidget {
         final cardPadding = isCompact ? 12.0 : 14.0;
         final badgeSize = isCompact ? 34.0 : 38.0;
         final valueStyle =
-            (isCompact ? theme.textTheme.titleMedium : theme.textTheme.titleLarge)
+            (isCompact
+                    ? theme.textTheme.titleMedium
+                    : theme.textTheme.titleLarge)
                 ?.copyWith(
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.2,
