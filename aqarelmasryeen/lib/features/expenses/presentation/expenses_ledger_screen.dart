@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
@@ -155,11 +153,6 @@ class ExpensesLedgerScreen extends ConsumerWidget {
     final totalFinancialExposure =
         totalDirectExpenses + materialSnapshot.overallTotal;
     final initialTabIndex = _resolveInitialTabIndex(context);
-    final tabViewHeight = math.max(
-      MediaQuery.sizeOf(context).height - 260,
-      820.0,
-    );
-
     return DefaultTabController(
       length: 3,
       initialIndex: initialTabIndex,
@@ -171,89 +164,108 @@ class ExpensesLedgerScreen extends ConsumerWidget {
         titleActions: [
           _ExpensesTopBarActions(properties: properties, partners: partners),
         ],
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          children: [
-            _ExpenseSummaryGrid(
-              cards: [
-                SummaryCard(
-                  label: 'إجمالي المصروفات المباشرة',
-                  value: totalDirectExpenses.egp,
-                  subtitle: 'كل المصروفات المسجلة على المشروعات',
-                  icon: Icons.receipt_long_outlined,
-                  emphasis: true,
-                ),
-                SummaryCard(
-                  label: 'إجمالي الموارد',
-                  value: materialSnapshot.overallTotal.egp,
-                  subtitle: 'فواتير مواد البناء والموردين',
-                  icon: Icons.inventory_2_outlined,
-                ),
-                SummaryCard(
-                  label: 'إجمالي الالتزام المالي',
-                  value: totalFinancialExposure.egp,
-                  subtitle: 'المصروفات المباشرة + الموارد',
-                  icon: Icons.account_balance_wallet_outlined,
-                ),
-                SummaryCard(
-                  label: mineSnapshot.title,
-                  value: mineSnapshot.totalPaid.egp,
-                  subtitle: 'المدفوع فعليًا من جهتك',
-                  icon: Icons.person_outline_rounded,
-                ),
-                SummaryCard(
-                  label: partnerFinanceSnapshot.title,
-                  value: partnerFinanceSnapshot.totalPaid.egp,
-                  subtitle: 'المدفوع فعليًا من جهة الشريك',
-                  icon: Icons.groups_outlined,
-                ),
-                SummaryCard(
-                  label: 'الموردون المفتوحون',
-                  value: '${materialSnapshot.supplierSummaries.length}',
-                  subtitle: 'عدد الموردين الذين لديهم حركة مالية',
-                  icon: Icons.storefront_outlined,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: const Color(0xFFD8D8D2)),
-              ),
-              child: const TabBar(
-                isScrollable: true,
-                tabs: [
-                  Tab(text: 'سجل المصروفات'),
-                  Tab(text: 'أنا / الشريك'),
-                  Tab(text: 'الموارد'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: tabViewHeight,
-              child: TabBarView(
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) => [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              sliver: SliverList.list(
                 children: [
-                  _ExpensesRegisterTab(
-                    expenses: expenses,
-                    propertyNames: propertyNames,
-                    partnerNames: partnerNames,
+                  _ExpenseSummaryGrid(
+                    cards: [
+                      SummaryCard(
+                        label: 'إجمالي المصروفات المباشرة',
+                        value: totalDirectExpenses.egp,
+                        subtitle: 'كل المصروفات المسجلة على المشروعات',
+                        icon: Icons.receipt_long_outlined,
+                        emphasis: true,
+                        splitLayout: true,
+                      ),
+                      SummaryCard(
+                        label: 'إجمالي الموارد',
+                        value: materialSnapshot.overallTotal.egp,
+                        subtitle: 'فواتير مواد البناء والموردين',
+                        icon: Icons.inventory_2_outlined,
+                        splitLayout: true,
+                      ),
+                      SummaryCard(
+                        label: 'إجمالي الالتزام المالي',
+                        value: totalFinancialExposure.egp,
+                        subtitle: 'المصروفات المباشرة + الموارد',
+                        icon: Icons.account_balance_wallet_outlined,
+                        splitLayout: true,
+                      ),
+                      SummaryCard(
+                        label: mineSnapshot.title,
+                        value: mineSnapshot.totalPaid.egp,
+                        subtitle: 'المدفوع فعليًا من جهتك',
+                        icon: Icons.person_outline_rounded,
+                        splitLayout: true,
+                      ),
+                      SummaryCard(
+                        label: partnerFinanceSnapshot.title,
+                        value: partnerFinanceSnapshot.totalPaid.egp,
+                        subtitle: 'المدفوع فعليًا من جهة الشريك',
+                        icon: Icons.groups_outlined,
+                        splitLayout: true,
+                      ),
+                      SummaryCard(
+                        label: 'الموردون المفتوحون',
+                        value: '${materialSnapshot.supplierSummaries.length}',
+                        subtitle: 'عدد الموردين الذين لديهم حركة مالية',
+                        icon: Icons.storefront_outlined,
+                        splitLayout: true,
+                      ),
+                    ],
                   ),
-                  _OwnershipTablesTab(
-                    mineSnapshot: mineSnapshot,
-                    partnerSnapshot: partnerFinanceSnapshot,
-                  ),
-                  _ResourcesTab(
-                    snapshot: materialSnapshot,
-                    rows: partnerSnapshot,
-                    propertyNames: propertyNames,
-                  ),
+                  const SizedBox(height: 16),
                 ],
+              ),
+            ),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _TabBarHeaderDelegate(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surface,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: const Color(0xFFD8D8D2)),
+                    ),
+                    child: const TabBar(
+                      isScrollable: true,
+                      tabs: [
+                        Tab(text: 'سجل المصروفات'),
+                        Tab(text: 'أنا / الشريك'),
+                        Tab(text: 'الموارد'),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
+          body: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: TabBarView(
+              children: [
+                _ExpensesRegisterTab(
+                  expenses: expenses,
+                  propertyNames: propertyNames,
+                  partnerNames: partnerNames,
+                ),
+                _OwnershipTablesTab(
+                  mineSnapshot: mineSnapshot,
+                  partnerSnapshot: partnerFinanceSnapshot,
+                ),
+                _ResourcesTab(
+                  snapshot: materialSnapshot,
+                  rows: partnerSnapshot,
+                  propertyNames: propertyNames,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -523,6 +535,8 @@ class _ExpensesRegisterTab extends StatelessWidget {
     final totalAmount = rows.fold<double>(0, (sum, item) => sum + item.amount);
 
     return ListView(
+      key: const PageStorageKey<String>('expenses-register-tab'),
+      padding: const EdgeInsets.only(bottom: 120),
       children: [
         FinancialLedgerTable<ExpenseRecord>(
           title: 'سجل المصروفات',
@@ -602,6 +616,8 @@ class _OwnershipTablesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      key: const PageStorageKey<String>('ownership-tables-tab'),
+      padding: const EdgeInsets.only(bottom: 120),
       children: [
         LayoutBuilder(
           builder: (context, constraints) {
@@ -647,6 +663,8 @@ class _ResourcesTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView(
+      key: const PageStorageKey<String>('resources-tab'),
+      padding: const EdgeInsets.only(bottom: 120),
       children: [
         FinancialLedgerTable<MaterialExpenseEntry>(
           title: 'جدول الموارد',
@@ -749,6 +767,7 @@ class _ResourcesTab extends StatelessWidget {
           subtitle: 'كم دفعت لكل مورد وكم تبقى عليه',
           rows: snapshot.supplierSummaries,
           sheetLabel: 'ورقة ملخص الموردين',
+          forceTableLayout: true,
           columns: [
             LedgerColumn(
               label: 'اسم المورد',
@@ -783,10 +802,11 @@ class _ResourcesTab extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         FinancialLedgerTable<PartnerLedgerSummaryRow>(
-          title: 'ملخص التزامات الشركاء',
-          subtitle: 'رؤية سريعة لرصيد كل شريك مقارنة بالمصروفات الكلية',
+          title: 'ملخص التزامات الشركة',
+          subtitle: 'جدول سريع يوضح رصيد كل شريك مقارنة بإجمالي الالتزامات',
           rows: rows,
           sheetLabel: 'ورقة ملخص الشركاء',
+          forceTableLayout: true,
           columns: [
             LedgerColumn(
               label: 'الشريك',
@@ -922,25 +942,60 @@ class _ExpenseSummaryGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final count = constraints.maxWidth >= 960
+        final count = constraints.maxWidth >= 1080
+            ? 4
+            : constraints.maxWidth >= 760
             ? 3
-            : constraints.maxWidth >= 620
-            ? 2
-            : 1;
+            : 2;
         return GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: cards.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: count,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: count == 1 ? 2.5 : 1.6,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: count >= 4
+                ? 1.18
+                : count == 3
+                ? 1.08
+                : 1.02,
           ),
           itemBuilder: (context, index) => cards[index],
         );
       },
     );
+  }
+}
+
+class _TabBarHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _TabBarHeaderDelegate({required this.child});
+
+  static const double _extent = 60;
+
+  @override
+  double get minExtent => _extent;
+
+  @override
+  double get maxExtent => _extent;
+
+  final Widget child;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return ColoredBox(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: SizedBox.expand(child: child),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _TabBarHeaderDelegate oldDelegate) {
+    return child != oldDelegate.child;
   }
 }
 

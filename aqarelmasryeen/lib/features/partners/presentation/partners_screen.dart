@@ -767,6 +767,9 @@ Future<void> _acceptPartnerRequest(
   if (session == null) {
     return;
   }
+  if (!context.mounted) {
+    return;
+  }
 
   final partnerId = request.metadata['partnerId'] as String? ?? '';
   if (partnerId.isEmpty) {
