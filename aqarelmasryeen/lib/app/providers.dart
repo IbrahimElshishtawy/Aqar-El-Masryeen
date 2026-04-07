@@ -2,6 +2,7 @@ import 'package:aqarelmasryeen/core/security/biometric_service.dart';
 import 'package:aqarelmasryeen/core/services/device_info_service.dart';
 import 'package:aqarelmasryeen/core/services/notification_service.dart';
 import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
+import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
@@ -49,6 +50,9 @@ final secureStorageProvider = Provider<SecureStorageService>(
       ),
     ),
   ),
+);
+final localCacheServiceProvider = Provider<LocalCacheService>(
+  (ref) => LocalCacheService(),
 );
 final biometricServiceProvider = Provider<BiometricService>(
   (ref) => BiometricService(LocalAuthentication()),

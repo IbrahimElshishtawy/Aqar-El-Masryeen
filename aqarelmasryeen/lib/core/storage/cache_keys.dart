@@ -1,0 +1,41 @@
+class CacheKeys {
+  const CacheKeys._();
+
+  static const auth = 'cache.auth';
+  static String authProfile(String uid) => '$auth.profile.$uid';
+  static const mockSessionActive = '$auth.mock_session_active';
+
+  static const properties = 'cache.properties.all';
+  static String property(String propertyId) => 'cache.properties.$propertyId';
+
+  static const expenses = 'cache.expenses.all';
+  static String expensesByProperty(String propertyId) =>
+      'cache.expenses.$propertyId';
+
+  static const materialExpenses = 'cache.material_expenses.all';
+  static String materialExpensesByProperty(String propertyId) =>
+      'cache.material_expenses.$propertyId';
+
+  static const partners = 'cache.partners.all';
+  static const partnerLedger = 'cache.partner_ledger.all';
+
+  static const payments = 'cache.payments.all';
+  static String paymentsByProperty(String propertyId) =>
+      'cache.payments.property.$propertyId';
+  static String paymentsByUnit(String unitId) => 'cache.payments.unit.$unitId';
+
+  static const units = 'cache.units.all';
+  static String unitsByProperty(String propertyId) => 'cache.units.$propertyId';
+
+  static const installments = 'cache.installments.all';
+  static String installmentPlansByProperty(String propertyId) =>
+      'cache.installment_plans.$propertyId';
+  static String installmentsByProperty(String propertyId) =>
+      'cache.installments.property.$propertyId';
+  static String installmentsByUnit(String unitId) =>
+      'cache.installments.unit.$unitId';
+
+  static String notifications(String userId) => 'cache.notifications.$userId';
+  static String activity({String? propertyId}) =>
+      propertyId == null ? 'cache.activity.all' : 'cache.activity.$propertyId';
+}

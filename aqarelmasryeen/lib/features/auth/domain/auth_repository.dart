@@ -3,6 +3,8 @@ import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 abstract class AuthRepository {
   Stream<AppSession?> watchSession();
 
+  Future<AppSession?> restoreSession();
+
   Future<void> registerWithEmail({
     required String fullName,
     required String email,

@@ -2,8 +2,8 @@ import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/routing/app_router.dart';
 import 'package:aqarelmasryeen/core/security/session_activity_listener.dart';
 import 'package:aqarelmasryeen/core/services/firebase_initializer.dart';
-import 'package:aqarelmasryeen/core/services/notification_service.dart';
 import 'package:aqarelmasryeen/core/theme/app_theme.dart';
+import 'package:aqarelmasryeen/core/widgets/app_loading_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,7 +26,6 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
 
   Future<void> _initializeServices() async {
     await initializeFirebase();
-    FirebaseMessagingService.registerBackgroundHandler();
   }
 
   @override
@@ -119,17 +118,11 @@ class _AppBootstrapScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: SafeArea(
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              CircularProgressIndicator(),
-              SizedBox(height: 16),
-              Text('جار تجهيز مساحة العمل...'),
-            ],
-          ),
+        child: AppLoadingView(
+          label: 'جاري تجهيز مساحة العمل',
+          message: 'يتم تشغيل الخدمات الأساسية وتهيئة الجلسة الحالية.',
         ),
       ),
     );

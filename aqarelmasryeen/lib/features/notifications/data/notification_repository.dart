@@ -2,6 +2,9 @@ import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
 import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
+import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
+import 'package:aqarelmasryeen/core/storage/cache_policy.dart';
+import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,28 +12,36 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 class NotificationRepository {
-  NotificationRepository(this._firestore, this._uuid);
+  NotificationRepository(this._firestore, this._uuid, this._cache);
 
   final FirebaseFirestore _firestore;
   final Uuid _uuid;
+  final LocalCacheService _cache;
 
   Stream<List<AppNotificationItem>> watchNotifications(String userId) {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.watch(
-        () => MockWorkspaceStore.instance.notificationsFor(userId),
-      );
-    }
-    return _firestore
-        .collection(FirestorePaths.notifications)
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .limit(50)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => AppNotificationItem.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+    final source = AppConfig.useMockData
+        ? MockWorkspaceStore.instance.watch(
+            () => MockWorkspaceStore.instance.notificationsFor(userId),
+          )
+        : _firestore
+              .collection(FirestorePaths.notifications)
+              .where('userId', isEqualTo: userId)
+              .orderBy('createdAt', descending: true)
+              .limit(50)
+              .snapshots()
+              .map(
+                (snapshot) => snapshot.docs
+                    .map((doc) => AppNotificationItem.fromMap(doc.id, doc.data()))
+                    .toList(),
+              );
+
+    return CachePolicy.watchList(
+      cache: _cache,
+      cacheKey: CacheKeys.notifications(userId),
+      source: source,
+      encode: _serializeNotification,
+      decode: _deserializeNotification,
+    );
   }
 
   Future<void> create({
@@ -101,5 +112,14 @@ final notificationRepositoryProvider = Provider<NotificationRepository>((ref) {
   return NotificationRepository(
     ref.watch(firestoreProvider),
     ref.watch(uuidProvider),
+    ref.watch(localCacheServiceProvider),
   );
 });
+
+Map<String, dynamic> _serializeNotification(AppNotificationItem item) {
+  return {...item.toMap(), 'id': item.id};
+}
+
+AppNotificationItem _deserializeNotification(Map<String, dynamic> map) {
+  return AppNotificationItem.fromMap(map['id'] as String? ?? '', map);
+}

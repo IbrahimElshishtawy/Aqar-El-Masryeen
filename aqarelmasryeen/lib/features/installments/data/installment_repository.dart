@@ -2,6 +2,9 @@ import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
 import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
+import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
+import 'package:aqarelmasryeen/core/storage/cache_policy.dart';
+import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
 import 'package:aqarelmasryeen/features/installments/domain/installment_plan_generator.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
@@ -10,81 +13,115 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 class InstallmentRepository {
-  InstallmentRepository(this._firestore, this._uuid, this._generator);
+  InstallmentRepository(
+    this._firestore,
+    this._uuid,
+    this._generator,
+    this._cache,
+  );
 
   final FirebaseFirestore _firestore;
   final Uuid _uuid;
   final InstallmentPlanGenerator _generator;
+  final LocalCacheService _cache;
 
   Stream<List<Installment>> watchAllInstallments() {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.watch(
-        MockWorkspaceStore.instance.allInstallments,
-      );
-    }
-    return _firestore
-        .collection(FirestorePaths.installments)
-        .orderBy('dueDate')
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => Installment.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+    final source = AppConfig.useMockData
+        ? MockWorkspaceStore.instance.watch(
+            MockWorkspaceStore.instance.allInstallments,
+          )
+        : _firestore
+              .collection(FirestorePaths.installments)
+              .orderBy('dueDate')
+              .snapshots()
+              .map(
+                (snapshot) => snapshot.docs
+                    .map((doc) => Installment.fromMap(doc.id, doc.data()))
+                    .toList(),
+              );
+
+    return CachePolicy.watchList(
+      cache: _cache,
+      cacheKey: CacheKeys.installments,
+      source: source,
+      encode: _serializeInstallment,
+      decode: _deserializeInstallment,
+    );
   }
 
   Stream<List<InstallmentPlan>> watchPlansByProperty(String propertyId) {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.watch(
-        () => MockWorkspaceStore.instance.plansByProperty(propertyId),
-      );
-    }
-    return _firestore
-        .collection(FirestorePaths.installmentPlans)
-        .where('propertyId', isEqualTo: propertyId)
-        .orderBy('updatedAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => InstallmentPlan.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+    final source = AppConfig.useMockData
+        ? MockWorkspaceStore.instance.watch(
+            () => MockWorkspaceStore.instance.plansByProperty(propertyId),
+          )
+        : _firestore
+              .collection(FirestorePaths.installmentPlans)
+              .where('propertyId', isEqualTo: propertyId)
+              .orderBy('updatedAt', descending: true)
+              .snapshots()
+              .map(
+                (snapshot) => snapshot.docs
+                    .map((doc) => InstallmentPlan.fromMap(doc.id, doc.data()))
+                    .toList(),
+              );
+
+    return CachePolicy.watchList(
+      cache: _cache,
+      cacheKey: CacheKeys.installmentPlansByProperty(propertyId),
+      source: source,
+      encode: _serializeInstallmentPlan,
+      decode: _deserializeInstallmentPlan,
+    );
   }
 
   Stream<List<Installment>> watchInstallmentsByProperty(String propertyId) {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.watch(
-        () => MockWorkspaceStore.instance.installmentsByProperty(propertyId),
-      );
-    }
-    return _firestore
-        .collection(FirestorePaths.installments)
-        .where('propertyId', isEqualTo: propertyId)
-        .orderBy('dueDate')
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => Installment.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+    final source = AppConfig.useMockData
+        ? MockWorkspaceStore.instance.watch(
+            () => MockWorkspaceStore.instance.installmentsByProperty(propertyId),
+          )
+        : _firestore
+              .collection(FirestorePaths.installments)
+              .where('propertyId', isEqualTo: propertyId)
+              .orderBy('dueDate')
+              .snapshots()
+              .map(
+                (snapshot) => snapshot.docs
+                    .map((doc) => Installment.fromMap(doc.id, doc.data()))
+                    .toList(),
+              );
+
+    return CachePolicy.watchList(
+      cache: _cache,
+      cacheKey: CacheKeys.installmentsByProperty(propertyId),
+      source: source,
+      encode: _serializeInstallment,
+      decode: _deserializeInstallment,
+    );
   }
 
   Stream<List<Installment>> watchInstallmentsByUnit(String unitId) {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.watch(
-        () => MockWorkspaceStore.instance.installmentsByUnit(unitId),
-      );
-    }
-    return _firestore
-        .collection(FirestorePaths.installments)
-        .where('unitId', isEqualTo: unitId)
-        .orderBy('dueDate')
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => Installment.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+    final source = AppConfig.useMockData
+        ? MockWorkspaceStore.instance.watch(
+            () => MockWorkspaceStore.instance.installmentsByUnit(unitId),
+          )
+        : _firestore
+              .collection(FirestorePaths.installments)
+              .where('unitId', isEqualTo: unitId)
+              .orderBy('dueDate')
+              .snapshots()
+              .map(
+                (snapshot) => snapshot.docs
+                    .map((doc) => Installment.fromMap(doc.id, doc.data()))
+                    .toList(),
+              );
+
+    return CachePolicy.watchList(
+      cache: _cache,
+      cacheKey: CacheKeys.installmentsByUnit(unitId),
+      source: source,
+      encode: _serializeInstallment,
+      decode: _deserializeInstallment,
+    );
   }
 
   Future<void> savePlan(
@@ -240,5 +277,22 @@ final installmentRepositoryProvider = Provider<InstallmentRepository>((ref) {
     ref.watch(firestoreProvider),
     ref.watch(uuidProvider),
     const InstallmentPlanGenerator(),
+    ref.watch(localCacheServiceProvider),
   );
 });
+
+Map<String, dynamic> _serializeInstallmentPlan(InstallmentPlan plan) {
+  return {...plan.toMap(), 'id': plan.id};
+}
+
+InstallmentPlan _deserializeInstallmentPlan(Map<String, dynamic> map) {
+  return InstallmentPlan.fromMap(map['id'] as String? ?? '', map);
+}
+
+Map<String, dynamic> _serializeInstallment(Installment installment) {
+  return {...installment.toMap(), 'id': installment.id};
+}
+
+Installment _deserializeInstallment(Map<String, dynamic> map) {
+  return Installment.fromMap(map['id'] as String? ?? '', map);
+}

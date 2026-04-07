@@ -2,55 +2,70 @@ import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
 import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
+import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
+import 'package:aqarelmasryeen/core/storage/cache_policy.dart';
+import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 class MaterialExpenseRepository {
-  MaterialExpenseRepository(this._firestore, this._uuid);
+  MaterialExpenseRepository(this._firestore, this._uuid, this._cache);
 
   final FirebaseFirestore _firestore;
   final Uuid _uuid;
+  final LocalCacheService _cache;
 
   Stream<List<MaterialExpenseEntry>> watchAll() {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.watch(
-        MockWorkspaceStore.instance.allMaterialExpenses,
-      );
-    }
+    final source = AppConfig.useMockData
+        ? MockWorkspaceStore.instance.watch(
+            MockWorkspaceStore.instance.allMaterialExpenses,
+          )
+        : _firestore
+              .collection(FirestorePaths.materialExpenses)
+              .where('archived', isEqualTo: false)
+              .orderBy('date', descending: true)
+              .snapshots()
+              .map(
+                (snapshot) => snapshot.docs
+                    .map((doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()))
+                    .toList(),
+              );
 
-    return _firestore
-        .collection(FirestorePaths.materialExpenses)
-        .where('archived', isEqualTo: false)
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+    return CachePolicy.watchList(
+      cache: _cache,
+      cacheKey: CacheKeys.materialExpenses,
+      source: source,
+      encode: _serializeMaterialExpense,
+      decode: _deserializeMaterialExpense,
+    );
   }
 
   Stream<List<MaterialExpenseEntry>> watchByProperty(String propertyId) {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.watch(
-        () =>
-            MockWorkspaceStore.instance.materialExpensesByProperty(propertyId),
-      );
-    }
+    final source = AppConfig.useMockData
+        ? MockWorkspaceStore.instance.watch(
+            () => MockWorkspaceStore.instance.materialExpensesByProperty(propertyId),
+          )
+        : _firestore
+              .collection(FirestorePaths.materialExpenses)
+              .where('propertyId', isEqualTo: propertyId)
+              .where('archived', isEqualTo: false)
+              .orderBy('date', descending: true)
+              .snapshots()
+              .map(
+                (snapshot) => snapshot.docs
+                    .map((doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()))
+                    .toList(),
+              );
 
-    return _firestore
-        .collection(FirestorePaths.materialExpenses)
-        .where('propertyId', isEqualTo: propertyId)
-        .where('archived', isEqualTo: false)
-        .orderBy('date', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+    return CachePolicy.watchList(
+      cache: _cache,
+      cacheKey: CacheKeys.materialExpensesByProperty(propertyId),
+      source: source,
+      encode: _serializeMaterialExpense,
+      decode: _deserializeMaterialExpense,
+    );
   }
 
   Future<String> save(MaterialExpenseEntry entry) async {
@@ -101,5 +116,14 @@ final materialExpenseRepositoryProvider = Provider<MaterialExpenseRepository>((
   return MaterialExpenseRepository(
     ref.watch(firestoreProvider),
     ref.watch(uuidProvider),
+    ref.watch(localCacheServiceProvider),
   );
 });
+
+Map<String, dynamic> _serializeMaterialExpense(MaterialExpenseEntry entry) {
+  return {...entry.toMap(), 'id': entry.id};
+}
+
+MaterialExpenseEntry _deserializeMaterialExpense(Map<String, dynamic> map) {
+  return MaterialExpenseEntry.fromMap(map['id'] as String? ?? '', map);
+}

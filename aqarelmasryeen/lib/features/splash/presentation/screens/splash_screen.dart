@@ -1,5 +1,6 @@
 import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/config/app_config.dart';
+import 'package:aqarelmasryeen/core/widgets/app_loading_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/controllers/auth_bootstrap_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,26 +20,23 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _initializeNotifications();
-      }
-    });
+    _initializeNotifications();
   }
 
   Future<void> _initializeNotifications() async {
-    if (_notificationReady) return;
+    if (_notificationReady) {
+      return;
+    }
+
     _notificationReady = true;
     try {
-      await ref
-          .read(notificationServiceProvider)
-          .initialize(
-            onNotificationTap: (payload) {
-              if (mounted) {
-                context.go(payload.route);
-              }
-            },
-          );
+      await ref.read(notificationServiceProvider).initialize(
+        onNotificationTap: (payload) {
+          if (mounted) {
+            context.go(payload.route);
+          }
+        },
+      );
     } catch (error, stackTrace) {
       debugPrint('Notification initialization failed on splash: $error');
       debugPrintStack(stackTrace: stackTrace, maxFrames: 6);
@@ -46,10 +44,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   void _scheduleNavigation(String route) {
-    if (_pendingRoute == route) return;
+    if (_pendingRoute == route) {
+      return;
+    }
+
     _pendingRoute = route;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _pendingRoute != route) return;
+      if (!mounted || _pendingRoute != route) {
+        return;
+      }
       context.go(route);
     });
   }
@@ -94,26 +97,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       Text(
                         AppConfig.appName,
                         textAlign: TextAlign.center,
-                        style:
-                            (isCompact
-                                    ? theme.textTheme.titleMedium
-                                    : theme.textTheme.titleLarge)
-                                ?.copyWith(fontWeight: FontWeight.w700),
+                        style: (isCompact
+                                ? theme.textTheme.titleMedium
+                                : theme.textTheme.titleLarge)
+                            ?.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 16),
                       decision.when(
                         data: (decision) {
                           _scheduleNavigation(decision.route);
-                          return const SizedBox(
-                            width: 28,
-                            height: 28,
-                            child: CircularProgressIndicator(strokeWidth: 2.4),
+                          return const AppLoadingView(
+                            label: 'تم العثور على أفضل مسار للدخول',
+                            message: 'يجري فتح الشاشة المناسبة الآن.',
+                            padding: EdgeInsets.zero,
                           );
                         },
-                        loading: () => const SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: CircularProgressIndicator(strokeWidth: 2.4),
+                        loading: () => const AppLoadingView(
+                          label: 'جار التحقق من الجلسة الحالية',
+                          message: 'يتم استخدام البيانات المحلية أولاً ثم تحديث الحالة عند الحاجة.',
+                          padding: EdgeInsets.zero,
                         ),
                         error: (error, stackTrace) => Text(
                           error.toString(),
