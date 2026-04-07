@@ -1,13 +1,11 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
+import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
-import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
-import 'package:aqarelmasryeen/features/expenses/domain/materials_ledger_calculator.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/expense_form_sheet.dart';
-import 'package:aqarelmasryeen/features/expenses/presentation/material_expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
 import 'package:aqarelmasryeen/features/installments/presentation/installment_form_sheet.dart';
 import 'package:aqarelmasryeen/features/notifications/data/financial_notification_coordinator.dart';
@@ -15,7 +13,6 @@ import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/payments/presentation/payment_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_expenses_workspace.dart';
-import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_material_entries_table.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_sales_workspace.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_unit_detail_view.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
@@ -35,10 +32,12 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
     super.key,
     required this.propertyId,
     this.unitId,
+    this.showExpensesOnly,
   });
 
   final String propertyId;
   final String? unitId;
+  final bool? showExpensesOnly;
 
   @override
   ConsumerState<PropertyDetailScreen> createState() =>
@@ -46,8 +45,7 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
-  int _primaryTabIndex = 0;
-  int _expensesLedgerIndex = 0;
+  bool get _showExpensesOnly => widget.showExpensesOnly == true;
 
   Future<void> _showUnitSheet({UnitSale? unit}) {
     return showModalBottomSheet<void>(
@@ -71,16 +69,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         partners: partners,
         expense: expense,
       ),
-    );
-  }
-
-  Future<void> _showMaterialSheet({MaterialExpenseEntry? entry}) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) =>
-          MaterialExpenseFormSheet(propertyId: widget.propertyId, entry: entry),
     );
   }
 
@@ -208,17 +196,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     await ref.read(expenseRepositoryProvider).softDelete(expense.id);
   }
 
-  Future<void> _deleteMaterial(MaterialExpenseEntry entry) async {
-    final confirmed = await _confirm(
-      'حذف فاتورة مواد',
-      'سيتم أرشفة فاتورة المواد من الجداول النشطة.',
-    );
-    if (!confirmed) {
-      return;
-    }
-    await ref.read(materialExpenseRepositoryProvider).softDelete(entry.id);
-  }
-
   Future<void> _showInstallmentPaymentsSheet(InstallmentComputedRow row) {
     return showModalBottomSheet<void>(
       context: context,
@@ -271,86 +248,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   ),
                 ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showPartnerHistorySheet(
-    Partner partner,
-    List<PartnerLedgerEntry> entries,
-  ) {
-    return showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      useSafeArea: true,
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'سجل ${partner.name}',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                entries.isEmpty
-                    ? 'لا توجد حركة مسجلة لهذا الشريك.'
-                    : 'كل الحركات الخاصة بالشريك داخل هذا العقار.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (entries.isEmpty)
-                const ListTile(title: Text('لا توجد بيانات'))
-              else
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: entries.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final entry = entries[index];
-                      return ListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: Text(entry.entryType.label),
-                        subtitle: Text(entry.notes.isEmpty ? '-' : entry.notes),
-                        trailing: Text(entry.amount.egp),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showSupplierEntriesSheet(
-    SupplierLedgerSummary summary,
-    List<MaterialExpenseEntry> rows,
-  ) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (_) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-          child: PropertyMaterialEntriesTable(
-            title: 'شيت ${summary.supplierName}',
-            rows: rows,
-            onEdit: (entry) => _showMaterialSheet(entry: entry),
-            onDelete: _deleteMaterial,
           ),
         ),
       ),
@@ -490,72 +387,56 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
               icon: const Icon(Icons.add_business_outlined),
             ),
             IconButton(
-              tooltip: 'إضافة مصروف',
-              onPressed: () => _showExpenseSheet(partners: data.partners),
-              icon: const Icon(Icons.receipt_long_outlined),
+              tooltip: 'مواد البناء',
+              onPressed: () =>
+                  context.push(AppRoutes.propertyMaterials(widget.propertyId)),
+              icon: const Icon(Icons.inventory_2_outlined),
             ),
           ],
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+            padding: const EdgeInsets.fromLTRB(6, 8, 6, 24),
             children: [
               _PropertyHeroCard(
                 data: data,
                 onAddUnit: () => _showUnitSheet(),
-                onAddExpense: () => _showExpenseSheet(partners: data.partners),
-                onAddMaterial: _showMaterialSheet,
+                onOpenMaterials: () => context.push(
+                  AppRoutes.propertyMaterials(widget.propertyId),
+                ),
               ),
               const SizedBox(height: 16),
               _PrimarySwitchCard(
-                selectedIndex: _primaryTabIndex,
-                onChanged: (index) => setState(() => _primaryTabIndex = index),
+                selectedIndex: _showExpensesOnly ? 1 : 0,
+                onChanged: (index) {
+                  if (index == 1 && !_showExpensesOnly) {
+                    context.push(AppRoutes.propertyExpenses(widget.propertyId));
+                  }
+                  if (index == 0 && _showExpensesOnly) {
+                    context.go(AppRoutes.propertyDetails(widget.propertyId));
+                  }
+                },
               ),
               const SizedBox(height: 16),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeOutCubic,
-                child: _primaryTabIndex != 0
-                    ? PropertyExpensesWorkspace(
-                        key: const ValueKey('expenses'),
-                        data: data,
-                        selectedLedgerIndex: _expensesLedgerIndex,
-                        onLedgerIndexChanged: (index) =>
-                            setState(() => _expensesLedgerIndex = index),
-                        onAddExpense: () =>
-                            _showExpenseSheet(partners: data.partners),
-                        onEditExpense: (expense) => _showExpenseSheet(
-                          expense: expense,
-                          partners: data.partners,
-                        ),
-                        onDeleteExpense: _deleteExpense,
-                        onAddMaterial: _showMaterialSheet,
-                        onEditMaterial: (entry) =>
-                            _showMaterialSheet(entry: entry),
-                        onDeleteMaterial: _deleteMaterial,
-                        onOpenPartnerHistory: (partner) =>
-                            _showPartnerHistorySheet(
-                              partner,
-                              data.partnerEntriesByPartner[partner.id] ??
-                                  const <PartnerLedgerEntry>[],
-                            ),
-                        onOpenSupplierSheet: (summary) =>
-                            _showSupplierEntriesSheet(
-                              summary,
-                              data.materials
-                                  .where(
-                                    (entry) =>
-                                        entry.supplierName.trim() ==
-                                        summary.supplierName.trim(),
-                                  )
-                                  .toList(),
-                            ),
-                      )
-                    : PropertySalesWorkspace(
-                        key: const ValueKey('sales'),
-                        data: data,
-                        onAddUnit: () => _showUnitSheet(),
+              _showExpensesOnly
+                  ? PropertyExpensesWorkspace(
+                      key: const ValueKey('expenses'),
+                      data: data,
+                      onOpenMaterials: () => context.push(
+                        AppRoutes.propertyMaterials(widget.propertyId),
                       ),
-              ),
+                      onOpenDetailedExpenses: () => context.push(
+                        AppRoutes.propertyExpenseDetails(widget.propertyId),
+                      ),
+                      onEditExpense: (expense) => _showExpenseSheet(
+                        expense: expense,
+                        partners: data.partners,
+                      ),
+                      onDeleteExpense: _deleteExpense,
+                    )
+                  : PropertySalesWorkspace(
+                      key: const ValueKey('sales'),
+                      data: data,
+                      onAddUnit: () => _showUnitSheet(),
+                    ),
             ],
           ),
         );
@@ -568,14 +449,12 @@ class _PropertyHeroCard extends StatelessWidget {
   const _PropertyHeroCard({
     required this.data,
     required this.onAddUnit,
-    required this.onAddExpense,
-    required this.onAddMaterial,
+    required this.onOpenMaterials,
   });
 
   final PropertyProjectViewData data;
   final VoidCallback onAddUnit;
-  final VoidCallback onAddExpense;
-  final VoidCallback onAddMaterial;
+  final VoidCallback onOpenMaterials;
 
   @override
   Widget build(BuildContext context) {
@@ -623,10 +502,7 @@ class _PropertyHeroCard extends StatelessWidget {
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8F8F4),
                   borderRadius: BorderRadius.circular(999),
@@ -644,8 +520,8 @@ class _PropertyHeroCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Wrap(
-            spacing: 10,
-            runSpacing: 10,
+            spacing: 6,
+            runSpacing: 6,
             children: [
               _HeroMetric(label: 'المبيعات', value: data.totalSalesValue.egp),
               _HeroMetric(
@@ -653,12 +529,8 @@ class _PropertyHeroCard extends StatelessWidget {
                 value: data.totalProjectExpenses.egp,
               ),
               _HeroMetric(
-                label: 'الوحدات',
+                label: 'الشقق',
                 value: '${data.unitSummaries.length}',
-              ),
-              _HeroMetric(
-                label: 'الموردين',
-                value: data.materialsSnapshot.overallRemaining.egp,
               ),
             ],
           ),
@@ -673,12 +545,7 @@ class _PropertyHeroCard extends StatelessWidget {
                 label: const Text('إضافة وحدة'),
               ),
               FilledButton.tonalIcon(
-                onPressed: onAddExpense,
-                icon: const Icon(Icons.receipt_long_outlined),
-                label: const Text('إضافة مصروف'),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: onAddMaterial,
+                onPressed: onOpenMaterials,
                 icon: const Icon(Icons.inventory_2_outlined),
                 label: const Text('مواد البناء'),
               ),
@@ -801,7 +668,9 @@ class _PrimarySwitchChip extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
-              color: selected ? const Color(0xFF123A33) : Colors.transparent,
+              color: selected
+                  ? const Color.fromARGB(255, 10, 17, 16)
+                  : Colors.transparent,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

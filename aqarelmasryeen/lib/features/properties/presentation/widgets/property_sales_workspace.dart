@@ -1,8 +1,9 @@
+// ignore_for_file: unused_element
+
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
-import 'package:aqarelmasryeen/core/widgets/summary_card.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/property_detail_presenters.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/financial_ledger_table.dart';
@@ -25,8 +26,6 @@ class PropertySalesWorkspace extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SalesSummaryGrid(data: data),
-        const SizedBox(height: 16),
         _UnitsOverviewPanel(data: data, onAddUnit: onAddUnit),
         const SizedBox(height: 16),
         FinancialLedgerTable<UnitSaleComputedSummary>(
@@ -141,44 +140,44 @@ class PropertySalesWorkspace extends StatelessWidget {
   }
 }
 
-class _SalesSummaryGrid extends StatelessWidget {
-  const _SalesSummaryGrid({required this.data});
+// class _SalesSummaryGrid extends StatelessWidget {
+//   const _SalesSummaryGrid({required this.data});
 
-  final PropertyProjectViewData data;
+//   final PropertyProjectViewData data;
 
-  @override
-  Widget build(BuildContext context) {
-    return _ResponsiveGrid(
-      children: [
-        SummaryCard(
-          label: 'الوحدات',
-          value: '${data.unitSummaries.length}',
-          subtitle: 'إجمالي الوحدات المسجلة داخل العقار',
-          icon: Icons.apartment_outlined,
-          emphasis: true,
-        ),
-        SummaryCard(
-          label: 'إجمالي المبيعات',
-          value: data.totalSalesValue.egp,
-          subtitle: 'قيمة العقود المباعة حتى الآن',
-          icon: Icons.sell_outlined,
-        ),
-        SummaryCard(
-          label: 'الأقساط المحصلة',
-          value: data.totalPaidInstallments.egp,
-          subtitle: 'ما تم تحصيله من جداول الأقساط',
-          icon: Icons.payments_outlined,
-        ),
-        SummaryCard(
-          label: 'الأقساط المتبقية',
-          value: data.totalRemainingInstallments.egp,
-          subtitle: 'رصيد الأقساط المفتوح داخل العقار',
-          icon: Icons.schedule_outlined,
-        ),
-      ],
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return _ResponsiveGrid(
+//       children: [
+//         SummaryCard(
+//           label: 'الوحدات',
+//           value: '${data.unitSummaries.length}',
+//           subtitle: 'إجمالي الوحدات المسجلة داخل العقار',
+//           icon: Icons.apartment_outlined,
+//           emphasis: true,
+//         ),
+//         SummaryCard(
+//           label: 'إجمالي المبيعات',
+//           value: data.totalSalesValue.egp,
+//           subtitle: 'قيمة العقود المباعة حتى الآن',
+//           icon: Icons.sell_outlined,
+//         ),
+//         SummaryCard(
+//           label: 'الأقساط المحصلة',
+//           value: data.totalPaidInstallments.egp,
+//           subtitle: 'ما تم تحصيله من جداول الأقساط',
+//           icon: Icons.payments_outlined,
+//         ),
+//         SummaryCard(
+//           label: 'الأقساط المتبقية',
+//           value: data.totalRemainingInstallments.egp,
+//           subtitle: 'رصيد الأقساط المفتوح داخل العقار',
+//           icon: Icons.schedule_outlined,
+//         ),
+//       ],
+//     );
+//   }
+// }
 
 class _UnitsOverviewPanel extends StatelessWidget {
   const _UnitsOverviewPanel({required this.data, required this.onAddUnit});

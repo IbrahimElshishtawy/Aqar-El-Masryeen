@@ -15,7 +15,9 @@ import 'package:aqarelmasryeen/features/partners/presentation/partners_screen.da
 import 'package:aqarelmasryeen/features/profile/presentation/profile_screen.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/properties_screen.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/property_detail_screen.dart';
+import 'package:aqarelmasryeen/features/properties/presentation/property_expenses_detail_screen.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/property_form_screen.dart';
+import 'package:aqarelmasryeen/features/properties/presentation/property_materials_screen.dart';
 import 'package:aqarelmasryeen/features/security/presentation/screens/unlock_screen.dart';
 import 'package:aqarelmasryeen/features/settings/presentation/settings_screen.dart';
 import 'package:aqarelmasryeen/features/splash/presentation/screens/splash_screen.dart';
@@ -99,6 +101,36 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   state: state,
                   child: PropertyFormScreen(
                     propertyId: state.pathParameters['propertyId'],
+                  ),
+                ),
+              ),
+              GoRoute(
+                path: 'expenses',
+                pageBuilder: (context, state) => _buildAppPage(
+                  state: state,
+                  child: PropertyDetailScreen(
+                    propertyId: state.pathParameters['propertyId'] ?? '',
+                    showExpensesOnly: true,
+                  ),
+                ),
+                routes: [
+                  GoRoute(
+                    path: 'details',
+                    pageBuilder: (context, state) => _buildAppPage(
+                      state: state,
+                      child: PropertyExpensesDetailScreen(
+                        propertyId: state.pathParameters['propertyId'] ?? '',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              GoRoute(
+                path: 'materials',
+                pageBuilder: (context, state) => _buildAppPage(
+                  state: state,
+                  child: PropertyMaterialsScreen(
+                    propertyId: state.pathParameters['propertyId'] ?? '',
                   ),
                 ),
               ),
