@@ -5,6 +5,7 @@ class Partner {
   const Partner({
     required this.id,
     required this.userId,
+    required this.linkedEmail,
     required this.name,
     required this.shareRatio,
     required this.contributionTotal,
@@ -14,6 +15,7 @@ class Partner {
 
   final String id;
   final String userId;
+  final String linkedEmail;
   final String name;
   final double shareRatio;
   final double contributionTotal;
@@ -23,6 +25,7 @@ class Partner {
   Map<String, dynamic> toMap() {
     return {
       'userId': userId,
+      'linkedEmail': linkedEmail,
       'name': name,
       'shareRatio': shareRatio,
       'contributionTotal': contributionTotal,
@@ -36,6 +39,7 @@ class Partner {
     return Partner(
       id: id,
       userId: data['userId'] as String? ?? '',
+      linkedEmail: data['linkedEmail'] as String? ?? '',
       name: data['name'] as String? ?? '',
       shareRatio: parseDouble(data['shareRatio']),
       contributionTotal: parseDouble(data['contributionTotal']),
@@ -47,6 +51,7 @@ class Partner {
   Partner copyWith({
     String? id,
     String? userId,
+    String? linkedEmail,
     String? name,
     double? shareRatio,
     double? contributionTotal,
@@ -56,6 +61,7 @@ class Partner {
     return Partner(
       id: id ?? this.id,
       userId: userId ?? this.userId,
+      linkedEmail: linkedEmail ?? this.linkedEmail,
       name: name ?? this.name,
       shareRatio: shareRatio ?? this.shareRatio,
       contributionTotal: contributionTotal ?? this.contributionTotal,
@@ -124,6 +130,7 @@ class AppNotificationItem {
     required this.isRead,
     required this.createdAt,
     this.referenceKey = '',
+    this.metadata = const {},
   });
 
   final String id;
@@ -135,6 +142,7 @@ class AppNotificationItem {
   final bool isRead;
   final DateTime createdAt;
   final String referenceKey;
+  final Map<String, dynamic> metadata;
 
   Map<String, dynamic> toMap() {
     return {
@@ -146,6 +154,7 @@ class AppNotificationItem {
       'isRead': isRead,
       'createdAt': createdAt,
       'referenceKey': referenceKey,
+      'metadata': metadata,
     };
   }
 
@@ -164,6 +173,7 @@ class AppNotificationItem {
       isRead: data['isRead'] as bool? ?? false,
       createdAt: parseDate(data['createdAt']),
       referenceKey: data['referenceKey'] as String? ?? '',
+      metadata: Map<String, dynamic>.from(data['metadata'] as Map? ?? const {}),
     );
   }
 
@@ -177,6 +187,7 @@ class AppNotificationItem {
     bool? isRead,
     DateTime? createdAt,
     String? referenceKey,
+    Map<String, dynamic>? metadata,
   }) {
     return AppNotificationItem(
       id: id ?? this.id,
@@ -188,6 +199,7 @@ class AppNotificationItem {
       isRead: isRead ?? this.isRead,
       createdAt: createdAt ?? this.createdAt,
       referenceKey: referenceKey ?? this.referenceKey,
+      metadata: metadata ?? this.metadata,
     );
   }
 }

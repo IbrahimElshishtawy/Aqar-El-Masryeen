@@ -53,6 +53,7 @@ class NotificationRepository {
     required NotificationType type,
     required String route,
     String? referenceKey,
+    Map<String, dynamic>? metadata,
   }) {
     final id = referenceKey?.trim().isNotEmpty == true
         ? referenceKey!.trim()
@@ -69,6 +70,7 @@ class NotificationRepository {
           isRead: false,
           createdAt: DateTime.now(),
           referenceKey: referenceKey ?? '',
+          metadata: metadata ?? const {},
         ),
       );
     }
@@ -81,6 +83,7 @@ class NotificationRepository {
       'isRead': false,
       'createdAt': DateTime.now(),
       'referenceKey': referenceKey ?? '',
+      'metadata': metadata ?? const {},
     });
   }
 

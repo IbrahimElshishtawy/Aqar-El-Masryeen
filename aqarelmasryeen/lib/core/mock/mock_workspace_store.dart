@@ -45,6 +45,14 @@ class MockWorkspaceStore {
 
   AppUser profileForUid(String uid) => _profile.copyWith(uid: uid);
 
+  AppUser? profileByEmail(String email) {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (_profile.email.trim().toLowerCase() == normalizedEmail) {
+      return _profile;
+    }
+    return null;
+  }
+
   void updateProfile({
     String? uid,
     String? fullName,
@@ -378,6 +386,7 @@ class MockWorkspaceStore {
       Partner(
         id: 'partner_1',
         userId: 'mock-user',
+        linkedEmail: 'demo@mock.local',
         name: 'Ahmed El Masry',
         shareRatio: 0.5,
         contributionTotal: 900000,
@@ -387,6 +396,7 @@ class MockWorkspaceStore {
       Partner(
         id: 'partner_2',
         userId: 'partner-user-2',
+        linkedEmail: 'mohamed@mock.local',
         name: 'Mohamed Khaled',
         shareRatio: 0.3,
         contributionTotal: 540000,
@@ -395,7 +405,8 @@ class MockWorkspaceStore {
       ),
       Partner(
         id: 'partner_3',
-        userId: 'partner-user-3',
+        userId: '',
+        linkedEmail: 'demo@mock.local',
         name: 'Sara Ali',
         shareRatio: 0.2,
         contributionTotal: 360000,
@@ -849,6 +860,7 @@ class MockWorkspaceStore {
         isRead: false,
         createdAt: now.subtract(const Duration(hours: 8)),
         referenceKey: 'installment-overdue-inst_4',
+        metadata: const {},
       ),
       AppNotificationItem(
         id: 'notification_2',
@@ -860,6 +872,25 @@ class MockWorkspaceStore {
         isRead: true,
         createdAt: now.subtract(const Duration(days: 1)),
         referenceKey: 'supplier-due-material_2',
+        metadata: const {},
+      ),
+      AppNotificationItem(
+        id: 'notification_3',
+        userId: 'mock-user',
+        title: 'طلب شراكة جديد',
+        body: 'Sara Ali أرسلت طلب ربط شريك على هذا الحساب.',
+        type: NotificationType.partnerLinkRequest,
+        route: AppRoutes.partners,
+        isRead: false,
+        createdAt: now.subtract(const Duration(hours: 2)),
+        referenceKey: 'partner-link-request-partner_3-mock-user',
+        metadata: const {
+          'partnerId': 'partner_3',
+          'requesterUserId': 'partner-user-3',
+          'requesterName': 'Sara Ali',
+          'requesterEmail': 'sara@mock.local',
+          'partnerName': 'Sara Ali',
+        },
       ),
     ];
 

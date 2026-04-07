@@ -1,5 +1,6 @@
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
+import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/app_user.dart';
 import 'package:aqarelmasryeen/shared/models/auth_device_info.dart';
@@ -25,6 +26,27 @@ class UserProfileRemoteDataSource {
     final snapshot = await _users.doc(uid).get();
     if (!snapshot.exists) return null;
     return AppUser.fromMap(uid, snapshot.data());
+  }
+
+  Future<AppUser?> fetchProfileByEmail(String email) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.isEmpty) {
+      return null;
+    }
+
+    if (AppConfig.useMockData) {
+      return MockWorkspaceStore.instance.profileByEmail(normalizedEmail);
+    }
+
+    final snapshot = await _users
+        .where('email', isEqualTo: normalizedEmail)
+        .limit(1)
+        .get();
+    if (snapshot.docs.isEmpty) {
+      return null;
+    }
+    final doc = snapshot.docs.first;
+    return AppUser.fromMap(doc.id, doc.data());
   }
 
   Future<void> createOrMergeProfile({

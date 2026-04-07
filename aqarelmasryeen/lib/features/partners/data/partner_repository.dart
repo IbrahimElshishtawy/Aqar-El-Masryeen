@@ -48,6 +48,7 @@ class PartnerRepository {
         Partner(
           id: id,
           userId: partner.userId,
+          linkedEmail: partner.linkedEmail,
           name: partner.name,
           shareRatio: partner.shareRatio,
           contributionTotal: partner.contributionTotal,

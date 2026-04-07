@@ -34,6 +34,8 @@ enum NotificationType {
   supplierPaymentDue,
   largeExpenseRecorded,
   ledgerUpdated,
+  partnerLinkRequest,
+  partnerLinkAccepted,
   newDeviceLogin,
   systemAlert,
 }
@@ -148,6 +150,10 @@ extension EnumLabelX on Enum {
         return 'مصروف كبير مسجل';
       case NotificationType.ledgerUpdated:
         return 'تم تحديث السجل';
+      case NotificationType.partnerLinkRequest:
+        return 'طلب ربط شريك';
+      case NotificationType.partnerLinkAccepted:
+        return 'تم قبول الربط';
       case NotificationType.newDeviceLogin:
         return 'دخول من جهاز جديد';
       case NotificationType.systemAlert:

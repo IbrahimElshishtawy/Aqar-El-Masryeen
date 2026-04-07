@@ -1,7 +1,14 @@
+import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
+import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
+import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
+import 'package:aqarelmasryeen/features/auth/presentation/auth_validators.dart';
+import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
+import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
+import 'package:aqarelmasryeen/shared/models/app_user.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -20,6 +27,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _shareController;
   late final TextEditingController _contributionController;
+  late final TextEditingController _emailController;
   bool _linkToCurrentAccount = false;
   bool _saving = false;
 
@@ -37,7 +45,10 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
           ? '0'
           : widget.partner!.contributionTotal.toStringAsFixed(0),
     );
-    _linkToCurrentAccount = (widget.partner?.userId ?? '').isNotEmpty;
+    _emailController = TextEditingController(
+      text: widget.partner?.linkedEmail ?? '',
+    );
+    _linkToCurrentAccount = false;
   }
 
   @override
@@ -45,6 +56,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
     _nameController.dispose();
     _shareController.dispose();
     _contributionController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -53,42 +65,147 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) return;
 
+    final currentEmail = _resolveSessionEmail(session);
+    final normalizedEmail = _linkToCurrentAccount
+        ? currentEmail
+        : _emailController.text.trim().toLowerCase();
+
     setState(() => _saving = true);
-    final now = DateTime.now();
-    final partner = Partner(
-      id: widget.partner?.id ?? '',
-      userId: _linkToCurrentAccount ? session.userId : '',
-      name: _nameController.text.trim(),
-      shareRatio: (double.tryParse(_shareController.text.trim()) ?? 0) / 100,
-      contributionTotal:
-          double.tryParse(_contributionController.text.trim()) ?? 0,
-      createdAt: widget.partner?.createdAt ?? now,
-      updatedAt: now,
-    );
 
-    final partnerId = await ref.read(partnerRepositoryProvider).upsert(partner);
-    await ref
-        .read(activityRepositoryProvider)
-        .log(
-          actorId: session.userId,
-          actorName: session.profile?.name ?? 'شريك',
-          action: widget.partner == null
-              ? 'partner_created'
-              : 'partner_updated',
-          entityType: 'partner',
-          entityId: partnerId,
-          metadata: {
-            'shareRatio': partner.shareRatio,
-            'contributionTotal': partner.contributionTotal,
-            'linkedToCurrentUser': _linkToCurrentAccount,
-          },
+    try {
+      final existingPartners = await ref
+          .read(partnerRepositoryProvider)
+          .watchPartners()
+          .first;
+
+      AppUser? targetProfile;
+      var linkedUserId = '';
+      var requestSent = false;
+
+      if (normalizedEmail.isNotEmpty) {
+        if (normalizedEmail == currentEmail) {
+          linkedUserId = session.userId;
+        } else {
+          targetProfile = await ref
+              .read(userProfileRemoteDataSourceProvider)
+              .fetchProfileByEmail(normalizedEmail);
+          if (targetProfile == null) {
+            _showMessage('لا يوجد حساب مسجل بهذا البريد الإلكتروني.');
+            return;
+          }
+          if (widget.partner?.userId == targetProfile.uid) {
+            linkedUserId = targetProfile.uid;
+          } else {
+            requestSent = true;
+          }
+        }
+      }
+
+      final now = DateTime.now();
+      final partner = Partner(
+        id: widget.partner?.id ?? '',
+        userId: linkedUserId,
+        linkedEmail: normalizedEmail,
+        name: _nameController.text.trim(),
+        shareRatio: (double.tryParse(_shareController.text.trim()) ?? 0) / 100,
+        contributionTotal:
+            double.tryParse(_contributionController.text.trim()) ?? 0,
+        createdAt: widget.partner?.createdAt ?? now,
+        updatedAt: now,
+      );
+
+      final partnerId = await ref.read(partnerRepositoryProvider).upsert(partner);
+
+      if (linkedUserId == session.userId) {
+        await _unlinkOtherPartners(
+          partners: existingPartners,
+          linkedUserId: session.userId,
+          keepPartnerId: partnerId,
         );
+      }
 
-    if (mounted) Navigator.of(context).pop();
+      if (requestSent && targetProfile != null) {
+        await ref
+            .read(notificationRepositoryProvider)
+            .create(
+              userId: targetProfile.uid,
+              title: 'طلب شراكة جديد',
+              body:
+                  '${session.profile?.name ?? 'شريك'} أرسل طلب ربط للشريك ${partner.name}.',
+              type: NotificationType.partnerLinkRequest,
+              route: AppRoutes.partners,
+              referenceKey:
+                  'partner-link-request-$partnerId-${targetProfile.uid}',
+              metadata: {
+                'partnerId': partnerId,
+                'partnerName': partner.name,
+                'requesterUserId': session.userId,
+                'requesterName': session.profile?.name ?? 'شريك',
+                'requesterEmail': currentEmail,
+              },
+            );
+      }
+
+      await ref
+          .read(activityRepositoryProvider)
+          .log(
+            actorId: session.userId,
+            actorName: session.profile?.name ?? 'Ø´Ø±ÙŠÙƒ',
+            action: widget.partner == null ? 'partner_created' : 'partner_updated',
+            entityType: 'partner',
+            entityId: partnerId,
+            metadata: {
+              'shareRatio': partner.shareRatio,
+              'contributionTotal': partner.contributionTotal,
+              'linkedEmail': partner.linkedEmail,
+              'linkedToCurrentUser': linkedUserId == session.userId,
+              'requestSent': requestSent,
+            },
+          );
+
+      if (!mounted) return;
+      _showMessage(
+        requestSent
+            ? 'تم حفظ الشريك وإرسال طلب الربط على البريد.'
+            : linkedUserId == session.userId
+            ? 'تم حفظ الشريك وربطه بالحساب الحالي.'
+            : 'تم حفظ بيانات الشريك.',
+      );
+      Navigator.of(context).pop();
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  Future<void> _unlinkOtherPartners({
+    required List<Partner> partners,
+    required String linkedUserId,
+    required String keepPartnerId,
+  }) async {
+    for (final partner in partners) {
+      if (partner.userId != linkedUserId || partner.id == keepPartnerId) {
+        continue;
+      }
+      await ref.read(partnerRepositoryProvider).upsert(
+            partner.copyWith(
+              userId: '',
+              linkedEmail: '',
+              updatedAt: DateTime.now(),
+            ),
+          );
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return AppFormSheet(
       title: widget.partner == null ? 'إضافة شريك' : 'تعديل الشريك',
       child: Form(
@@ -130,19 +247,51 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               value: _linkToCurrentAccount,
-              onChanged: (value) =>
-                  setState(() => _linkToCurrentAccount = value),
-              title: const Text('ربط هذا الشريك بالحساب الحالي'),
+              onChanged: (value) => setState(() {
+                _linkToCurrentAccount = value;
+                if (value) {
+                  final session = ref.read(authSessionProvider).valueOrNull;
+                  _emailController.text = _resolveSessionEmail(session);
+                }
+              }),
+              title: const Text('ربط بالحساب الحالي مباشرة'),
               subtitle: const Text(
-                'عند التفعيل ستظهر بيانات هذا الشريك مباشرة داخل الرئيسية ولوحة المتابعة.',
+                'فعّل هذا الخيار لو الشريك هو نفس الحساب المفتوح الآن.',
               ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              controller: _emailController,
+              enabled: !_linkToCurrentAccount,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: 'بريد حساب الشريك',
+                helperText:
+                    'اكتب بريد الشريك لإرسال طلب ربط، وبعد الموافقة يظهر الربط تلقائيًا.',
+                helperStyle: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.secondary,
+                ),
+              ),
+              validator: (value) {
+                final text = (value ?? '').trim();
+                if (text.isEmpty) {
+                  return null;
+                }
+                return AuthValidators.email(text);
+              },
             ),
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'جار الحفظ...' : 'حفظ الشريك'),
+                child: Text(
+                  _saving
+                      ? 'جار الحفظ...'
+                      : _linkToCurrentAccount
+                      ? 'حفظ وربط'
+                      : 'حفظ / إرسال طلب',
+                ),
               ),
             ),
           ],
@@ -150,4 +299,12 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
       ),
     );
   }
+}
+
+String _resolveSessionEmail(AppSession? session) {
+  final profileEmail = session?.profile?.email.trim().toLowerCase() ?? '';
+  if (profileEmail.isNotEmpty) {
+    return profileEmail;
+  }
+  return session?.email?.trim().toLowerCase() ?? '';
 }
