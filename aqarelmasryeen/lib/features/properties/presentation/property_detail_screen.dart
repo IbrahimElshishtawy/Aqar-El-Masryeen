@@ -514,13 +514,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 duration: const Duration(milliseconds: 220),
                 switchInCurve: Curves.easeOutCubic,
                 switchOutCurve: Curves.easeOutCubic,
-                child: _primaryTabIndex == 0
-                    ? PropertySalesWorkspace(
-                        key: const ValueKey('sales'),
-                        data: data,
-                        onAddUnit: () => _showUnitSheet(),
-                      )
-                    : PropertyExpensesWorkspace(
+                child: _primaryTabIndex != 0
+                    ? PropertyExpensesWorkspace(
                         key: const ValueKey('expenses'),
                         data: data,
                         selectedLedgerIndex: _expensesLedgerIndex,
@@ -554,6 +549,11 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                                   )
                                   .toList(),
                             ),
+                      )
+                    : PropertySalesWorkspace(
+                        key: const ValueKey('sales'),
+                        data: data,
+                        onAddUnit: () => _showUnitSheet(),
                       ),
               ),
             ],
@@ -582,7 +582,7 @@ class _PropertyHeroCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(32),
+        borderRadius: BorderRadius.circular(22),
         color: theme.colorScheme.surface,
         border: Border.all(color: const Color(0xFFD8D8D2)),
         boxShadow: const [
@@ -593,7 +593,7 @@ class _PropertyHeroCard extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

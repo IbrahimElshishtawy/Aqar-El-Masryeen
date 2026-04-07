@@ -28,7 +28,7 @@ class SummaryCard extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isCompact = !splitLayout && constraints.maxWidth < 180;
+        final isCompact = !splitLayout && constraints.maxWidth < 140;
         final secondaryColor = emphasis
             ? Colors.white70
             : theme.colorScheme.secondary;
@@ -43,7 +43,7 @@ class SummaryCard extends StatelessWidget {
                   : const Color(0xFFD8D8D2),
             ),
           ),
-          padding: EdgeInsets.all(isCompact ? 14 : 17),
+          padding: EdgeInsets.all(isCompact ? 10 : 14),
           child: splitLayout
               ? _SplitSummaryContent(
                   label: label,
@@ -58,7 +58,7 @@ class SummaryCard extends StatelessWidget {
                   children: [
                     if (icon != null) ...[
                       Icon(icon, color: foreground, size: isCompact ? 17 : 18),
-                      SizedBox(height: isCompact ? 6 : 8),
+                      SizedBox(height: isCompact ? 3 : 4),
                     ],
                     Text(
                       label,
@@ -70,7 +70,7 @@ class SummaryCard extends StatelessWidget {
                         fontSize: isCompact ? 11 : 12,
                       ),
                     ),
-                    SizedBox(height: isCompact ? 6 : 4),
+                    SizedBox(height: isCompact ? 4 : 2),
                     Text(
                       value,
                       maxLines: 2,
@@ -187,7 +187,7 @@ class _SplitSummaryContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
-                flex: 6,
+                flex: 3,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
