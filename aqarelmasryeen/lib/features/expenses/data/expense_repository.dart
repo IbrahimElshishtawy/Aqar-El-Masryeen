@@ -1,7 +1,5 @@
 import 'package:aqarelmasryeen/app/providers.dart';
-import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
-import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
 import 'package:aqarelmasryeen/core/storage/cache_policy.dart';
 import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
@@ -18,20 +16,16 @@ class ExpenseRepository {
   final LocalCacheService _cache;
 
   Stream<List<ExpenseRecord>> watchAll() {
-    final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(
-            MockWorkspaceStore.instance.allExpenses,
-          )
-        : _firestore
-              .collection(FirestorePaths.expenses)
-              .where('archived', isEqualTo: false)
-              .orderBy('date', descending: true)
-              .snapshots()
-              .map(
-                (snapshot) => snapshot.docs
-                    .map((doc) => ExpenseRecord.fromMap(doc.id, doc.data()))
-                    .toList(),
-              );
+    final source = _firestore
+        .collection(FirestorePaths.expenses)
+        .where('archived', isEqualTo: false)
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ExpenseRecord.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
 
     return CachePolicy.watchList(
       cache: _cache,
@@ -43,21 +37,17 @@ class ExpenseRepository {
   }
 
   Stream<List<ExpenseRecord>> watchByProperty(String propertyId) {
-    final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(
-            () => MockWorkspaceStore.instance.expensesByProperty(propertyId),
-          )
-        : _firestore
-              .collection(FirestorePaths.expenses)
-              .where('propertyId', isEqualTo: propertyId)
-              .where('archived', isEqualTo: false)
-              .orderBy('date', descending: true)
-              .snapshots()
-              .map(
-                (snapshot) => snapshot.docs
-                    .map((doc) => ExpenseRecord.fromMap(doc.id, doc.data()))
-                    .toList(),
-              );
+    final source = _firestore
+        .collection(FirestorePaths.expenses)
+        .where('propertyId', isEqualTo: propertyId)
+        .where('archived', isEqualTo: false)
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => ExpenseRecord.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
 
     return CachePolicy.watchList(
       cache: _cache,
@@ -70,28 +60,6 @@ class ExpenseRepository {
 
   Future<String> save(ExpenseRecord expense) async {
     final id = expense.id.isEmpty ? _uuid.v4() : expense.id;
-    if (AppConfig.useMockData) {
-      await MockWorkspaceStore.instance.saveExpense(
-        ExpenseRecord(
-          id: id,
-          propertyId: expense.propertyId,
-          amount: expense.amount,
-          category: expense.category,
-          description: expense.description,
-          paidByPartnerId: expense.paidByPartnerId,
-          paymentMethod: expense.paymentMethod,
-          date: expense.date,
-          attachmentUrl: expense.attachmentUrl,
-          notes: expense.notes,
-          createdBy: expense.createdBy,
-          updatedBy: expense.updatedBy,
-          createdAt: expense.createdAt,
-          updatedAt: DateTime.now(),
-          archived: expense.archived,
-        ),
-      );
-      return id;
-    }
     await _firestore
         .collection(FirestorePaths.expenses)
         .doc(id)
@@ -108,9 +76,6 @@ class ExpenseRepository {
   }
 
   Future<void> softDelete(String expenseId) {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.softDeleteExpense(expenseId);
-    }
     return _firestore.collection(FirestorePaths.expenses).doc(expenseId).update(
       {'archived': true, 'updatedAt': DateTime.now()},
     );

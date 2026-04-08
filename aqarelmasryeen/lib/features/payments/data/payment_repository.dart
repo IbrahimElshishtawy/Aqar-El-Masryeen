@@ -1,7 +1,5 @@
 import 'package:aqarelmasryeen/app/providers.dart';
-import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
-import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
 import 'package:aqarelmasryeen/core/storage/cache_policy.dart';
 import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
@@ -18,19 +16,15 @@ class PaymentRepository {
   final LocalCacheService _cache;
 
   Stream<List<PaymentRecord>> watchAll() {
-    final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(
-            MockWorkspaceStore.instance.allPayments,
-          )
-        : _firestore
-              .collection(FirestorePaths.payments)
-              .orderBy('receivedAt', descending: true)
-              .snapshots()
-              .map(
-                (snapshot) => snapshot.docs
-                    .map((doc) => PaymentRecord.fromMap(doc.id, doc.data()))
-                    .toList(),
-              );
+    final source = _firestore
+        .collection(FirestorePaths.payments)
+        .orderBy('receivedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => PaymentRecord.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
 
     return CachePolicy.watchList(
       cache: _cache,
@@ -42,20 +36,16 @@ class PaymentRepository {
   }
 
   Stream<List<PaymentRecord>> watchByProperty(String propertyId) {
-    final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(
-            () => MockWorkspaceStore.instance.paymentsByProperty(propertyId),
-          )
-        : _firestore
-              .collection(FirestorePaths.payments)
-              .where('propertyId', isEqualTo: propertyId)
-              .orderBy('receivedAt', descending: true)
-              .snapshots()
-              .map(
-                (snapshot) => snapshot.docs
-                    .map((doc) => PaymentRecord.fromMap(doc.id, doc.data()))
-                    .toList(),
-              );
+    final source = _firestore
+        .collection(FirestorePaths.payments)
+        .where('propertyId', isEqualTo: propertyId)
+        .orderBy('receivedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => PaymentRecord.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
 
     return CachePolicy.watchList(
       cache: _cache,
@@ -67,20 +57,16 @@ class PaymentRepository {
   }
 
   Stream<List<PaymentRecord>> watchByUnit(String unitId) {
-    final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(
-            () => MockWorkspaceStore.instance.paymentsByUnit(unitId),
-          )
-        : _firestore
-              .collection(FirestorePaths.payments)
-              .where('unitId', isEqualTo: unitId)
-              .orderBy('receivedAt', descending: true)
-              .snapshots()
-              .map(
-                (snapshot) => snapshot.docs
-                    .map((doc) => PaymentRecord.fromMap(doc.id, doc.data()))
-                    .toList(),
-              );
+    final source = _firestore
+        .collection(FirestorePaths.payments)
+        .where('unitId', isEqualTo: unitId)
+        .orderBy('receivedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => PaymentRecord.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
 
     return CachePolicy.watchList(
       cache: _cache,
@@ -93,29 +79,6 @@ class PaymentRepository {
 
   Future<String> save(PaymentRecord payment) async {
     final id = payment.id.isEmpty ? _uuid.v4() : payment.id;
-    if (AppConfig.useMockData) {
-      await MockWorkspaceStore.instance.recordPayment(
-        PaymentRecord(
-          id: id,
-          propertyId: payment.propertyId,
-          unitId: payment.unitId,
-          payerName: payment.payerName,
-          customerName: payment.customerName,
-          installmentId: payment.installmentId,
-          amount: payment.amount,
-          receivedAt: payment.receivedAt,
-          paymentMethod: payment.paymentMethod,
-          paymentSource: payment.paymentSource,
-          notes: payment.notes,
-          createdAt: payment.createdAt,
-          updatedAt: DateTime.now(),
-          createdBy: payment.createdBy,
-          updatedBy: payment.updatedBy,
-        ),
-      );
-      return id;
-    }
-
     await _firestore
         .collection(FirestorePaths.payments)
         .doc(id)
@@ -132,10 +95,6 @@ class PaymentRepository {
   }
 
   Future<void> delete(String paymentId) async {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.deletePayment(paymentId);
-    }
-
     return _firestore
         .collection(FirestorePaths.payments)
         .doc(paymentId)

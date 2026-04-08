@@ -1,4 +1,3 @@
-import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
@@ -20,15 +19,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-
-  @override
-  void initState() {
-    super.initState();
-    if (AppConfig.useMockData) {
-      _emailController.text = AppConfig.mockPartnerEmail;
-      _passwordController.text = AppConfig.mockPartnerPassword;
-    }
-  }
 
   @override
   void dispose() {

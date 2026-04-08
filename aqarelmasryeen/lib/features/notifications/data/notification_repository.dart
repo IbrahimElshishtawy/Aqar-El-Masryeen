@@ -1,7 +1,5 @@
 import 'package:aqarelmasryeen/app/providers.dart';
-import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
-import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
 import 'package:aqarelmasryeen/core/storage/cache_policy.dart';
 import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
@@ -19,23 +17,17 @@ class NotificationRepository {
   final LocalCacheService _cache;
 
   Stream<List<AppNotificationItem>> watchNotifications(String userId) {
-    final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(
-            () => MockWorkspaceStore.instance.notificationsFor(userId),
-          )
-        : _firestore
-              .collection(FirestorePaths.notifications)
-              .where('userId', isEqualTo: userId)
-              .orderBy('createdAt', descending: true)
-              .limit(50)
-              .snapshots()
-              .map(
-                (snapshot) => snapshot.docs
-                    .map(
-                      (doc) => AppNotificationItem.fromMap(doc.id, doc.data()),
-                    )
-                    .toList(),
-              );
+    final source = _firestore
+        .collection(FirestorePaths.notifications)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .limit(50)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => AppNotificationItem.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
 
     return CachePolicy.watchList(
       cache: _cache,
@@ -58,22 +50,6 @@ class NotificationRepository {
     final id = referenceKey?.trim().isNotEmpty == true
         ? referenceKey!.trim()
         : _uuid.v4();
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.createNotification(
-        AppNotificationItem(
-          id: id,
-          userId: userId,
-          title: title,
-          body: body,
-          type: type,
-          route: route,
-          isRead: false,
-          createdAt: DateTime.now(),
-          referenceKey: referenceKey ?? '',
-          metadata: metadata ?? const {},
-        ),
-      );
-    }
     return _firestore.collection(FirestorePaths.notifications).doc(id).set({
       'userId': userId,
       'title': title,
@@ -103,9 +79,6 @@ class NotificationRepository {
   }
 
   Future<void> markRead(String notificationId) {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.markNotificationRead(notificationId);
-    }
     return _firestore
         .collection(FirestorePaths.notifications)
         .doc(notificationId)

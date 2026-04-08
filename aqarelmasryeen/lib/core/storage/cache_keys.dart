@@ -3,8 +3,6 @@ class CacheKeys {
 
   static const auth = 'cache.auth';
   static String authProfile(String uid) => '$auth.profile.$uid';
-  static const mockSessionActive = '$auth.mock_session_active';
-
   static const properties = 'cache.properties.all';
   static String property(String propertyId) => 'cache.properties.$propertyId';
 

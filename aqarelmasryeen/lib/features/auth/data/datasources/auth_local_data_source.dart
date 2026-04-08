@@ -39,12 +39,4 @@ class AuthLocalDataSource {
   Future<void> clearAllProfiles() async {
     await _cache.clearByPrefix('${CacheKeys.auth}.profile.');
   }
-
-  Future<bool> readMockSessionActive() async {
-    return await _cache.readBool(CacheKeys.mockSessionActive) ?? true;
-  }
-
-  Future<void> writeMockSessionActive(bool value) async {
-    await _cache.writeBool(CacheKeys.mockSessionActive, value);
-  }
 }

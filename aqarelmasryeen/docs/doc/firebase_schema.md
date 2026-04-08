@@ -1,34 +1,23 @@
-# Firebase Schema
+﻿# Firebase Schema
 
-## Overview
+هذا الملف هو النسخة التفصيلية للـ schema المطلوب في Firebase بناءً على الـ models والـ repositories الحالية في المشروع.
 
-المشروع يعتمد على:
-
-- Firebase Authentication
-- Cloud Firestore
-- Firebase Storage
-- Firebase Cloud Messaging
-
-هيكل البيانات الحالي في Firestore عبارة عن root collections وليس subcollections.
-
-## Main Collections
+## Main collections
 
 ### `users`
 
-يمثل حساب المستخدم داخل التطبيق، وهو مرتبط مباشرة بـ Firebase Auth UID.
-
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `uid` | `string` | yes | يجب أن يساوي `docId` و `request.auth.uid` |
+| `uid` | `string` | yes | يساوي `docId` و Firebase Auth UID |
 | `phone` | `string` | yes | رقم الهاتف |
 | `fullName` | `string` | yes | الاسم الكامل |
-| `name` | `string` | optional | نسخة مساعدة من الاسم |
+| `name` | `string` | yes | نسخة مساعدة من الاسم |
 | `email` | `string` | yes | البريد الإلكتروني |
-| `role` | `string` | yes | القيمة الحالية: `partner` |
+| `role` | `string` | yes | حاليًا `partner` |
 | `trustedDeviceEnabled` | `bool` | yes | تفعيل الجهاز الموثوق |
-| `biometricEnabled` | `bool` | yes | بصمة/Face ID |
+| `biometricEnabled` | `bool` | yes | تفعيل البصمة |
 | `appLockEnabled` | `bool` | yes | قفل التطبيق |
-| `inactivityTimeoutSeconds` | `int` | yes | من 30 إلى 300 |
+| `inactivityTimeoutSeconds` | `int` | yes | مهلة عدم النشاط |
 | `deviceInfo` | `map` | optional | بيانات الجهاز |
 | `isActive` | `bool` | yes | حالة الحساب |
 | `securitySetupCompletedAt` | `timestamp` | optional | وقت إكمال إعدادات الحماية |
@@ -36,70 +25,52 @@
 | `updatedAt` | `timestamp` | yes | وقت آخر تعديل |
 | `lastLoginAt` | `timestamp` | optional | وقت آخر تسجيل دخول |
 
-مثال:
+`deviceInfo` يحتوي عادة على:
 
-```json
-{
-  "uid": "auth_uid_here",
-  "phone": "+201234567890",
-  "fullName": "Ahmed Ali",
-  "name": "Ahmed Ali",
-  "email": "ahmed@example.com",
-  "role": "partner",
-  "trustedDeviceEnabled": false,
-  "biometricEnabled": true,
-  "appLockEnabled": true,
-  "inactivityTimeoutSeconds": 90,
-  "deviceInfo": {
-    "deviceId": "device-1",
-    "deviceName": "Pixel 8",
-    "platform": "android"
-  },
-  "isActive": true,
-  "createdAt": "Timestamp",
-  "updatedAt": "Timestamp"
-}
-```
+- `deviceId`
+- `deviceName`
+- `platform`
+- `osVersion`
+- `appVersion`
+- `buildNumber`
+- `model`
+- `manufacturer`
+- `isPhysicalDevice`
+- `lastSeenAt`
 
 ### `partners`
-
-يمثل الشريك التجاري داخل النظام، وقد يكون مربوطًا بحساب مستخدم.
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `userId` | `string` | yes | مرجع إلى `users/{uid}` |
-| `linkedEmail` | `string` | yes | البريد المستخدم للربط |
+| `linkedEmail` | `string` | yes | البريد المرتبط بالشريك |
 | `name` | `string` | yes | اسم الشريك |
-| `shareRatio` | `number` | yes | نسبة المشاركة |
+| `shareRatio` | `number` | yes | نسبة الشراكة |
 | `contributionTotal` | `number` | yes | إجمالي المساهمة |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
-| `updatedAt` | `timestamp` | yes | وقت آخر تحديث |
+| `updatedAt` | `timestamp` | yes | وقت آخر تعديل |
 
 ### `properties`
-
-يمثل مشروع أو عقار.
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `name` | `string` | yes | اسم المشروع |
-| `location` | `string` | yes | الموقع |
+| `location` | `string` | yes | موقع المشروع |
 | `description` | `string` | yes | وصف المشروع |
 | `status` | `string` | yes | `planning`, `active`, `delivered`, `archived` |
 | `totalBudget` | `number` | yes | الميزانية |
 | `totalSalesTarget` | `number` | yes | المستهدف البيعي |
-| `createdBy` | `string` | yes | UID المنفذ |
+| `createdBy` | `string` | yes | UID المنشئ |
 | `updatedBy` | `string` | yes | UID آخر من عدل |
 | `archived` | `bool` | yes | soft delete |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
-| `updatedAt` | `timestamp` | yes | وقت آخر تحديث |
+| `updatedAt` | `timestamp` | yes | وقت آخر تعديل |
 
 ### `units`
 
-الوحدات التابعة لكل مشروع.
-
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `propertyId` | `string` | yes | مرجع إلى `properties/{id}` |
+| `propertyId` | `string` | yes | مرجع إلى `properties/{propertyId}` |
 | `unitNumber` | `string` | yes | رقم الوحدة |
 | `floor` | `int` | yes | الدور |
 | `unitType` | `string` | yes | `apartment`, `penthouse`, `office`, `retail`, `floor`, `villa` |
@@ -116,54 +87,37 @@
 | `status` | `string` | yes | `available`, `reserved`, `sold`, `cancelled` |
 | `notes` | `string` | optional | ملاحظات |
 | `projectedCompletionDate` | `timestamp` | optional | تاريخ متوقع |
-| `createdBy` | `string` | yes | UID المنفذ |
+| `createdBy` | `string` | yes | UID المنشئ |
 | `updatedBy` | `string` | yes | UID آخر من عدل |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
-| `updatedAt` | `timestamp` | yes | وقت آخر تحديث |
+| `updatedAt` | `timestamp` | yes | وقت آخر تعديل |
 
 ### `expenses`
-
-المصروفات العامة الخاصة بالمشروع.
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `propertyId` | `string` | yes | مرجع إلى المشروع |
-| `amount` | `number` | yes | المبلغ |
-| `category` | `string` | yes | من `ExpenseCategory` |
+| `amount` | `number` | yes | قيمة المصروف |
+| `category` | `string` | yes | `construction`, `legal`, `permits`, `utilities`, `marketing`, `brokerage`, `maintenance`, `materials`, `partnerSettlement`, `other` |
 | `description` | `string` | yes | وصف المصروف |
 | `paidByPartnerId` | `string` | yes | مرجع إلى الشريك |
 | `paymentMethod` | `string` | yes | `cash`, `bankTransfer`, `cheque`, `wallet`, `other` |
 | `date` | `timestamp` | yes | تاريخ العملية |
 | `attachmentUrl` | `string` | optional | رابط مرفق |
 | `notes` | `string` | optional | ملاحظات |
-| `createdBy` | `string` | yes | UID المنفذ |
+| `createdBy` | `string` | yes | UID المنشئ |
 | `updatedBy` | `string` | yes | UID آخر من عدل |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
-| `updatedAt` | `timestamp` | yes | وقت آخر تحديث |
+| `updatedAt` | `timestamp` | yes | وقت آخر تعديل |
 | `archived` | `bool` | yes | soft delete |
 
-القيم المستخدمة في `category`:
-
-- `construction`
-- `legal`
-- `permits`
-- `utilities`
-- `marketing`
-- `brokerage`
-- `maintenance`
-- `materials`
-- `partnerSettlement`
-- `other`
-
 ### `material_expenses`
-
-فواتير ومشتريات المواد الخام.
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `propertyId` | `string` | yes | مرجع إلى المشروع |
 | `date` | `timestamp` | yes | تاريخ الفاتورة |
-| `materialCategory` | `string` | yes | من `MaterialCategory` |
+| `materialCategory` | `string` | yes | `cement`, `brick`, `steel`, `sand`, `gravel`, `finishing`, `electrical`, `plumbing`, `paint`, `other` |
 | `itemName` | `string` | yes | اسم الصنف |
 | `quantity` | `number` | yes | الكمية |
 | `unitPrice` | `number` | yes | سعر الوحدة |
@@ -171,17 +125,15 @@
 | `supplierName` | `string` | yes | اسم المورد |
 | `amountPaid` | `number` | yes | المدفوع |
 | `amountRemaining` | `number` | yes | المتبقي |
-| `dueDate` | `timestamp` | optional | تاريخ الاستحقاق |
+| `dueDate` | `timestamp` | optional | موعد الاستحقاق |
 | `notes` | `string` | optional | ملاحظات |
-| `createdBy` | `string` | yes | UID المنفذ |
+| `createdBy` | `string` | yes | UID المنشئ |
 | `updatedBy` | `string` | yes | UID آخر من عدل |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
-| `updatedAt` | `timestamp` | yes | وقت آخر تحديث |
+| `updatedAt` | `timestamp` | yes | وقت آخر تعديل |
 | `archived` | `bool` | yes | soft delete |
 
 ### `installment_plans`
-
-خطة التقسيط المرتبطة بوحدة.
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -189,36 +141,32 @@
 | `unitId` | `string` | yes | مرجع إلى الوحدة |
 | `installmentCount` | `int` | yes | عدد الأقساط |
 | `startDate` | `timestamp` | yes | بداية الخطة |
-| `intervalDays` | `int` | yes | عدد الأيام بين الأقساط |
+| `intervalDays` | `int` | yes | الفاصل بين الأقساط بالأيام |
 | `installmentAmount` | `number` | yes | قيمة القسط |
-| `createdBy` | `string` | yes | UID المنفذ |
+| `createdBy` | `string` | yes | UID المنشئ |
 | `updatedBy` | `string` | yes | UID آخر من عدل |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
-| `updatedAt` | `timestamp` | yes | وقت آخر تحديث |
+| `updatedAt` | `timestamp` | yes | وقت آخر تعديل |
 
 ### `installments`
 
-الأقساط الناتجة من خطة التقسيط.
-
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
-| `planId` | `string` | yes | مرجع إلى `installment_plans/{id}` |
+| `planId` | `string` | yes | مرجع إلى `installment_plans/{planId}` |
 | `propertyId` | `string` | yes | مرجع إلى المشروع |
 | `unitId` | `string` | yes | مرجع إلى الوحدة |
 | `sequence` | `int` | yes | ترتيب القسط |
 | `amount` | `number` | yes | قيمة القسط |
-| `paidAmount` | `number` | yes | المدفوع من القسط |
+| `paidAmount` | `number` | yes | المبلغ المدفوع منه |
 | `dueDate` | `timestamp` | yes | تاريخ الاستحقاق |
 | `status` | `string` | yes | `pending`, `partiallyPaid`, `paid`, `overdue` |
 | `notes` | `string` | optional | ملاحظات |
-| `createdBy` | `string` | yes | UID المنفذ |
+| `createdBy` | `string` | yes | UID المنشئ |
 | `updatedBy` | `string` | yes | UID آخر من عدل |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
-| `updatedAt` | `timestamp` | yes | وقت آخر تحديث |
+| `updatedAt` | `timestamp` | yes | وقت آخر تعديل |
 
 ### `payments`
-
-الدفعات المحصلة من العميل.
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -226,20 +174,18 @@
 | `unitId` | `string` | yes | مرجع إلى الوحدة |
 | `payerName` | `string` | optional | اسم الدافع |
 | `customerName` | `string` | yes | اسم العميل |
-| `installmentId` | `string` | optional | لو الدفعة مرتبطة بقسط |
+| `installmentId` | `string` | optional | مرجع إلى القسط إن وجد |
 | `amount` | `number` | yes | المبلغ |
-| `receivedAt` | `timestamp` | yes | تاريخ الاستلام |
-| `paymentMethod` | `string` | yes | طريقة الدفع |
+| `receivedAt` | `timestamp` | yes | تاريخ التحصيل |
+| `paymentMethod` | `string` | yes | `cash`, `bankTransfer`, `cheque`, `wallet`, `other` |
 | `paymentSource` | `string` | yes | مصدر الدفعة |
 | `notes` | `string` | optional | ملاحظات |
-| `createdBy` | `string` | yes | UID المنفذ |
+| `createdBy` | `string` | yes | UID المنشئ |
 | `updatedBy` | `string` | yes | UID آخر من عدل |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
-| `updatedAt` | `timestamp` | yes | وقت آخر تحديث |
+| `updatedAt` | `timestamp` | yes | وقت آخر تعديل |
 
 ### `partner_ledgers`
-
-قيود الشركاء المالية.
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
@@ -249,86 +195,49 @@
 | `amount` | `number` | yes | قيمة القيد |
 | `notes` | `string` | optional | ملاحظات |
 | `authorizedBy` | `string` | yes | UID المعتمد |
-| `createdBy` | `string` | yes | UID المنفذ |
+| `createdBy` | `string` | yes | UID المنشئ |
 | `updatedBy` | `string` | yes | UID آخر من عدل |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
-| `updatedAt` | `timestamp` | yes | وقت آخر تحديث |
+| `updatedAt` | `timestamp` | yes | وقت آخر تعديل |
 | `archived` | `bool` | yes | soft delete |
 
 ### `notifications`
-
-تنبيهات داخل التطبيق.
 
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `userId` | `string` | yes | صاحب الإشعار |
 | `title` | `string` | yes | عنوان |
-| `body` | `string` | yes | محتوى |
+| `body` | `string` | yes | المحتوى |
 | `type` | `string` | yes | من `NotificationType` |
-| `route` | `string` | yes | المسار داخل التطبيق |
+| `route` | `string` | yes | مسار داخل التطبيق |
 | `isRead` | `bool` | yes | مقروء أم لا |
-| `referenceKey` | `string` | optional | مفتاح مرجعي |
+| `referenceKey` | `string` | optional | مفتاح مرجعي لتفادي التكرار |
 | `metadata` | `map` | optional | بيانات إضافية |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
 
 ### `activity_logs`
 
-سجل الأحداث داخل النظام.
-
 | Field | Type | Required | Notes |
 | --- | --- | --- | --- |
 | `actorId` | `string` | yes | UID صاحب الإجراء |
-| `actorName` | `string` | yes | اسم صاحب الإجراء |
-| `action` | `string` | yes | نوع العملية |
+| `actorName` | `string` | yes | الاسم |
+| `action` | `string` | yes | نوع الحدث |
 | `entityType` | `string` | yes | نوع العنصر |
-| `entityId` | `string` | yes | المعرف المرتبط |
-| `createdAt` | `timestamp` | yes | وقت التنفيذ |
+| `entityId` | `string` | yes | معرف العنصر |
 | `metadata` | `map` | optional | بيانات إضافية |
+| `createdAt` | `timestamp` | yes | وقت التنفيذ |
 
 ### `settings`
 
-Collection محجوزة للإعدادات العامة. الكود الحالي يعرف المسار فقط ولا يستخدم structure ثابت حتى الآن.
+Collection محجوزة لإعدادات عامة لاحقًا. لا يوجد schema ثابت مستخدم الآن.
 
-## Relations
-
-العلاقات الأساسية في قاعدة البيانات:
-
-- `users.uid` <- مرتبط بـ Firebase Auth UID
-- `partners.userId` -> `users/{uid}`
-- `units.propertyId` -> `properties/{propertyId}`
-- `expenses.propertyId` -> `properties/{propertyId}`
-- `expenses.paidByPartnerId` -> `partners/{partnerId}`
-- `material_expenses.propertyId` -> `properties/{propertyId}`
-- `installment_plans.propertyId` -> `properties/{propertyId}`
-- `installment_plans.unitId` -> `units/{unitId}`
-- `installments.planId` -> `installment_plans/{planId}`
-- `installments.propertyId` -> `properties/{propertyId}`
-- `installments.unitId` -> `units/{unitId}`
-- `payments.propertyId` -> `properties/{propertyId}`
-- `payments.unitId` -> `units/{unitId}`
-- `payments.installmentId` -> `installments/{installmentId}`
-- `partner_ledgers.partnerId` -> `partners/{partnerId}`
-- `partner_ledgers.propertyId` -> `properties/{propertyId}`
-- `notifications.userId` -> `users/{uid}`
-
-## Storage Structure
-
-الملفات الحالية في Firebase Storage محفوظة تحت:
+## Storage structure
 
 ```text
 properties/{propertyId}/files/{fileName}
 ```
 
-ويُفضَّل عند الرفع حفظ metadata مثل:
-
-- `uploadedBy`
-- `propertyId`
-- `contentType`
-- `uploadedAt`
-
-## Required Composite Indexes
-
-طبقًا للـ repositories الحالية، هذه أهم الـ indexes المطلوبة:
+## Required composite indexes
 
 | Collection | Fields |
 | --- | --- |
@@ -343,11 +252,6 @@ properties/{propertyId}/files/{fileName}
 | `installments` | `unitId ASC`, `dueDate ASC` |
 | `payments` | `propertyId ASC`, `receivedAt DESC` |
 | `payments` | `unitId ASC`, `receivedAt DESC` |
-| `notifications` | `userId ASC`, `createdAt DESC` |
 | `partner_ledgers` | `archived ASC`, `updatedAt DESC` |
-
-## Notes Before Production
-
-- بعض الـ indexes السابقة موجودة بالفعل في `firestore.indexes.json` وبعضها ما زال ناقصًا.
-- `firestore.rules` الحالية لا تغطي كل الكولكشنز المستخدمة في الكود.
-- الأفضل الالتزام دائمًا بكتابة `createdAt`, `updatedAt`, `createdBy`, `updatedBy` في كل عملية حفظ.
+| `activity_logs` | `entityId ASC`, `createdAt DESC` |
+| `notifications` | `userId ASC`, `createdAt DESC` |

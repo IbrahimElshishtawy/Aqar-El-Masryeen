@@ -1,10 +1,7 @@
 import 'package:aqarelmasryeen/app/providers.dart';
-import 'package:aqarelmasryeen/core/config/app_config.dart';
-import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/firebase_auth_remote_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/user_profile_remote_data_source.dart';
-import 'package:aqarelmasryeen/features/auth/data/mock_auth_repository.dart';
 import 'package:aqarelmasryeen/features/auth/data/repositories/firebase_auth_repository_impl.dart';
 import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
@@ -31,13 +28,6 @@ final authLocalDataSourceProvider = Provider<AuthLocalDataSource>((ref) {
 });
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  if (AppConfig.useMockData) {
-    return MockAuthRepository(
-      MockWorkspaceStore.instance,
-      ref.watch(authLocalDataSourceProvider),
-    );
-  }
-
   return FirebaseAuthRepository(
     ref.watch(firebaseAuthRemoteDataSourceProvider),
     ref.watch(userProfileRemoteDataSourceProvider),

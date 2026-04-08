@@ -1,7 +1,5 @@
 import 'package:aqarelmasryeen/app/providers.dart';
-import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
-import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
 import 'package:aqarelmasryeen/core/storage/cache_policy.dart';
 import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
@@ -18,20 +16,16 @@ class PropertyRepository {
   final LocalCacheService _cache;
 
   Stream<List<PropertyProject>> watchProperties() {
-    final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(
-            MockWorkspaceStore.instance.activeProperties,
-          )
-        : _firestore
-              .collection(FirestorePaths.properties)
-              .where('archived', isEqualTo: false)
-              .orderBy('updatedAt', descending: true)
-              .snapshots()
-              .map(
-                (snapshot) => snapshot.docs
-                    .map((doc) => PropertyProject.fromMap(doc.id, doc.data()))
-                    .toList(),
-              );
+    final source = _firestore
+        .collection(FirestorePaths.properties)
+        .where('archived', isEqualTo: false)
+        .orderBy('updatedAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => PropertyProject.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
 
     return CachePolicy.watchList(
       cache: _cache,
@@ -43,19 +37,14 @@ class PropertyRepository {
   }
 
   Stream<PropertyProject?> watchProperty(String propertyId) {
-    final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(
-            () => MockWorkspaceStore.instance.propertyById(propertyId),
-          )
-        : _firestore
-              .collection(FirestorePaths.properties)
-              .doc(propertyId)
-              .snapshots()
-              .map(
-                (doc) => doc.exists
-                    ? PropertyProject.fromMap(doc.id, doc.data())
-                    : null,
-              );
+    final source = _firestore
+        .collection(FirestorePaths.properties)
+        .doc(propertyId)
+        .snapshots()
+        .map(
+          (doc) =>
+              doc.exists ? PropertyProject.fromMap(doc.id, doc.data()) : null,
+        );
 
     return CachePolicy.watchObject(
       cache: _cache,
@@ -68,25 +57,6 @@ class PropertyRepository {
 
   Future<String> save(PropertyProject property) async {
     final id = property.id.isEmpty ? _uuid.v4() : property.id;
-    if (AppConfig.useMockData) {
-      await MockWorkspaceStore.instance.saveProperty(
-        PropertyProject(
-          id: id,
-          name: property.name,
-          location: property.location,
-          description: property.description,
-          status: property.status,
-          totalBudget: property.totalBudget,
-          totalSalesTarget: property.totalSalesTarget,
-          createdAt: property.createdAt,
-          updatedAt: DateTime.now(),
-          createdBy: property.createdBy,
-          updatedBy: property.updatedBy,
-          archived: property.archived,
-        ),
-      );
-      return id;
-    }
     await _firestore
         .collection(FirestorePaths.properties)
         .doc(id)
@@ -103,12 +73,6 @@ class PropertyRepository {
   }
 
   Future<void> archive(String propertyId, {required String actorId}) {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.archiveProperty(
-        propertyId,
-        actorId: actorId,
-      );
-    }
     return _firestore
         .collection(FirestorePaths.properties)
         .doc(propertyId)

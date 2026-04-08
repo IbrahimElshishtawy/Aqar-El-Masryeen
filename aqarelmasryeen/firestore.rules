@@ -66,18 +66,27 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /activity_logs/{logId} {
+      allow create, read: if isActivePartner();
+      allow update, delete: if false;
+    }
+
+    match /settings/{settingId} {
+      allow read, write: if isActivePartner();
+    }
+
     match /{collection}/{documentId} {
       allow read, write: if isActivePartner()
         && collection in [
           'partners',
           'properties',
           'expenses',
+          'material_expenses',
           'units',
           'installment_plans',
           'installments',
           'payments',
-          'activity_logs',
-          'settings'
+          'partner_ledgers'
         ];
     }
   }

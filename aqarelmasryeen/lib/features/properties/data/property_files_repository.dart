@@ -1,6 +1,4 @@
 import 'package:aqarelmasryeen/app/providers.dart';
-import 'package:aqarelmasryeen/core/config/app_config.dart';
-import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,9 +9,6 @@ class PropertyFilesRepository {
   final FirebaseStorage _storage;
 
   Future<List<PropertyStorageFile>> listFiles(String propertyId) async {
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.filesFor(propertyId);
-    }
     final result = await _storage.ref('properties/$propertyId/files').listAll();
     final files = <PropertyStorageFile>[];
 

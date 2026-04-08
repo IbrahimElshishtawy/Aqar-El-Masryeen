@@ -1,18 +1,15 @@
-# Firebase Documentation
+﻿# Firebase Documentation
 
-الملفات داخل هذا المجلد مخصصة لتجهيز وربط Firebase للمشروع:
+هذا المجلد يحتوي على التوثيق التنفيذي الخاص بـ Firebase في المشروع:
 
 - `firebase_schema.md`
-  وصف الكولكشنز والحقول والعلاقات بين البيانات.
+  - وصف الـ collections والحقول والعلاقات والـ indexes المطلوبة.
 - `firebase_rules.md`
-  قواعد Firestore وStorage المقترحة لحماية البيانات.
+  - ملخص قواعد Firestore و Storage المستخدمة حاليًا.
 - `firebase_integration_checklist.md`
-  خطوات التنفيذ العملية داخل Firebase Console ومع التطبيق.
+  - خطوات التفعيل والنشر والاختبار بعد الربط.
 
-هذه الملفات مبنية على الكود الحالي في المشروع داخل `lib/` وعلى الملفات:
+المرجع المباشر داخل جذر `docs/`:
 
-- `firestore.rules`
-- `storage.rules`
-- `firestore.indexes.json`
-
-إذا تم تعديل الـ models أو الـ repositories لاحقًا، يُفضَّل تحديث التوثيق هنا أيضًا.
+- `docs/firebase_data_model.md`
+- `docs/firebase_setup.md`

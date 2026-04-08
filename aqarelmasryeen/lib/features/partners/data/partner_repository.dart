@@ -1,7 +1,5 @@
 import 'package:aqarelmasryeen/app/providers.dart';
-import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
-import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
 import 'package:aqarelmasryeen/core/storage/cache_policy.dart';
 import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
@@ -18,19 +16,15 @@ class PartnerRepository {
   final LocalCacheService _cache;
 
   Stream<List<Partner>> watchPartners() {
-    final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(
-            MockWorkspaceStore.instance.partners,
-          )
-        : _firestore
-              .collection(FirestorePaths.partners)
-              .orderBy('createdAt')
-              .snapshots()
-              .map(
-                (snapshot) => snapshot.docs
-                    .map((doc) => Partner.fromMap(doc.id, doc.data()))
-                    .toList(),
-              );
+    final source = _firestore
+        .collection(FirestorePaths.partners)
+        .orderBy('createdAt')
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => Partner.fromMap(doc.id, doc.data()))
+              .toList(),
+        );
 
     return CachePolicy.watchList(
       cache: _cache,
@@ -43,21 +37,6 @@ class PartnerRepository {
 
   Future<String> upsert(Partner partner) async {
     final id = partner.id.isEmpty ? _uuid.v4() : partner.id;
-    if (AppConfig.useMockData) {
-      await MockWorkspaceStore.instance.upsertPartner(
-        Partner(
-          id: id,
-          userId: partner.userId,
-          linkedEmail: partner.linkedEmail,
-          name: partner.name,
-          shareRatio: partner.shareRatio,
-          contributionTotal: partner.contributionTotal,
-          createdAt: partner.createdAt,
-          updatedAt: DateTime.now(),
-        ),
-      );
-      return id;
-    }
     await _firestore
         .collection(FirestorePaths.partners)
         .doc(id)

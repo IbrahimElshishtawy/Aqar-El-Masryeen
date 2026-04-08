@@ -1,37 +1,59 @@
-# Firebase Setup Notes
+﻿# Firebase Setup
 
-## Required Firebase Products
+## Services to enable
 
-- Authentication: phone auth and email/password
-- Firestore: app data
-- Storage: property files
-- Cloud Messaging: partner alerts
-- Analytics: usage telemetry
-- Crashlytics: crash reporting
+- Authentication
+  - Email/Password
+- Cloud Firestore
+- Firebase Storage
+- Firebase Cloud Messaging
+- Firebase Analytics
+- Firebase Crashlytics
+- Firebase App Check
 
-## Android
+## Platform status
 
-- `android/app/google-services.json` is already present.
-- Notification permission is declared in [AndroidManifest.xml](/e:/FlutterProjects/aqar%20masrien/Aqar%20El%20Masryeen/aqarelmasryeen/android/app/src/main/AndroidManifest.xml).
-- Notification channel configuration lives in [notification_service.dart](/e:/FlutterProjects/aqar%20masrien/Aqar%20El%20Masryeen/aqarelmasryeen/lib/core/services/notification_service.dart).
+- Android config موجود بالفعل في `android/app/google-services.json`.
+- iOS يحتاج `ios/Runner/GoogleService-Info.plist`.
+- Firebase initialization يعمل من `lib/core/services/firebase_initializer.dart`.
 
-## iOS
+## Firestore collections
 
-- Add `ios/Runner/GoogleService-Info.plist` from Firebase Console.
-- In Xcode enable:
-  - Push Notifications
-  - Background Modes > Remote notifications
-  - Associated Domains only if deep links later move beyond router paths
-- APNs auth key or certificate must be uploaded in Firebase Console for production FCM delivery.
-- `UIBackgroundModes` and Face ID usage description are already defined in [Info.plist](/e:/FlutterProjects/aqar%20masrien/Aqar%20El%20Masryeen/aqarelmasryeen/ios/Runner/Info.plist).
-- App delegate entry point is [AppDelegate.swift](/e:/FlutterProjects/aqar%20masrien/Aqar%20El%20Masryeen/aqarelmasryeen/ios/Runner/AppDelegate.swift).
+أنشئ أو اسمح للتطبيق بإنشاء هذه الـ collections:
 
-## Initialization Flow
+- `users`
+- `partners`
+- `properties`
+- `units`
+- `expenses`
+- `material_expenses`
+- `installment_plans`
+- `installments`
+- `payments`
+- `partner_ledgers`
+- `notifications`
+- `activity_logs`
+- `settings`
 
-- Firebase bootstraps in [bootstrap.dart](/e:/FlutterProjects/aqar%20masrien/Aqar%20El%20Masryeen/aqarelmasryeen/lib/app/bootstrap.dart)
-- Core Firebase init is in [firebase_initializer.dart](/e:/FlutterProjects/aqar%20masrien/Aqar%20El%20Masryeen/aqarelmasryeen/lib/core/services/firebase_initializer.dart)
-- Notification setup and foreground handling are in [notification_service.dart](/e:/FlutterProjects/aqar%20masrien/Aqar%20El%20Masryeen/aqarelmasryeen/lib/core/services/notification_service.dart)
+## Required rules and indexes
 
-## Firestore Indexes
+- انشر `firestore.rules`.
+- انشر `storage.rules`.
+- انشر `firestore.indexes.json`.
 
-- Composite indexes are defined in [firestore.indexes.json](/e:/FlutterProjects/aqar%20masrien/Aqar%20El%20Masryeen/aqarelmasryeen/firestore.indexes.json).
+## Recommended rollout
+
+1. فعّل Authentication و Firestore و Storage.
+2. انشر `firestore.rules` و `storage.rules`.
+3. انشر `firestore.indexes.json`.
+4. أنشئ أول مستخدم من التطبيق.
+5. تأكد من إنشاء `users/{uid}` بعد التسجيل أو أول دخول.
+6. اختبر إنشاء مشروع.
+7. اختبر إنشاء وحدة.
+8. اختبر خطة تقسيط ثم أقساط.
+9. اختبر تسجيل دفعة ومصروف ومصروف خامات.
+10. اختبر الإشعارات وقراءة الملفات من Storage.
+
+## Important note
+
+المشروع لم يعد يعتمد على أي mock data داخل `lib/`، وكل القراءة والكتابة الحالية أصبحت موجهة إلى Firebase فقط.

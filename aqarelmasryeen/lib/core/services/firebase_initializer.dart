@@ -1,4 +1,3 @@
-import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/firebase_options.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -8,7 +7,6 @@ import 'package:flutter/foundation.dart';
 Future<void> initializeFirebase() async {
   if (Firebase.apps.isNotEmpty) return;
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  if (AppConfig.useMockData) return;
   await FirebaseAppCheck.instance.activate(
     providerAndroid: kDebugMode
         ? const AndroidDebugProvider()

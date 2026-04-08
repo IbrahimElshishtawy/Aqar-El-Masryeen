@@ -1,7 +1,5 @@
 import 'package:aqarelmasryeen/app/providers.dart';
-import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
-import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
 import 'package:aqarelmasryeen/core/storage/cache_policy.dart';
 import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
@@ -18,26 +16,20 @@ class ActivityRepository {
   final LocalCacheService _cache;
 
   Stream<List<ActivityLogEntry>> watchRecent({String? propertyId}) {
-    final source = AppConfig.useMockData
-        ? MockWorkspaceStore.instance.watch(
-            () => MockWorkspaceStore.instance.recentActivity(
-              propertyId: propertyId,
-            ),
-          )
-        : (() {
-            Query<Map<String, dynamic>> query = _firestore
-                .collection(FirestorePaths.activityLogs)
-                .orderBy('createdAt', descending: true)
-                .limit(20);
-            if (propertyId != null) {
-              query = query.where('entityId', isEqualTo: propertyId);
-            }
-            return query.snapshots().map(
-              (snapshot) => snapshot.docs
-                  .map((doc) => ActivityLogEntry.fromMap(doc.id, doc.data()))
-                  .toList(),
-            );
-          })();
+    final source = (() {
+      Query<Map<String, dynamic>> query = _firestore
+          .collection(FirestorePaths.activityLogs)
+          .orderBy('createdAt', descending: true)
+          .limit(20);
+      if (propertyId != null) {
+        query = query.where('entityId', isEqualTo: propertyId);
+      }
+      return query.snapshots().map(
+        (snapshot) => snapshot.docs
+            .map((doc) => ActivityLogEntry.fromMap(doc.id, doc.data()))
+            .toList(),
+      );
+    })();
 
     return CachePolicy.watchList(
       cache: _cache,
@@ -57,20 +49,6 @@ class ActivityRepository {
     Map<String, dynamic> metadata = const {},
   }) {
     final id = _uuid.v4();
-    if (AppConfig.useMockData) {
-      return MockWorkspaceStore.instance.logActivity(
-        ActivityLogEntry(
-          id: id,
-          actorId: actorId,
-          actorName: actorName,
-          action: action,
-          entityType: entityType,
-          entityId: entityId,
-          createdAt: DateTime.now(),
-          metadata: metadata,
-        ),
-      );
-    }
     return _firestore.collection(FirestorePaths.activityLogs).doc(id).set({
       'actorId': actorId,
       'actorName': actorName,
