@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
@@ -25,43 +26,43 @@ class PartnerFormSheet extends ConsumerStatefulWidget {
 class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _shareController;
-  late final TextEditingController _contributionController;
   late final TextEditingController _emailController;
+  late final TextEditingController _passwordController;
+  late final TextEditingController _confirmPasswordController;
   bool _linkToCurrentAccount = false;
+  bool _createPartnerAccount = false;
   bool _saving = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+
+  bool get _canCreateLinkedAccount =>
+      widget.partner == null || widget.partner!.userId.isEmpty;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.partner?.name ?? '');
-    _shareController = TextEditingController(
-      text: widget.partner == null
-          ? '50'
-          : (widget.partner!.shareRatio * 100).toStringAsFixed(0),
-    );
-    _contributionController = TextEditingController(
-      text: widget.partner == null
-          ? '0'
-          : widget.partner!.contributionTotal.toStringAsFixed(0),
-    );
     _emailController = TextEditingController(
       text: widget.partner?.linkedEmail ?? '',
     );
-    _linkToCurrentAccount = false;
+    _passwordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
+    _createPartnerAccount = widget.partner == null && _canCreateLinkedAccount;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _shareController.dispose();
-    _contributionController.dispose();
     _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
+    FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
+
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) return;
 
@@ -81,8 +82,19 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
       AppUser? targetProfile;
       var linkedUserId = '';
       var requestSent = false;
+      var accountCreated = false;
 
-      if (normalizedEmail.isNotEmpty) {
+      if (_createPartnerAccount) {
+        targetProfile = await ref
+            .read(authRepositoryProvider)
+            .provisionPartnerAccount(
+              fullName: _nameController.text.trim(),
+              email: normalizedEmail,
+              password: _passwordController.text,
+            );
+        linkedUserId = targetProfile.uid;
+        accountCreated = true;
+      } else if (normalizedEmail.isNotEmpty) {
         if (normalizedEmail == currentEmail) {
           linkedUserId = session.userId;
         } else {
@@ -107,19 +119,20 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
         userId: linkedUserId,
         linkedEmail: normalizedEmail,
         name: _nameController.text.trim(),
-        shareRatio: (double.tryParse(_shareController.text.trim()) ?? 0) / 100,
-        contributionTotal:
-            double.tryParse(_contributionController.text.trim()) ?? 0,
+        shareRatio: widget.partner?.shareRatio ?? 0,
+        contributionTotal: widget.partner?.contributionTotal ?? 0,
         createdAt: widget.partner?.createdAt ?? now,
         updatedAt: now,
       );
 
-      final partnerId = await ref.read(partnerRepositoryProvider).upsert(partner);
+      final partnerId = await ref
+          .read(partnerRepositoryProvider)
+          .upsert(partner);
 
-      if (linkedUserId == session.userId) {
+      if (linkedUserId.isNotEmpty) {
         await _unlinkOtherPartners(
           partners: existingPartners,
-          linkedUserId: session.userId,
+          linkedUserId: linkedUserId,
           keepPartnerId: partnerId,
         );
       }
@@ -129,9 +142,9 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
             .read(notificationRepositoryProvider)
             .create(
               userId: targetProfile.uid,
-              title: 'طلب شراكة جديد',
+              title: 'طلب ربط حساب',
               body:
-                  '${session.profile?.name ?? 'شريك'} أرسل طلب ربط للشريك ${partner.name}.',
+                  '${session.profile?.name ?? 'شريك'} أرسل طلب ربط حساب للشريك ${partner.name}.',
               type: NotificationType.partnerLinkRequest,
               route: AppRoutes.partners,
               referenceKey:
@@ -150,28 +163,40 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
           .read(activityRepositoryProvider)
           .log(
             actorId: session.userId,
-            actorName: session.profile?.name ?? 'Ø´Ø±ÙŠÙƒ',
-            action: widget.partner == null ? 'partner_created' : 'partner_updated',
+            actorName: session.profile?.name ?? 'شريك',
+            action: widget.partner == null
+                ? 'partner_created'
+                : 'partner_updated',
             entityType: 'partner',
             entityId: partnerId,
             metadata: {
               'shareRatio': partner.shareRatio,
               'contributionTotal': partner.contributionTotal,
               'linkedEmail': partner.linkedEmail,
+              'linkedUserId': linkedUserId,
               'linkedToCurrentUser': linkedUserId == session.userId,
               'requestSent': requestSent,
+              'accountCreated': accountCreated,
             },
           );
 
       if (!mounted) return;
+
       _showMessage(
-        requestSent
-            ? 'تم حفظ الشريك وإرسال طلب الربط على البريد.'
+        accountCreated
+            ? 'تم إنشاء حساب الشريك وربطه مباشرة. أول ما يسجل دخول هيظهر له نفس المشروعات والحسابات.'
+            : requestSent
+            ? 'تم حفظ الشريك وإرسال طلب ربط الحساب.'
             : linkedUserId == session.userId
             ? 'تم حفظ الشريك وربطه بالحساب الحالي.'
+            : linkedUserId.isNotEmpty
+            ? 'تم حفظ الشريك وربطه بالحساب المحدد.'
             : 'تم حفظ بيانات الشريك.',
       );
       Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      _showMessage(mapException(error).message);
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -188,7 +213,9 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
       if (partner.userId != linkedUserId || partner.id == keepPartnerId) {
         continue;
       }
-      await ref.read(partnerRepositoryProvider).upsert(
+      await ref
+          .read(partnerRepositoryProvider)
+          .upsert(
             partner.copyWith(
               userId: '',
               linkedEmail: '',
@@ -199,7 +226,9 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -207,7 +236,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
     final theme = Theme.of(context);
 
     return AppFormSheet(
-      title: widget.partner == null ? 'إضافة شريك' : 'تعديل الشريك',
+      title: widget.partner == null ? 'إنشاء شريك وحساب دخول' : 'تعديل الشريك',
       child: Form(
         key: _formKey,
         child: Column(
@@ -215,48 +244,45 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
             TextFormField(
               controller: _nameController,
               decoration: const InputDecoration(labelText: 'اسم الشريك'),
-              validator: (value) =>
-                  (value ?? '').trim().isEmpty ? 'أدخل اسم الشريك.' : null,
+              validator: AuthValidators.name,
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _shareController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+            if (_canCreateLinkedAccount) ...[
+              const SizedBox(height: 12),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                value: _createPartnerAccount,
+                onChanged: _linkToCurrentAccount
+                    ? null
+                    : (value) => setState(() {
+                        _createPartnerAccount = value;
+                        if (value) {
+                          _linkToCurrentAccount = false;
+                        }
+                      }),
+                title: const Text('إنشاء حساب دخول للشريك'),
+                subtitle: const Text(
+                  'اكتب اسم الشريك وإيميله وكلمة المرور، وبعد أول تسجيل دخول هيظهر له نفس المشروعات والحسابات.',
+                ),
               ),
-              decoration: const InputDecoration(labelText: 'نسبة الشراكة %'),
-              validator: (value) {
-                final share = double.tryParse((value ?? '').trim()) ?? -1;
-                if (share <= 0 || share > 100) {
-                  return 'أدخل قيمة بين 0 و100.';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _contributionController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'المساهمات الرأسمالية',
-              ),
-            ),
-            const SizedBox(height: 12),
+            ],
+            const SizedBox(height: 4),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
               value: _linkToCurrentAccount,
-              onChanged: (value) => setState(() {
-                _linkToCurrentAccount = value;
-                if (value) {
-                  final session = ref.read(authSessionProvider).valueOrNull;
-                  _emailController.text = _resolveSessionEmail(session);
-                }
-              }),
+              onChanged: _createPartnerAccount
+                  ? null
+                  : (value) => setState(() {
+                      _linkToCurrentAccount = value;
+                      if (value) {
+                        final session = ref
+                            .read(authSessionProvider)
+                            .valueOrNull;
+                        _emailController.text = _resolveSessionEmail(session);
+                      }
+                    }),
               title: const Text('ربط بالحساب الحالي مباشرة'),
               subtitle: const Text(
-                'فعّل هذا الخيار لو الشريك هو نفس الحساب المفتوح الآن.',
+                'استخدمه فقط لو هذا الشريك هو نفس الحساب المفتوح الآن.',
               ),
             ),
             const SizedBox(height: 8),
@@ -265,21 +291,72 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
               enabled: !_linkToCurrentAccount,
               keyboardType: TextInputType.emailAddress,
               decoration: InputDecoration(
-                labelText: 'بريد حساب الشريك',
-                helperText:
-                    'اكتب بريد الشريك لإرسال طلب ربط، وبعد الموافقة يظهر الربط تلقائيًا.',
+                labelText: 'إيميل تسجيل الدخول',
+                helperText: _createPartnerAccount
+                    ? 'هذا الإيميل وكلمة المرور هما بيانات دخول الشريك.'
+                    : 'اكتب إيميل حساب موجود لربطه بالشريك أو لإرسال طلب ربط.',
                 helperStyle: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.secondary,
                 ),
               ),
               validator: (value) {
                 final text = (value ?? '').trim();
-                if (text.isEmpty) {
+                if (_linkToCurrentAccount) {
                   return null;
+                }
+                if (text.isEmpty) {
+                  return _createPartnerAccount
+                      ? 'أدخل بريد الشريك لإنشاء الحساب.'
+                      : null;
                 }
                 return AuthValidators.email(text);
               },
             ),
+            if (_createPartnerAccount) ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: 'كلمة المرور',
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() => _obscurePassword = !_obscurePassword);
+                    },
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                  ),
+                ),
+                validator: AuthValidators.password,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirmPassword,
+                decoration: InputDecoration(
+                  labelText: 'تأكيد كلمة المرور',
+                  suffixIcon: IconButton(
+                    onPressed: () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
+                    },
+                    icon: Icon(
+                      _obscureConfirmPassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                    ),
+                  ),
+                ),
+                validator: (value) => AuthValidators.confirmPassword(
+                  value,
+                  _passwordController.text,
+                ),
+              ),
+            ],
             const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
@@ -288,9 +365,11 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
                 child: Text(
                   _saving
                       ? 'جار الحفظ...'
+                      : _createPartnerAccount
+                      ? 'إنشاء الحساب وربط الشريك'
                       : _linkToCurrentAccount
-                      ? 'حفظ وربط'
-                      : 'حفظ / إرسال طلب',
+                      ? 'حفظ وربط بالحساب الحالي'
+                      : 'حفظ وإرسال طلب ربط',
                 ),
               ),
             ),

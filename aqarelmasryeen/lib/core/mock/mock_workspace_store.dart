@@ -17,7 +17,9 @@ class MockWorkspaceStore {
 
   final StreamController<int> _changes = StreamController<int>.broadcast();
 
-  late AppUser _profile;
+  late String _activeUserId;
+  late Map<String, AppUser> _profilesById;
+  late Map<String, String> _passwordsByEmail;
   late List<PropertyProject> _properties;
   late List<Partner> _partners;
   late List<ExpenseRecord> _expenses;
@@ -43,14 +45,65 @@ class MockWorkspaceStore {
     isPhysicalDevice: true,
   );
 
-  AppUser profileForUid(String uid) => _profile.copyWith(uid: uid);
+  AppUser get activeProfile => _profilesById[_activeUserId]!;
+
+  AppUser profileForUid(String uid) =>
+      _profilesById[uid] ?? activeProfile.copyWith(uid: uid);
+
+  AppUser? profileByUid(String uid) => _profilesById[uid];
 
   AppUser? profileByEmail(String email) {
     final normalizedEmail = email.trim().toLowerCase();
-    if (_profile.email.trim().toLowerCase() == normalizedEmail) {
-      return _profile;
+    for (final profile in _profilesById.values) {
+      if (profile.email.trim().toLowerCase() == normalizedEmail) {
+        return profile;
+      }
     }
     return null;
+  }
+
+  bool validateCredentials(String email, String password) {
+    final normalizedEmail = email.trim().toLowerCase();
+    return _passwordsByEmail[normalizedEmail] == password;
+  }
+
+  AppUser createPartnerProfile({
+    required String fullName,
+    required String email,
+    required String password,
+  }) {
+    final now = DateTime.now();
+    final uid = 'mock-user-${_profilesById.length + 1}';
+    final normalizedEmail = email.trim().toLowerCase();
+    final profile = AppUser(
+      uid: uid,
+      phone: '',
+      fullName: fullName.trim(),
+      email: normalizedEmail,
+      createdAt: now,
+      updatedAt: now,
+      lastLoginAt: null,
+      role: UserRole.partner,
+      trustedDeviceEnabled: false,
+      biometricEnabled: false,
+      appLockEnabled: true,
+      inactivityTimeoutSeconds: 90,
+      deviceInfo: _deviceInfo,
+      isActive: true,
+      securitySetupCompletedAt: null,
+    );
+    _profilesById[uid] = profile;
+    _passwordsByEmail[normalizedEmail] = password;
+    _emit();
+    return profile;
+  }
+
+  void setActiveProfile(String uid) {
+    if (!_profilesById.containsKey(uid)) {
+      return;
+    }
+    _activeUserId = uid;
+    _emit();
   }
 
   void updateProfile({
@@ -62,16 +115,30 @@ class MockWorkspaceStore {
     bool? appLockEnabled,
     int? inactivityTimeoutSeconds,
   }) {
-    _profile = _profile.copyWith(
-      uid: uid,
+    final targetUid = uid ?? _activeUserId;
+    final current = _profilesById[targetUid];
+    if (current == null) {
+      return;
+    }
+    final normalizedEmail = email?.trim().toLowerCase();
+    final updated = current.copyWith(
+      uid: targetUid,
       fullName: fullName,
-      email: email,
+      email: normalizedEmail,
       trustedDeviceEnabled: trustedDeviceEnabled,
       biometricEnabled: biometricEnabled,
       appLockEnabled: appLockEnabled,
       inactivityTimeoutSeconds: inactivityTimeoutSeconds,
       updatedAt: DateTime.now(),
     );
+    _profilesById[targetUid] = updated;
+    final oldEmail = current.email.trim().toLowerCase();
+    if (normalizedEmail != null && normalizedEmail != oldEmail) {
+      final existingPassword = _passwordsByEmail.remove(oldEmail);
+      if (existingPassword != null) {
+        _passwordsByEmail[normalizedEmail] = existingPassword;
+      }
+    }
     _emit();
   }
 
@@ -364,23 +431,47 @@ class MockWorkspaceStore {
 
   void _seed() {
     final now = DateTime.now();
-    _profile = AppUser(
-      uid: 'mock-user',
-      phone: '',
-      fullName: 'Finance Partner',
-      email: 'demo@mock.local',
-      createdAt: now.subtract(const Duration(days: 120)),
-      updatedAt: now,
-      lastLoginAt: now,
-      role: UserRole.partner,
-      trustedDeviceEnabled: false,
-      biometricEnabled: false,
-      appLockEnabled: false,
-      inactivityTimeoutSeconds: 90,
-      deviceInfo: _deviceInfo,
-      isActive: true,
-      securitySetupCompletedAt: now.subtract(const Duration(days: 10)),
-    );
+    _activeUserId = 'mock-user';
+    _profilesById = {
+      'mock-user': AppUser(
+        uid: 'mock-user',
+        phone: '',
+        fullName: 'Finance Partner',
+        email: 'demo@mock.local',
+        createdAt: now.subtract(const Duration(days: 120)),
+        updatedAt: now,
+        lastLoginAt: now,
+        role: UserRole.partner,
+        trustedDeviceEnabled: false,
+        biometricEnabled: false,
+        appLockEnabled: false,
+        inactivityTimeoutSeconds: 90,
+        deviceInfo: _deviceInfo,
+        isActive: true,
+        securitySetupCompletedAt: now.subtract(const Duration(days: 10)),
+      ),
+      'partner-user-2': AppUser(
+        uid: 'partner-user-2',
+        phone: '',
+        fullName: 'Mohamed Khaled',
+        email: 'mohamed@mock.local',
+        createdAt: now.subtract(const Duration(days: 135)),
+        updatedAt: now.subtract(const Duration(days: 3)),
+        lastLoginAt: now.subtract(const Duration(days: 3)),
+        role: UserRole.partner,
+        trustedDeviceEnabled: false,
+        biometricEnabled: false,
+        appLockEnabled: true,
+        inactivityTimeoutSeconds: 90,
+        deviceInfo: _deviceInfo,
+        isActive: true,
+        securitySetupCompletedAt: null,
+      ),
+    };
+    _passwordsByEmail = {
+      'demo@mock.local': '1234567890',
+      'mohamed@mock.local': '1234567890',
+    };
 
     _partners = [
       Partner(

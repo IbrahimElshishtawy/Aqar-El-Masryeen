@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
 import 'package:aqarelmasryeen/core/mock/mock_workspace_store.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
+import 'package:aqarelmasryeen/shared/models/app_user.dart';
 
 class MockAuthRepository implements AuthRepository {
   MockAuthRepository(this._store, this._localDataSource);
@@ -37,8 +37,42 @@ class MockAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    _store.updateProfile(fullName: fullName, email: email.trim().toLowerCase());
+    final existingProfile = _store.profileByEmail(email);
+    if (existingProfile != null) {
+      throw const AppException(
+        'يوجد حساب مسجل بالفعل بهذا البريد الإلكتروني.',
+        code: 'email_already_exists',
+      );
+    }
+
+    final profile = _store.createPartnerProfile(
+      fullName: fullName,
+      email: email,
+      password: password,
+    );
+    _store.setActiveProfile(profile.uid);
     await _ensureMockSession();
+  }
+
+  @override
+  Future<AppUser> provisionPartnerAccount({
+    required String fullName,
+    required String email,
+    required String password,
+  }) async {
+    final existingProfile = _store.profileByEmail(email);
+    if (existingProfile != null) {
+      throw const AppException(
+        'يوجد حساب مسجل بالفعل بهذا البريد الإلكتروني.',
+        code: 'email_already_exists',
+      );
+    }
+
+    return _store.createPartnerProfile(
+      fullName: fullName,
+      email: email,
+      password: password,
+    );
   }
 
   @override
@@ -47,14 +81,16 @@ class MockAuthRepository implements AuthRepository {
     required String password,
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
-    if (normalizedEmail != AppConfig.mockPartnerEmail ||
-        password != AppConfig.mockPartnerPassword) {
-      throw AppException(
-        'استخدم بيانات الموك: ${AppConfig.mockPartnerEmail} / ${AppConfig.mockPartnerPassword}',
+    final profile = _store.profileByEmail(normalizedEmail);
+    if (profile == null ||
+        !_store.validateCredentials(normalizedEmail, password)) {
+      throw const AppException(
+        'بيانات الدخول غير صحيحة في وضع الاختبار.',
         code: 'mock_invalid_credentials',
       );
     }
-    _store.updateProfile(email: AppConfig.mockPartnerEmail);
+
+    _store.setActiveProfile(profile.uid);
     await _ensureMockSession();
   }
 
@@ -103,7 +139,6 @@ class MockAuthRepository implements AuthRepository {
   Future<void> _ensureInitialized() async {
     if (_initialized) return;
     _initialized = true;
-    _store.updateProfile(email: AppConfig.mockPartnerEmail);
     final isSignedIn = await _localDataSource.readMockSessionActive();
     if (isSignedIn) {
       await _emitCurrentSession();
@@ -119,10 +154,10 @@ class MockAuthRepository implements AuthRepository {
   }
 
   Future<void> _emitCurrentSession() async {
-    final profile = _store.profileForUid('mock-user');
+    final profile = _store.activeProfile;
     await _localDataSource.cacheProfile(profile);
     _currentSession = AppSession(
-      userId: 'mock-user',
+      userId: profile.uid,
       profile: profile,
       email: profile.email,
       displayName: profile.fullName,

@@ -143,6 +143,52 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<AppUser> provisionPartnerAccount({
+    required String fullName,
+    required String email,
+    required String password,
+  }) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    final normalizedName = fullName.trim();
+
+    try {
+      final existingProfile = await _profileDataSource.fetchProfileByEmail(
+        normalizedEmail,
+      );
+      if (existingProfile != null) {
+        throw const AppException(
+          'يوجد حساب مسجل بالفعل بهذا البريد الإلكتروني.',
+          code: 'email_already_exists',
+        );
+      }
+
+      final createdUid = await _authDataSource.createUserWithEmailOnIsolatedApp(
+        email: normalizedEmail,
+        password: password,
+        fullName: normalizedName,
+        appName: 'partner-provision-${DateTime.now().microsecondsSinceEpoch}',
+      );
+
+      final deviceInfo = await _deviceInfoService.currentDeviceInfo();
+      await _profileDataSource.createOrMergeProfile(
+        uid: createdUid,
+        fullName: normalizedName,
+        email: normalizedEmail,
+        deviceInfo: deviceInfo,
+      );
+
+      final profile = await _profileDataSource.fetchProfile(createdUid);
+      if (profile == null) {
+        throw const AppException('تم إنشاء الحساب لكن تعذر تحميل بياناته.');
+      }
+      return profile;
+    } catch (error, stackTrace) {
+      _recordError(error, stackTrace);
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> signInWithEmail({
     required String email,
     required String password,

@@ -30,6 +30,16 @@ class AppRoutes {
   static String propertyMaterials(String propertyId) =>
       '/properties/$propertyId/materials';
 
+  static String propertyMaterialSupplier(
+    String propertyId,
+    String supplierName,
+  ) {
+    return Uri(
+      path: '/properties/$propertyId/materials/supplier',
+      queryParameters: {'name': supplierName},
+    ).toString();
+  }
+
   static String propertyUnitDetails(String propertyId, String unitId) =>
       '/properties/$propertyId/units/$unitId';
 

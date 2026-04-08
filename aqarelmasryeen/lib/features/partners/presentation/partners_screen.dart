@@ -58,7 +58,6 @@ class PartnersScreen extends ConsumerWidget {
 
     return AppShellScaffold(
       title: 'الشركاء',
-      subtitle: 'متابعة النسب والمساهمات والأرصدة',
       currentIndex: 2,
       actions: _buildActions(context, ref, pendingRequests),
       floatingActionButton: FloatingActionButton.extended(
@@ -69,7 +68,7 @@ class PartnersScreen extends ConsumerWidget {
           builder: (_) => const PartnerFormSheet(),
         ),
         icon: const Icon(Icons.add),
-        label: const Text('إضافة شريك'),
+        label: const Text('إنشاء شريك'),
       ),
       child: partners.when(
         data: (partnerItems) => expenses.when(
@@ -78,37 +77,20 @@ class PartnersScreen extends ConsumerWidget {
               partners: partnerItems,
               expenses: expenseItems,
             );
-            final totalCapital = partnerItems.fold<double>(
-              0,
-              (sum, item) => sum + item.contributionTotal,
-            );
-            final totalExpected = settlements.fold<double>(
-              0,
-              (sum, item) => sum + item.expectedContribution,
-            );
             final positiveBalances = settlements
                 .where((item) => item.balanceDelta >= 0)
                 .fold<double>(0, (sum, item) => sum + item.balanceDelta);
             final negativeBalances = settlements
                 .where((item) => item.balanceDelta < 0)
                 .fold<double>(0, (sum, item) => sum + item.balanceDelta.abs());
-            final averageShare = partnerItems.isEmpty
-                ? 0.0
-                : partnerItems.fold<double>(
-                        0,
-                        (sum, item) => sum + item.shareRatio,
-                      ) /
-                      partnerItems.length;
 
             return ListView(
               padding: EdgeInsets.all(screenWidth < 640 ? 12 : 16),
               children: [
                 _PartnersBanner(
                   partnerCount: partnerItems.length,
-                  totalCapital: totalCapital,
-                  totalExpected: totalExpected,
-                  averageShare: averageShare,
-                  pendingRequestsCount: pendingRequests.valueOrNull?.length ?? 0,
+                  pendingRequestsCount:
+                      pendingRequests.valueOrNull?.length ?? 0,
                 ),
                 const SizedBox(height: 14),
                 GridView.count(
@@ -124,12 +106,6 @@ class PartnersScreen extends ConsumerWidget {
                       value: '${partnerItems.length}',
                       icon: Icons.groups_outlined,
                       color: const Color(0xFF6B6A63),
-                    ),
-                    MetricCard(
-                      label: 'إجمالي المساهمات',
-                      value: totalCapital.egp,
-                      icon: Icons.account_balance_wallet_outlined,
-                      color: const Color(0xFF7A725A),
                     ),
                     MetricCard(
                       label: 'أرصدة دائنة',
@@ -148,15 +124,14 @@ class PartnersScreen extends ConsumerWidget {
                 const SizedBox(height: 18),
                 const _SectionHeading(
                   title: 'تفاصيل الشركاء',
-                  subtitle:
-                      'متابعة سريعة للنسبة والمساهمة والإيميل وحالة الربط والرصيد الحالي.',
+                  subtitle: 'متابعة حساب الدخول والرصيد الحالي.',
                 ),
                 const SizedBox(height: 12),
                 if (partnerItems.isEmpty)
                   const EmptyStateView(
                     title: 'لا توجد سجلات للشركاء',
                     message:
-                        'أضف الشركاء لتبدأ في متابعة المساهمات والتسويات والأرصدة.',
+                        'أنشئ أول شريك وحدد له حساب دخول ليظهر له نفس البيانات بعد تسجيل الدخول.',
                   )
                 else
                   for (final settlement in settlements) ...[
@@ -192,11 +167,15 @@ class PartnersScreen extends ConsumerWidget {
         }
         return [
           Padding(
-            padding: const EdgeInsetsDirectional.only(end: 4, top: 8, bottom: 8),
+            padding: const EdgeInsetsDirectional.only(
+              end: 4,
+              top: 8,
+              bottom: 8,
+            ),
             child: FilledButton.tonalIcon(
               onPressed: () => _showPendingRequestsSheet(context, ref, items),
               icon: const Icon(Icons.handshake_outlined, size: 18),
-              label: Text(items.length == 1 ? 'قبول الشراكة' : 'طلبات الشراكة'),
+              label: Text(items.length == 1 ? 'طلب ربط' : 'طلبات الربط'),
             ),
           ),
         ];
@@ -210,16 +189,10 @@ class PartnersScreen extends ConsumerWidget {
 class _PartnersBanner extends StatelessWidget {
   const _PartnersBanner({
     required this.partnerCount,
-    required this.totalCapital,
-    required this.totalExpected,
-    required this.averageShare,
     required this.pendingRequestsCount,
   });
 
   final int partnerCount;
-  final double totalCapital;
-  final double totalExpected;
-  final double averageShare;
   final int pendingRequestsCount;
 
   @override
@@ -254,14 +227,14 @@ class _PartnersBanner extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'إدارة الشركاء',
+                        'حسابات الشركاء',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'متابعة هادئة وواضحة للنسب والمساهمات والربط بالإيميل.',
+                        'أنشئ حساب دخول لكل شريك ثم تابعه داخل نفس المشروعات.',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -272,8 +245,8 @@ class _PartnersBanner extends StatelessWidget {
                 if (pendingRequestsCount > 0)
                   _MiniPill(
                     label: pendingRequestsCount == 1
-                        ? 'طلب واحد'
-                        : '$pendingRequestsCount طلبات',
+                        ? 'طلب ربط'
+                        : '$pendingRequestsCount طلبات ربط',
                   ),
               ],
             ),
@@ -283,12 +256,6 @@ class _PartnersBanner extends StatelessWidget {
               runSpacing: 8,
               children: [
                 _BannerPill(label: 'عدد الشركاء', value: '$partnerCount'),
-                _BannerPill(label: 'إجمالي المساهمة', value: totalCapital.egp),
-                _BannerPill(label: 'المتوقع تغطيته', value: totalExpected.egp),
-                _BannerPill(
-                  label: 'متوسط النسبة',
-                  value: _formatPercentage(averageShare),
-                ),
               ],
             ),
           ],
@@ -312,10 +279,10 @@ class _PartnerCard extends StatelessWidget {
         ? const Color(0xFF4D8B5A)
         : const Color(0xFFB76A6A);
     final linkState = partner.userId.isNotEmpty
-        ? 'مربوط'
+        ? 'له حساب دخول'
         : partner.linkedEmail.isNotEmpty
-        ? 'بانتظار القبول'
-        : 'بدون ربط';
+        ? 'طلب ربط مرسل'
+        : 'بدون حساب';
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -352,13 +319,6 @@ class _PartnerCard extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'نسبة الشراكة ${_formatPercentage(partner.shareRatio)}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
                     ],
                   ),
                 ),
@@ -378,35 +338,10 @@ class _PartnerCard extends StatelessWidget {
                 _InfoChip(
                   icon: Icons.alternate_email_rounded,
                   label: partner.linkedEmail.isEmpty
-                      ? 'لا يوجد بريد ربط'
+                      ? 'بدون حساب دخول'
                       : partner.linkedEmail,
                 ),
-                _InfoChip(
-                  icon: Icons.link_rounded,
-                  label: linkState,
-                ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: _ValueTile(
-                    label: 'المتوقع',
-                    value: settlement.expectedContribution.egp,
-                    icon: Icons.pie_chart_outline_rounded,
-                    color: const Color(0xFF8A7E5F),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _ValueTile(
-                    label: 'المدفوع',
-                    value: settlement.contributedAmount.egp,
-                    icon: Icons.payments_outlined,
-                    color: const Color(0xFF6C7A8A),
-                  ),
-                ),
+                _InfoChip(icon: Icons.link_rounded, label: linkState),
               ],
             ),
             const SizedBox(height: 14),
@@ -573,66 +508,6 @@ class _BalanceChip extends StatelessWidget {
   }
 }
 
-class _ValueTile extends StatelessWidget {
-  const _ValueTile({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 17,
-              backgroundColor: color.withValues(alpha: 0.14),
-              child: Icon(icon, color: color, size: 18),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _InfoChip extends StatelessWidget {
   const _InfoChip({required this.icon, required this.label});
 
@@ -669,10 +544,7 @@ class _InfoChip extends StatelessWidget {
 }
 
 class _PendingRequestsSheet extends StatelessWidget {
-  const _PendingRequestsSheet({
-    required this.requests,
-    required this.onAccept,
-  });
+  const _PendingRequestsSheet({required this.requests, required this.onAccept});
 
   final List<AppNotificationItem> requests;
   final ValueChanged<AppNotificationItem> onAccept;
@@ -687,14 +559,14 @@ class _PendingRequestsSheet extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'طلبات الشراكة',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+              'طلبات ربط الحساب',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 6),
             Text(
-              'اقبل الطلب المناسب ليتم ربط الحساب تلقائيًا بالشريك.',
+              'وافق على الطلب المناسب لربط حساب الدخول بهذا الشريك.',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 14),
@@ -725,7 +597,7 @@ class _PendingRequestsSheet extends StatelessWidget {
                       child: FilledButton.tonalIcon(
                         onPressed: () => onAccept(request),
                         icon: const Icon(Icons.check_rounded),
-                        label: const Text('Accept'),
+                        label: const Text('موافقة'),
                       ),
                     ),
                   ],
@@ -774,7 +646,7 @@ Future<void> _acceptPartnerRequest(
   final partnerId = request.metadata['partnerId'] as String? ?? '';
   if (partnerId.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تعذر قراءة بيانات طلب الشراكة.')),
+      const SnackBar(content: Text('تعذر قراءة بيانات طلب الربط.')),
     );
     return;
   }
@@ -812,13 +684,12 @@ Future<void> _acceptPartnerRequest(
         .read(notificationRepositoryProvider)
         .create(
           userId: requesterUserId,
-          title: 'تم قبول طلب الشراكة',
+          title: 'تم قبول ربط الحساب',
           body:
-              '${session.profile?.name ?? 'الشريك'} وافق على ربط الشريك ${partner.name}.',
+              '${session.profile?.name ?? 'الشريك'} وافق على ربط الحساب بالشريك ${partner.name}.',
           type: NotificationType.partnerLinkAccepted,
           route: AppRoutes.partners,
-          referenceKey:
-              'partner-link-accepted-${partner.id}-${session.userId}',
+          referenceKey: 'partner-link-accepted-${partner.id}-${session.userId}',
           metadata: {
             'partnerId': partner.id,
             'acceptedByUserId': session.userId,
@@ -828,7 +699,9 @@ Future<void> _acceptPartnerRequest(
 
   if (context.mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('تم قبول الطلب وربط ${partner.name} بالحساب.')),
+      SnackBar(
+        content: Text('تم قبول الطلب وربط ${partner.name} بحساب الدخول.'),
+      ),
     );
   }
 }
@@ -843,7 +716,9 @@ Future<void> _unlinkOtherPartners({
     if (partner.userId != linkedUserId || partner.id == keepPartnerId) {
       continue;
     }
-    await ref.read(partnerRepositoryProvider).upsert(
+    await ref
+        .read(partnerRepositoryProvider)
+        .upsert(
           partner.copyWith(
             userId: '',
             linkedEmail: '',
@@ -859,10 +734,4 @@ String _resolveCurrentEmail(AppSession session) {
     return profileEmail;
   }
   return session.email?.trim().toLowerCase() ?? '';
-}
-
-String _formatPercentage(double ratio) {
-  final percentage = ratio * 100;
-  final decimals = percentage == percentage.roundToDouble() ? 0 : 1;
-  return '${percentage.toStringAsFixed(decimals)}%';
 }

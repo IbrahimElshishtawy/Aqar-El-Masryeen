@@ -1,5 +1,7 @@
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
+import 'package:aqarelmasryeen/firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class FirebaseAuthRemoteDataSource {
   FirebaseAuthRemoteDataSource(this._auth);
@@ -18,6 +20,43 @@ class FirebaseAuthRemoteDataSource {
       email: email,
       password: password,
     );
+  }
+
+  Future<String> createUserWithEmailOnIsolatedApp({
+    required String email,
+    required String password,
+    required String fullName,
+    required String appName,
+  }) async {
+    FirebaseApp? secondaryApp;
+    try {
+      secondaryApp = Firebase.apps.cast<FirebaseApp?>().firstWhere(
+        (app) => app?.name == appName,
+        orElse: () => null,
+      );
+      secondaryApp ??= await Firebase.initializeApp(
+        name: appName,
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      final secondaryAuth = FirebaseAuth.instanceFor(app: secondaryApp);
+      final credential = await secondaryAuth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      final user = credential.user;
+      if (user == null) {
+        throw const AppException('Authentication did not return a user.');
+      }
+      await user.updateDisplayName(fullName);
+      await user.reload();
+      await secondaryAuth.signOut();
+      return user.uid;
+    } finally {
+      if (secondaryApp != null) {
+        await secondaryApp.delete();
+      }
+    }
   }
 
   Future<UserCredential> signInWithEmail({

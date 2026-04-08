@@ -426,6 +426,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                       onOpenDetailedExpenses: () => context.push(
                         AppRoutes.propertyExpenseDetails(widget.propertyId),
                       ),
+                      onAddExpense: () =>
+                          _showExpenseSheet(partners: data.partners),
                       onEditExpense: (expense) => _showExpenseSheet(
                         expense: expense,
                         partners: data.partners,

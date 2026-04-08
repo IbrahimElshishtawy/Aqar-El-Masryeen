@@ -1,10 +1,9 @@
-import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
-import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_record_tables.dart';
+import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_expenses_workspace.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
@@ -105,33 +104,24 @@ class _PropertyExpensesDetailScreenState
           );
         }
 
-        final expenses = [...data.directExpenses]
-          ..sort((a, b) => b.date.compareTo(a.date));
-        final partnerNames = {
-          for (final partner in data.partners) partner.id: partner.name,
-        };
-
         return AppShellScaffold(
           title: 'تفاصيل المصروفات',
-          subtitle:
-              '${data.property.name} • ${expenses.length} حركة • ${data.totalDirectExpenses.egp}',
+          subtitle: '${data.property.name} - الأقدم من 24 ساعة',
           currentIndex: 1,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 24),
             children: [
-              PropertyExpensesTable(
-                title: 'جدول المصروفات بالتفصيل',
-                subtitle:
-                    '${expenses.length} حركة - الإجمالي ${data.totalDirectExpenses.egp}',
-                expenses: expenses,
-                partnerNames: partnerNames,
-                totalAmount: data.totalDirectExpenses,
-                onAdd: () => _showExpenseSheet(partners: data.partners),
-                onEdit: (expense) => _showExpenseSheet(
+              PropertyExpensesWorkspace(
+                data: data,
+                showSummaryPanel: false,
+                showDetailedButton: false,
+                scope: ExpenseTableScope.olderThan24Hours,
+                onAddExpense: () => _showExpenseSheet(partners: data.partners),
+                onEditExpense: (expense) => _showExpenseSheet(
                   expense: expense,
                   partners: data.partners,
                 ),
-                onDelete: _deleteExpense,
+                onDeleteExpense: _deleteExpense,
               ),
             ],
           ),
