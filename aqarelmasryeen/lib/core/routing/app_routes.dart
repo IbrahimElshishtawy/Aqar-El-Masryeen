@@ -19,6 +19,9 @@ class AppRoutes {
   static String expensesTab(String tab) =>
       Uri(path: expenses, queryParameters: {'tab': tab}).toString();
 
+  static String expensesHistory() =>
+      Uri(path: expenses, queryParameters: {'history': 'older'}).toString();
+
   static String propertyDetails(String propertyId) => '/properties/$propertyId';
 
   static String propertyExpenses(String propertyId) =>

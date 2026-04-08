@@ -3,11 +3,9 @@ import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
-import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/domain/materials_ledger_calculator.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/material_expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
-import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_material_entries_table.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,38 +31,6 @@ class _PropertyMaterialsScreenState
       builder: (_) =>
           MaterialExpenseFormSheet(propertyId: widget.propertyId, entry: entry),
     );
-  }
-
-  Future<bool> _confirm(String title, String message) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(title),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('إلغاء'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                child: const Text('تأكيد'),
-              ),
-            ],
-          ),
-        ) ??
-        false;
-  }
-
-  Future<void> _deleteMaterial(MaterialExpenseEntry entry) async {
-    final confirmed = await _confirm(
-      'حذف فاتورة مواد',
-      'سيتم أرشفة فاتورة المواد من الجداول النشطة.',
-    );
-    if (!confirmed) {
-      return;
-    }
-    await ref.read(materialExpenseRepositoryProvider).softDelete(entry.id);
   }
 
   @override
@@ -106,6 +72,9 @@ class _PropertyMaterialsScreenState
           title: 'مواد البناء',
           subtitle: data.property.name,
           currentIndex: 1,
+          actions: [
+            _MaterialsTopBarAction(onPressed: () => _showMaterialSheet()),
+          ],
           child: ListView(
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 24),
             children: [
@@ -118,19 +87,34 @@ class _PropertyMaterialsScreenState
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              PropertyMaterialEntriesTable(
-                title: 'جدول مواد البناء',
-                rows: data.materials,
-                onAdd: () => _showMaterialSheet(),
-                addLabel: 'إضافة فاتورة',
-                onEdit: (entry) => _showMaterialSheet(entry: entry),
-                onDelete: _deleteMaterial,
-              ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _MaterialsTopBarAction extends StatelessWidget {
+  const _MaterialsTopBarAction({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 4),
+      child: Center(
+        child: FilledButton.tonalIcon(
+          onPressed: onPressed,
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text('إضافة مورد'),
+          style: FilledButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -149,12 +133,12 @@ class _SupplierOverviewPanel extends StatelessWidget {
     return AppPanel(
       title: 'الموردون',
       subtitle: summaries.isEmpty
-          ? 'أضف أول فاتورة مواد بناء لعرض الموردين هنا.'
-          : 'اضغط على اسم المورد لفتح كشف الحساب والمدفوعات الخاصة به.',
+          ? 'أضف أول مورد من البار العلوي لبدء تسجيل فواتير مواد البناء.'
+          : 'اضغط على اسم المورد لفتح كشف الحساب، ويمكنك إضافة مورد جديد من الأعلى.',
       child: summaries.isEmpty
           ? const EmptyStateView(
               title: 'لا يوجد موردون بعد',
-              message: 'بمجرد إضافة فاتورة مواد البناء سيظهر اسم المورد هنا.',
+              message: 'بمجرد إضافة المورد وأول فاتورة مواد بناء سيظهر هنا.',
             )
           : LayoutBuilder(
               builder: (context, constraints) {

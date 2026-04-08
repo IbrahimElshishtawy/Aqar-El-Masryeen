@@ -61,10 +61,8 @@ class PropertyExpensesWorkspace extends StatelessWidget {
           subtitle: _tableSubtitle(rows.length),
           emptyTitle: _emptyTitle,
           emptyMessage: _emptyMessage,
-          currentColumnLabel: 'المستخدم',
-          counterpartColumnLabel: data.counterpartPartners.length > 1
-              ? 'الشركاء'
-              : 'الشريك',
+          currentColumnLabel: data.currentColumnLabel,
+          counterpartColumnLabel: data.counterpartColumnLabel,
           rows: rows,
           currentTotal: _sumRows(rows, currentSide: true),
           counterpartTotal: _sumRows(rows, currentSide: false),
@@ -146,7 +144,7 @@ class PropertyExpensesWorkspace extends StatelessWidget {
       case ExpenseTableScope.all:
         return count == 0
             ? 'لا توجد مصروفات مسجلة لهذا العقار حتى الآن.'
-            : 'كل صف يعرض تاريخ المصروف والمبلغ ووصفه تحت المستخدم أو الشريك.';
+            : 'كل صف يعرض تاريخ المصروف والمبلغ ووصفه تحت ${data.currentColumnLabel} أو ${data.counterpartColumnLabel}.';
     }
   }
 
@@ -164,11 +162,11 @@ class PropertyExpensesWorkspace extends StatelessWidget {
   String get _emptyMessage {
     switch (scope) {
       case ExpenseTableScope.recent24Hours:
-        return 'بمجرد إضافة مصروف خلال آخر 24 ساعة سيظهر هنا تحت المستخدم أو الشريك.';
+        return 'بمجرد إضافة مصروف خلال آخر 24 ساعة سيظهر هنا تحت ${data.currentColumnLabel} أو ${data.counterpartColumnLabel}.';
       case ExpenseTableScope.olderThan24Hours:
         return 'كل المصروفات الأقدم من 24 ساعة ستظهر هنا تلقائيًا.';
       case ExpenseTableScope.all:
-        return 'بمجرد إضافة أول مصروف سيظهر هنا التاريخ والمبلغ والوصف للمستخدم أو الشريك.';
+        return 'بمجرد إضافة أول مصروف سيظهر هنا التاريخ والمبلغ والوصف لـ ${data.currentColumnLabel} أو ${data.counterpartColumnLabel}.';
     }
   }
 }

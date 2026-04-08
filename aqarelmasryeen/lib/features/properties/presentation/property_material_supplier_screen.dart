@@ -1,13 +1,18 @@
+import 'dart:math' as math;
+
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
+import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
+import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/material_expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/property_detail_presenters.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/financial_ledger_table.dart';
+import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +42,118 @@ class _PropertyMaterialSupplierScreenState
       useSafeArea: true,
       builder: (_) =>
           MaterialExpenseFormSheet(propertyId: widget.propertyId, entry: entry),
+    );
+  }
+
+  Future<void> _showSupplierPaymentSheet({
+    required String supplierName,
+    required List<MaterialExpenseEntry> rows,
+    required double totalRemaining,
+  }) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => _SupplierPaymentSheet(
+        supplierName: supplierName,
+        totalRemaining: totalRemaining,
+        onSubmit: (amount, paidAt, notes) => _applySupplierPayment(
+          supplierName: supplierName,
+          rows: rows,
+          amount: amount,
+          paidAt: paidAt,
+          notes: notes,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _applySupplierPayment({
+    required String supplierName,
+    required List<MaterialExpenseEntry> rows,
+    required double amount,
+    required DateTime paidAt,
+    required String notes,
+  }) async {
+    final session = ref.read(authSessionProvider).valueOrNull;
+    if (session == null) {
+      return;
+    }
+
+    final openRows =
+        rows.where((entry) => entry.amountRemaining > 0).toList(growable: false)
+          ..sort((a, b) {
+            final dueCompare = (a.dueDate ?? a.date).compareTo(
+              b.dueDate ?? b.date,
+            );
+            if (dueCompare != 0) {
+              return dueCompare;
+            }
+            return a.date.compareTo(b.date);
+          });
+
+    var remainingPayment = amount;
+    var touchedInvoices = 0;
+    final now = DateTime.now();
+    final repository = ref.read(materialExpenseRepositoryProvider);
+
+    for (final entry in openRows) {
+      if (remainingPayment <= 0) {
+        break;
+      }
+
+      final appliedAmount = math.min(remainingPayment, entry.amountRemaining);
+      if (appliedAmount <= 0) {
+        continue;
+      }
+
+      await repository.save(
+        entry.copyWith(
+          amountPaid: entry.amountPaid + appliedAmount,
+          amountRemaining: (entry.amountRemaining - appliedAmount)
+              .clamp(0, entry.totalPrice)
+              .toDouble(),
+          updatedBy: session.userId,
+          updatedAt: now,
+          dueDate: entry.dueDate,
+          notes: entry.notes,
+        ),
+      );
+      remainingPayment -= appliedAmount;
+      touchedInvoices += 1;
+    }
+
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.userId,
+          actorName: session.profile?.name ?? 'شريك',
+          action: 'supplier_payment_recorded',
+          entityType: 'material_supplier',
+          entityId: supplierName,
+          metadata: {
+            'propertyId': widget.propertyId,
+            'supplierName': supplierName,
+            'amount': amount,
+            'paidAt': paidAt.toIso8601String(),
+            'notes': notes,
+            'affectedInvoices': touchedInvoices,
+          },
+        );
+
+    if (!mounted) {
+      return;
+    }
+
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          touchedInvoices <= 0
+              ? 'لا توجد فواتير مفتوحة لتسجيل دفعة عليها.'
+              : 'تم تسجيل دفعة ${amount.egp} على $touchedInvoices فاتورة.',
+        ),
+      ),
     );
   }
 
@@ -138,11 +255,24 @@ class _PropertyMaterialSupplierScreenState
                 .toList()
               ..sort();
         final nextDueDate = dueDates.isEmpty ? null : dueDates.first;
+        final canAddPayment = rows.isNotEmpty && totalRemaining > 0;
 
         return AppShellScaffold(
           title: supplierName,
           subtitle: data.property.name,
           currentIndex: 1,
+          actions: [
+            if (canAddPayment)
+              _SupplierTopBarAction(
+                label: 'إضافة دفعة',
+                icon: Icons.add_card_rounded,
+                onPressed: () => _showSupplierPaymentSheet(
+                  supplierName: supplierName,
+                  rows: rows,
+                  totalRemaining: totalRemaining,
+                ),
+              ),
+          ],
           child: ListView(
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 24),
             children: [
@@ -153,6 +283,13 @@ class _PropertyMaterialSupplierScreenState
                 totalPaid: totalPaid,
                 totalRemaining: totalRemaining,
                 nextDueDate: nextDueDate,
+                onAddPayment: canAddPayment
+                    ? () => _showSupplierPaymentSheet(
+                        supplierName: supplierName,
+                        rows: rows,
+                        totalRemaining: totalRemaining,
+                      )
+                    : null,
               ),
               const SizedBox(height: 16),
               if (rows.isEmpty)
@@ -276,6 +413,36 @@ class _PropertyMaterialSupplierScreenState
   }
 }
 
+class _SupplierTopBarAction extends StatelessWidget {
+  const _SupplierTopBarAction({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(end: 4),
+      child: Center(
+        child: FilledButton.tonalIcon(
+          onPressed: onPressed,
+          icon: Icon(icon, size: 18),
+          label: Text(label),
+          style: FilledButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SupplierHeaderPanel extends StatelessWidget {
   const _SupplierHeaderPanel({
     required this.supplierName,
@@ -284,6 +451,7 @@ class _SupplierHeaderPanel extends StatelessWidget {
     required this.totalPaid,
     required this.totalRemaining,
     required this.nextDueDate,
+    this.onAddPayment,
   });
 
   final String supplierName;
@@ -292,6 +460,7 @@ class _SupplierHeaderPanel extends StatelessWidget {
   final double totalPaid;
   final double totalRemaining;
   final DateTime? nextDueDate;
+  final VoidCallback? onAddPayment;
 
   @override
   Widget build(BuildContext context) {
@@ -300,20 +469,42 @@ class _SupplierHeaderPanel extends StatelessWidget {
       subtitle: nextDueDate == null
           ? 'كل فواتير المورد المعروضة في كشف واحد.'
           : 'أقرب ميعاد دفع: ${nextDueDate!.formatShort()}',
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _SupplierMetricCard(
-            label: 'إجمالي المشتريات',
-            value: totalPurchased.egp,
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _SupplierMetricCard(
+                label: 'إجمالي المشتريات',
+                value: totalPurchased.egp,
+              ),
+              _SupplierMetricCard(
+                label: 'إجمالي المدفوع',
+                value: totalPaid.egp,
+              ),
+              _SupplierMetricCard(
+                label: 'إجمالي المتبقي',
+                value: totalRemaining.egp,
+              ),
+              _SupplierMetricCard(
+                label: 'عدد الفواتير',
+                value: '$invoicesCount',
+              ),
+            ],
           ),
-          _SupplierMetricCard(label: 'إجمالي المدفوع', value: totalPaid.egp),
-          _SupplierMetricCard(
-            label: 'إجمالي المتبقي',
-            value: totalRemaining.egp,
-          ),
-          _SupplierMetricCard(label: 'عدد الفواتير', value: '$invoicesCount'),
+          if (onAddPayment != null) ...[
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onAddPayment,
+                icon: const Icon(Icons.add_card_rounded),
+                label: const Text('إضافة دفعة حساب'),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -352,6 +543,148 @@ class _SupplierMetricCard extends StatelessWidget {
             ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SupplierPaymentSheet extends StatefulWidget {
+  const _SupplierPaymentSheet({
+    required this.supplierName,
+    required this.totalRemaining,
+    required this.onSubmit,
+  });
+
+  final String supplierName;
+  final double totalRemaining;
+  final Future<void> Function(double amount, DateTime paidAt, String notes)
+  onSubmit;
+
+  @override
+  State<_SupplierPaymentSheet> createState() => _SupplierPaymentSheetState();
+}
+
+class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _amountController;
+  late final TextEditingController _notesController;
+  late DateTime _paidAt;
+  bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _amountController = TextEditingController();
+    _notesController = TextEditingController();
+    _paidAt = DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _paidAt,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() => _paidAt = picked);
+    }
+  }
+
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final amount = double.parse(_amountController.text.trim());
+    setState(() => _saving = true);
+    try {
+      await widget.onSubmit(amount, _paidAt, _notesController.text.trim());
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppFormSheet(
+      title: 'إضافة دفعة حساب',
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.supplierName,
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'المتبقي الحالي ${widget.totalRemaining.egp}. سيتم توزيع الدفعة على الفواتير المفتوحة من الأقدم للأحدث.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _amountController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(
+                labelText: 'قيمة الدفعة',
+                helperText: 'الحد الأقصى ${widget.totalRemaining.egp}',
+              ),
+              validator: (value) {
+                final amount = double.tryParse((value ?? '').trim()) ?? 0;
+                if (amount <= 0) {
+                  return 'أدخل قيمة دفعة صحيحة.';
+                }
+                if (amount > widget.totalRemaining) {
+                  return 'القيمة أكبر من المتبقي على المورد.';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: _pickDate,
+              child: InputDecorator(
+                decoration: const InputDecoration(labelText: 'تاريخ الدفعة'),
+                child: Text(_paidAt.formatShort()),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _notesController,
+              minLines: 2,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                labelText: 'ملاحظات',
+                helperText: 'اختياري',
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: _saving ? null : _submit,
+                child: Text(_saving ? 'جاري الحفظ...' : 'حفظ الدفعة'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

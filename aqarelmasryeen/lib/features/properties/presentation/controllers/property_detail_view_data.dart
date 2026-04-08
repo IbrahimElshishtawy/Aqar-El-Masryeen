@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/utils/partner_display_labels.dart';
 import 'package:aqarelmasryeen/features/expenses/domain/materials_ledger_calculator.dart';
 import 'package:aqarelmasryeen/features/partners/domain/partner_ledger_calculator.dart';
 import 'package:aqarelmasryeen/features/unit_sales/domain/unit_sales_calculator.dart';
@@ -72,7 +73,15 @@ class PropertyProjectViewData {
   final double myTotalExpenseShare;
   final double counterpartTotalExpenseShare;
 
-  String get myLabel => currentPartner?.name ?? 'حصتي';
+  int get totalUnitsCount => unitSummaries.length;
+
+  int get soldUnitsCount =>
+      unitSummaries.where((item) => item.unit.status == UnitStatus.sold).length;
+
+  String get myLabel => currentColumnLabel;
+
+  String get currentColumnLabel =>
+      resolveCurrentPartyLabel(currentPartner, fallback: 'المستخدم');
 
   List<Partner> get counterpartPartners {
     if (currentPartner == null) {
@@ -83,12 +92,12 @@ class PropertyProjectViewData {
         .toList();
   }
 
-  String get counterpartLabel {
-    if (counterpartPartners.length == 1) {
-      return counterpartPartners.first.name;
-    }
-    return counterpartPartners.isEmpty ? 'الشريك' : 'الشركاء';
-  }
+  String get counterpartLabel => counterpartColumnLabel;
+
+  String get counterpartColumnLabel => resolveCounterpartPartyLabel(
+    partners: partners,
+    currentPartner: currentPartner,
+  );
 }
 
 class PropertyUnitViewData {

@@ -532,7 +532,11 @@ class _PropertyHeroCard extends StatelessWidget {
               ),
               _HeroMetric(
                 label: 'الشقق',
-                value: '${data.unitSummaries.length}',
+                value: '${data.totalUnitsCount}',
+              ),
+              _HeroMetric(
+                label: 'المباع منها',
+                value: '${data.soldUnitsCount}',
               ),
             ],
           ),

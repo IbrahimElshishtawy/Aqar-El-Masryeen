@@ -2,7 +2,6 @@ import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
-import 'package:aqarelmasryeen/core/widgets/metric_card.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
@@ -77,12 +76,6 @@ class PartnersScreen extends ConsumerWidget {
               partners: partnerItems,
               expenses: expenseItems,
             );
-            final positiveBalances = settlements
-                .where((item) => item.balanceDelta >= 0)
-                .fold<double>(0, (sum, item) => sum + item.balanceDelta);
-            final negativeBalances = settlements
-                .where((item) => item.balanceDelta < 0)
-                .fold<double>(0, (sum, item) => sum + item.balanceDelta.abs());
 
             return ListView(
               padding: EdgeInsets.all(screenWidth < 640 ? 12 : 16),
@@ -91,35 +84,6 @@ class PartnersScreen extends ConsumerWidget {
                   partnerCount: partnerItems.length,
                   pendingRequestsCount:
                       pendingRequests.valueOrNull?.length ?? 0,
-                ),
-                const SizedBox(height: 14),
-                GridView.count(
-                  shrinkWrap: true,
-                  crossAxisCount: screenWidth < 520 ? 2 : 4,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: screenWidth < 520 ? 1.18 : 1.14,
-                  children: [
-                    MetricCard(
-                      label: 'عدد الشركاء',
-                      value: '${partnerItems.length}',
-                      icon: Icons.groups_outlined,
-                      color: const Color(0xFF6B6A63),
-                    ),
-                    MetricCard(
-                      label: 'أرصدة دائنة',
-                      value: positiveBalances.egp,
-                      icon: Icons.north_east_rounded,
-                      color: const Color(0xFF4D8B5A),
-                    ),
-                    MetricCard(
-                      label: 'أرصدة مستحقة',
-                      value: negativeBalances.egp,
-                      icon: Icons.south_west_rounded,
-                      color: const Color(0xFFB76A6A),
-                    ),
-                  ],
                 ),
                 const SizedBox(height: 18),
                 const _SectionHeading(

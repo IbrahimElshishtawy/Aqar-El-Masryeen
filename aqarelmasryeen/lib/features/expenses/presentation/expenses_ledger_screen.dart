@@ -1,23 +1,15 @@
-import 'dart:math' as math;
-
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
+import 'package:aqarelmasryeen/core/utils/partner_display_labels.dart';
+import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
-import 'package:aqarelmasryeen/core/widgets/summary_card.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
-import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
-import 'package:aqarelmasryeen/features/expenses/domain/materials_ledger_calculator.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/expense_form_sheet.dart';
-import 'package:aqarelmasryeen/features/expenses/presentation/material_expense_form_sheet.dart';
-import 'package:aqarelmasryeen/features/partners/data/partner_ledger_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
-import 'package:aqarelmasryeen/features/partners/domain/partner_ledger_calculator.dart';
-import 'package:aqarelmasryeen/features/partners/presentation/partner_ledger_entry_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
-import 'package:aqarelmasryeen/features/properties/presentation/widgets/financial_ledger_table.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
@@ -30,15 +22,11 @@ import 'package:go_router/go_router.dart';
 final allExpensesProvider = StreamProvider.autoDispose(
   (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
 );
-final allMaterialsProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(materialExpenseRepositoryProvider).watchAll(),
-);
+
 final allPartnersProvider = StreamProvider.autoDispose(
   (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
 );
-final allPartnerLedgersProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(partnerLedgerRepositoryProvider).watchAll(),
-);
+
 final allPropertiesProvider = StreamProvider.autoDispose(
   (ref) => ref.watch(propertyRepositoryProvider).watchProperties(),
 );
@@ -50,27 +38,21 @@ class ExpensesLedgerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(authSessionProvider).valueOrNull;
     final expensesAsync = ref.watch(allExpensesProvider);
-    final materialsAsync = ref.watch(allMaterialsProvider);
     final partnersAsync = ref.watch(allPartnersProvider);
-    final partnerLedgersAsync = ref.watch(allPartnerLedgersProvider);
     final propertiesAsync = ref.watch(allPropertiesProvider);
 
     if (expensesAsync.hasError ||
-        materialsAsync.hasError ||
         partnersAsync.hasError ||
-        partnerLedgersAsync.hasError ||
         propertiesAsync.hasError) {
       return AppShellScaffold(
         title: 'المصاريف',
-        subtitle: 'الجداول المالية والموارد والموردون',
+        subtitle: 'تعذر تحميل بيانات المصروفات',
         currentIndex: 1,
         child: EmptyStateView(
-          title: 'تعذر تحميل شاشة المصاريف',
+          title: 'تعذر تحميل شاشة المصروفات',
           message:
               expensesAsync.error?.toString() ??
-              materialsAsync.error?.toString() ??
               partnersAsync.error?.toString() ??
-              partnerLedgersAsync.error?.toString() ??
               propertiesAsync.error?.toString() ??
               'حدث خطأ غير متوقع',
         ),
@@ -78,197 +60,91 @@ class ExpensesLedgerScreen extends ConsumerWidget {
     }
 
     if (!expensesAsync.hasValue ||
-        !materialsAsync.hasValue ||
         !partnersAsync.hasValue ||
-        !partnerLedgersAsync.hasValue ||
         !propertiesAsync.hasValue) {
       return const AppShellScaffold(
         title: 'المصاريف',
-        subtitle: 'الجداول المالية والموارد والموردون',
+        subtitle: 'جاري تحميل سجل المصروفات',
         currentIndex: 1,
         child: Center(child: CircularProgressIndicator()),
       );
     }
 
-    final expenses = expensesAsync.value!;
-    final materials = materialsAsync.value!;
+    final expenses = expensesAsync.value!
+        .where((expense) => !expense.archived)
+        .toList(growable: false);
     final partners = partnersAsync.value!;
-    final partnerLedgers = partnerLedgersAsync.value!;
     final properties = propertiesAsync.value!;
+    final showingHistory = _showingHistory(context);
+    final today = DateTime.now();
 
-    final propertyNames = {
-      for (final property in properties) property.id: property.name,
-    };
-    final partnerNames = {
-      for (final partner in partners) partner.id: partner.name,
-    };
-    final materialSnapshot = const MaterialsLedgerCalculator().build(materials);
-    final partnerSnapshot = const PartnerLedgerCalculator().build(
+    final currentPartner = partners.firstWhereOrNull(
+      (partner) => partner.userId == session?.userId,
+    );
+    final currentColumnLabel = resolveCurrentPartyLabel(currentPartner);
+    final counterpartColumnLabel = resolveCounterpartPartyLabel(
       partners: partners,
-      expenses: expenses,
-      materialExpenses: materials,
-      ledgerEntries: partnerLedgers,
+      currentPartner: currentPartner,
     );
-
-    final currentPartner =
-        partners.firstWhereOrNull(
-          (partner) => partner.userId == session?.userId,
-        ) ??
-        partners.firstOrNull;
-    final otherPartners = currentPartner == null
-        ? <Partner>[]
-        : partners.where((partner) => partner.id != currentPartner.id).toList();
-
-    final mineSnapshot = _buildPartyFinanceSnapshot(
-      title: currentPartner == null
-          ? 'مصروفاتي'
-          : 'أنا - ${currentPartner.name}',
-      fallbackSubtitle: 'كل الحركات المالية الخاصة بحسابك',
-      partners: currentPartner == null ? const <Partner>[] : [currentPartner],
+    final rows = _buildExpenseRows(
       expenses: expenses,
-      ledgerEntries: partnerLedgers,
-      propertyNames: propertyNames,
-      partnerNames: partnerNames,
-      totalExposure:
-          expenses.fold<double>(0, (sum, item) => sum + item.amount) +
-          materials.fold<double>(0, (sum, item) => sum + item.totalPrice),
+      currentPartnerId: currentPartner?.id,
+      referenceDate: today,
+      includeOlderDays: showingHistory,
     );
-    final partnerFinanceSnapshot = _buildPartyFinanceSnapshot(
-      title: otherPartners.length == 1
-          ? 'الشريك - ${otherPartners.first.name}'
-          : 'الشركاء',
-      fallbackSubtitle: 'كل الحركات المالية الخاصة بالطرف الآخر',
-      partners: otherPartners,
-      expenses: expenses,
-      ledgerEntries: partnerLedgers,
-      propertyNames: propertyNames,
-      partnerNames: partnerNames,
-      totalExposure:
-          expenses.fold<double>(0, (sum, item) => sum + item.amount) +
-          materials.fold<double>(0, (sum, item) => sum + item.totalPrice),
-    );
-
-    final totalDirectExpenses = expenses.fold<double>(
+    final totalAmount = rows.fold<double>(
       0,
-      (sum, item) => sum + item.amount,
+      (sum, row) => sum + row.expense.amount,
     );
-    final totalFinancialExposure =
-        totalDirectExpenses + materialSnapshot.overallTotal;
-    final initialTabIndex = _resolveInitialTabIndex(context);
-    return DefaultTabController(
-      length: 3,
-      initialIndex: initialTabIndex,
-      child: AppShellScaffold(
-        title: 'المصاريف',
-        subtitle: 'جداول عربية شبيهة بالإكسل لكل البيانات المالية',
-        currentIndex: 1,
-        automaticallyImplyLeading: false,
-        titleActions: [
-          _ExpensesTopBarActions(properties: properties, partners: partners),
-        ],
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) => [
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-              sliver: SliverList.list(
-                children: [
-                  _ExpenseSummaryGrid(
-                    cards: [
-                      SummaryCard(
-                        label: 'إجمالي المصروفات المباشرة',
-                        value: totalDirectExpenses.egp,
-                        subtitle: 'كل المصروفات المسجلة على المشروعات',
-                        icon: Icons.receipt_long_outlined,
-                        emphasis: true,
-                        splitLayout: true,
-                      ),
-                      SummaryCard(
-                        label: 'إجمالي الموارد',
-                        value: materialSnapshot.overallTotal.egp,
-                        subtitle: 'فواتير مواد البناء والموردين',
-                        icon: Icons.inventory_2_outlined,
-                        splitLayout: true,
-                      ),
-                      SummaryCard(
-                        label: 'إجمالي الالتزام المالي',
-                        value: totalFinancialExposure.egp,
-                        subtitle: 'المصروفات المباشرة + الموارد',
-                        icon: Icons.account_balance_wallet_outlined,
-                        splitLayout: true,
-                      ),
-                      SummaryCard(
-                        label: mineSnapshot.title,
-                        value: mineSnapshot.totalPaid.egp,
-                        subtitle: 'المدفوع فعليًا من جهتك',
-                        icon: Icons.person_outline_rounded,
-                        splitLayout: true,
-                      ),
-                      SummaryCard(
-                        label: partnerFinanceSnapshot.title,
-                        value: partnerFinanceSnapshot.totalPaid.egp,
-                        subtitle: 'المدفوع فعليًا من جهة الشريك',
-                        icon: Icons.groups_outlined,
-                        splitLayout: true,
-                      ),
-                      SummaryCard(
-                        label: 'الموردون المفتوحون',
-                        value: '${materialSnapshot.supplierSummaries.length}',
-                        subtitle: 'عدد الموردين الذين لديهم حركة مالية',
-                        icon: Icons.storefront_outlined,
-                        splitLayout: true,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
+    final hasOlderRows = expenses.any(
+      (expense) => !_isSameCalendarDay(expense.date, today),
+    );
+
+    return AppShellScaffold(
+      title: showingHistory ? 'سجل المصروفات' : 'مصاريف اليوم',
+      subtitle: showingHistory
+          ? 'عرض تواريخ بقية الأيام للمصاريف'
+          : 'جدول يومي بسيط بين $currentColumnLabel و$counterpartColumnLabel',
+      currentIndex: 1,
+      automaticallyImplyLeading: false,
+      titleActions: [
+        _ExpensesTopBarActions(properties: properties, partners: partners),
+      ],
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(6, 8, 6, 24),
+        children: [
+          _ExpensesOverviewPanel(
+            totalAmount: totalAmount,
+            entriesCount: rows.length,
+            showingHistory: showingHistory,
+            hasOlderRows: hasOlderRows,
+            currentColumnLabel: currentColumnLabel,
+            counterpartColumnLabel: counterpartColumnLabel,
+            onAddExpense: () => _showExpenseSheet(
+              context,
+              properties: properties,
+              partners: partners,
             ),
-            SliverPersistentHeader(
-              pinned: true,
-              delegate: _TabBarHeaderDelegate(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: const Color(0xFFD8D8D2)),
-                    ),
-                    child: const TabBar(
-                      isScrollable: true,
-                      tabs: [
-                        Tab(text: 'سجل المصروفات'),
-                        Tab(text: 'أنا / الشريك'),
-                        Tab(text: 'الموارد'),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-          body: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TabBarView(
-              children: [
-                _ExpensesRegisterTab(
-                  expenses: expenses,
-                  propertyNames: propertyNames,
-                  partnerNames: partnerNames,
-                ),
-                _OwnershipTablesTab(
-                  mineSnapshot: mineSnapshot,
-                  partnerSnapshot: partnerFinanceSnapshot,
-                ),
-                _ResourcesTab(
-                  snapshot: materialSnapshot,
-                  rows: partnerSnapshot,
-                  propertyNames: propertyNames,
-                ),
-              ],
-            ),
+            onShowMore: hasOlderRows && !showingHistory
+                ? () => context.push(AppRoutes.expensesHistory())
+                : null,
+            onShowToday: showingHistory
+                ? () => context.go(AppRoutes.expenses)
+                : null,
           ),
-        ),
+          const SizedBox(height: 16),
+          _ExpensesDailyTable(
+            rows: rows,
+            currentColumnLabel: currentColumnLabel,
+            counterpartColumnLabel: counterpartColumnLabel,
+            emptyTitle: showingHistory
+                ? 'لا توجد مصروفات في الأيام السابقة'
+                : 'لا توجد مصروفات اليوم',
+            emptyMessage: showingHistory
+                ? 'عند وجود مصروفات بتاريخ أقدم من اليوم ستظهر هنا.'
+                : 'بمجرد إضافة مصروف اليوم سيظهر هنا تحت $currentColumnLabel أو $counterpartColumnLabel.',
+          ),
+        ],
       ),
     );
   }
@@ -285,153 +161,30 @@ class _ExpensesTopBarActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = DefaultTabController.maybeOf(context);
-    if (controller == null) {
-      return const SizedBox.shrink();
-    }
-
-    return AnimatedBuilder(
-      animation: controller,
-      builder: (context, _) {
-        final tabIndex = controller.index;
-
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _TopBarIconButton(
-              icon: Icons.add_rounded,
-              tooltip: _tooltipForTab(tabIndex),
-              onPressed: () => _handleAddPressed(context, tabIndex),
-            ),
-            _TopBarIconButton(
-              icon: Icons.arrow_forward_rounded,
-              tooltip: 'رجوع',
-              onPressed: () {
-                if (context.canPop()) {
-                  context.pop();
-                  return;
-                }
-                context.go(AppRoutes.properties);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  String _tooltipForTab(int tabIndex) {
-    switch (tabIndex) {
-      case 1:
-        return 'إضافة حركة شريك';
-      case 2:
-        return 'إضافة مورد';
-      default:
-        return 'إضافة مصروف';
-    }
-  }
-
-  Future<void> _handleAddPressed(BuildContext context, int tabIndex) async {
-    switch (tabIndex) {
-      case 1:
-        final partner = await _pickPartner(context);
-        if (partner == null || !context.mounted) return;
-        final property = await _pickProperty(
-          context,
-          title: 'اختاري المشروع المرتبط بالحركة',
-          emptyMessage: 'لا توجد مشروعات متاحة لإضافة حركة شريك.',
-        );
-        if (property == null || !context.mounted) return;
-        await _openFormSheet(
-          context,
-          PartnerLedgerEntryFormSheet(
-            partner: partner,
-            propertyId: property.id,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _TopBarIconButton(
+          icon: Icons.add_rounded,
+          tooltip: 'إضافة مصروف',
+          onPressed: () => _showExpenseSheet(
+            context,
+            properties: properties,
+            partners: partners,
           ),
-        );
-        return;
-      case 2:
-        final property = await _pickProperty(
-          context,
-          title: 'اختاري المشروع لإضافة مورد',
-          emptyMessage: 'لا توجد مشروعات متاحة لإضافة مورد.',
-        );
-        if (property == null || !context.mounted) return;
-        await _openFormSheet(
-          context,
-          MaterialExpenseFormSheet(propertyId: property.id),
-        );
-        return;
-      default:
-        final property = await _pickProperty(
-          context,
-          title: 'اختاري المشروع لإضافة مصروف',
-          emptyMessage: 'لا توجد مشروعات متاحة لإضافة مصروف.',
-        );
-        if (property == null || !context.mounted) return;
-        await _openFormSheet(
-          context,
-          ExpenseFormSheet(propertyId: property.id, partners: partners),
-        );
-    }
-  }
-
-  Future<PropertyProject?> _pickProperty(
-    BuildContext context, {
-    required String title,
-    required String emptyMessage,
-  }) async {
-    if (properties.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(emptyMessage)));
-      return null;
-    }
-    if (properties.length == 1) {
-      return properties.first;
-    }
-
-    return showModalBottomSheet<PropertyProject>(
-      context: context,
-      useSafeArea: true,
-      builder: (sheetContext) => _SelectionSheet<PropertyProject>(
-        title: title,
-        items: properties,
-        labelBuilder: (item) => item.name,
-        onSelected: (item) => Navigator.of(sheetContext).pop(item),
-      ),
-    );
-  }
-
-  Future<Partner?> _pickPartner(BuildContext context) async {
-    if (partners.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('لا يوجد شركاء متاحون لإضافة حركة.')),
-      );
-      return null;
-    }
-    if (partners.length == 1) {
-      return partners.first;
-    }
-
-    return showModalBottomSheet<Partner>(
-      context: context,
-      useSafeArea: true,
-      builder: (sheetContext) => _SelectionSheet<Partner>(
-        title: 'اختاري الشريك',
-        items: partners,
-        labelBuilder: (item) => item.name,
-        onSelected: (item) => Navigator.of(sheetContext).pop(item),
-      ),
-    );
-  }
-
-  Future<void> _openFormSheet(BuildContext context, Widget child) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => child,
+        ),
+        _TopBarIconButton(
+          icon: Icons.arrow_forward_rounded,
+          tooltip: 'رجوع',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+              return;
+            }
+            context.go(AppRoutes.properties);
+          },
+        ),
+      ],
     );
   }
 }
@@ -463,6 +216,382 @@ class _TopBarIconButton extends StatelessWidget {
   }
 }
 
+class _ExpensesOverviewPanel extends StatelessWidget {
+  const _ExpensesOverviewPanel({
+    required this.totalAmount,
+    required this.entriesCount,
+    required this.showingHistory,
+    required this.hasOlderRows,
+    required this.currentColumnLabel,
+    required this.counterpartColumnLabel,
+    required this.onAddExpense,
+    this.onShowMore,
+    this.onShowToday,
+  });
+
+  final double totalAmount;
+  final int entriesCount;
+  final bool showingHistory;
+  final bool hasOlderRows;
+  final String currentColumnLabel;
+  final String counterpartColumnLabel;
+  final VoidCallback onAddExpense;
+  final VoidCallback? onShowMore;
+  final VoidCallback? onShowToday;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppPanel(
+      title: showingHistory ? 'باقي الأيام' : 'ملخص اليوم',
+      subtitle: showingHistory
+          ? 'هنا ستشوف تواريخ الأيام السابقة للمصاريف.'
+          : 'القيمة والوصف يظهران داخل عمود $currentColumnLabel أو $counterpartColumnLabel فقط.',
+      trailing: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          if (showingHistory && onShowToday != null)
+            TextButton(onPressed: onShowToday, child: const Text('اليوم')),
+          if (!showingHistory && hasOlderRows && onShowMore != null)
+            TextButton(onPressed: onShowMore, child: const Text('عرض المزيد')),
+          FilledButton.icon(
+            onPressed: onAddExpense,
+            icon: const Icon(Icons.add),
+            label: const Text('إضافة مصروف'),
+          ),
+        ],
+      ),
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          _MetricPill(
+            label: showingHistory ? 'إجمالي المعروض' : 'إجمالي اليوم',
+            value: totalAmount.egp,
+          ),
+          _MetricPill(label: 'عدد المصروفات', value: '$entriesCount'),
+        ],
+      ),
+    );
+  }
+}
+
+class _MetricPill extends StatelessWidget {
+  const _MetricPill({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 132),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F6F1),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF17352F),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpensesDailyTable extends StatelessWidget {
+  const _ExpensesDailyTable({
+    required this.rows,
+    required this.currentColumnLabel,
+    required this.counterpartColumnLabel,
+    required this.emptyTitle,
+    required this.emptyMessage,
+  });
+
+  final List<_ExpenseDisplayRow> rows;
+  final String currentColumnLabel;
+  final String counterpartColumnLabel;
+  final String emptyTitle;
+  final String emptyMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppPanel(
+      title: 'جدول المصروفات',
+      subtitle:
+          'ثلاثة أعمدة فقط: التاريخ، $currentColumnLabel، $counterpartColumnLabel.',
+      child: rows.isEmpty
+          ? EmptyStateView(title: emptyTitle, message: emptyMessage)
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final tableWidth = constraints.maxWidth < 520
+                    ? 620.0
+                    : constraints.maxWidth;
+                final innerTableWidth = tableWidth - 2;
+                final dateColumnWidth = 126.0;
+                final sideColumnWidth = (innerTableWidth - dateColumnWidth) / 2;
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Container(
+                    width: tableWidth,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFEFB),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: const Color(0xFFD9DED6)),
+                    ),
+                    child: Column(
+                      children: [
+                        _ExpenseTableHeader(
+                          dateColumnWidth: dateColumnWidth,
+                          sideColumnWidth: sideColumnWidth,
+                          currentColumnLabel: currentColumnLabel,
+                          counterpartColumnLabel: counterpartColumnLabel,
+                        ),
+                        for (final row in rows)
+                          _ExpenseLedgerTableRow(
+                            row: row,
+                            dateColumnWidth: dateColumnWidth,
+                            sideColumnWidth: sideColumnWidth,
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
+class _ExpenseTableHeader extends StatelessWidget {
+  const _ExpenseTableHeader({
+    required this.dateColumnWidth,
+    required this.sideColumnWidth,
+    required this.currentColumnLabel,
+    required this.counterpartColumnLabel,
+  });
+
+  final double dateColumnWidth;
+  final double sideColumnWidth;
+  final String currentColumnLabel;
+  final String counterpartColumnLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFFE7EEE6),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Row(
+        children: [
+          _HeaderCell(width: dateColumnWidth, label: 'التاريخ'),
+          _HeaderCell(width: sideColumnWidth, label: currentColumnLabel),
+          _HeaderCell(width: sideColumnWidth, label: counterpartColumnLabel),
+        ],
+      ),
+    );
+  }
+}
+
+class _HeaderCell extends StatelessWidget {
+  const _HeaderCell({required this.width, required this.label});
+
+  final double width;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: Color(0xFFD9DED6))),
+      ),
+      child: Text(
+        label,
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFF21463D),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpenseLedgerTableRow extends StatelessWidget {
+  const _ExpenseLedgerTableRow({
+    required this.row,
+    required this.dateColumnWidth,
+    required this.sideColumnWidth,
+  });
+
+  final _ExpenseDisplayRow row;
+  final double dateColumnWidth;
+  final double sideColumnWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final userRow = row.isCurrentUser ? row : null;
+    final partnerRow = row.isCurrentUser ? null : row;
+
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFD9DED6))),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ExpenseDateCell(width: dateColumnWidth, date: row.expense.date),
+            _ExpenseSideCell(
+              width: sideColumnWidth,
+              entry: userRow,
+              tint: const Color(0xFFEAF4EF),
+            ),
+            _ExpenseSideCell(
+              width: sideColumnWidth,
+              entry: partnerRow,
+              tint: const Color(0xFFF6F4EF),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpenseDateCell extends StatelessWidget {
+  const _ExpenseDateCell({required this.width, required this.date});
+
+  final double width;
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(14),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF7F8F4),
+        border: Border(left: BorderSide(color: Color(0xFFD9DED6))),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        date.formatShort(),
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFF17352F),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpenseSideCell extends StatelessWidget {
+  const _ExpenseSideCell({
+    required this.width,
+    required this.entry,
+    required this.tint,
+  });
+
+  final double width;
+  final _ExpenseDisplayRow? entry;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(8),
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: Color(0xFFD9DED6))),
+      ),
+      child: entry == null
+          ? Center(
+              child: Text(
+                'لا يوجد',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.secondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          : _ExpenseEntryCard(entry: entry!, tint: tint),
+    );
+  }
+}
+
+class _ExpenseEntryCard extends StatelessWidget {
+  const _ExpenseEntryCard({required this.entry, required this.tint});
+
+  final _ExpenseDisplayRow entry;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final expense = entry.expense;
+    final meaning = expense.description.trim().isEmpty
+        ? expense.category.label
+        : expense.description.trim();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: tint,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD5DDD5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            expense.amount.egp,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF17352F),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            meaning,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF40564F),
+              height: 1.25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SelectionSheet<T> extends StatelessWidget {
   const _SelectionSheet({
     required this.title,
@@ -489,13 +618,10 @@ class _SelectionSheet<T> extends StatelessWidget {
               title,
               style: Theme.of(
                 context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 12),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.5,
-              ),
+            Flexible(
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: items.length,
@@ -520,635 +646,89 @@ class _SelectionSheet<T> extends StatelessWidget {
   }
 }
 
-class _ExpensesRegisterTab extends StatelessWidget {
-  const _ExpensesRegisterTab({
-    required this.expenses,
-    required this.propertyNames,
-    required this.partnerNames,
-  });
-
-  final List<ExpenseRecord> expenses;
-  final Map<String, String> propertyNames;
-  final Map<String, String> partnerNames;
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = [...expenses]..sort((a, b) => b.date.compareTo(a.date));
-    final totalAmount = rows.fold<double>(0, (sum, item) => sum + item.amount);
-
-    return ListView(
-      key: const PageStorageKey<String>('expenses-register-tab'),
-      padding: const EdgeInsets.only(bottom: 120),
-      children: [
-        FinancialLedgerTable<ExpenseRecord>(
-          title: 'سجل المصروفات',
-          subtitle: '${rows.length} حركة - الإجمالي ${totalAmount.egp}',
-          rows: rows,
-          sheetLabel: 'ورقة المصروفات المباشرة',
-          forceTableLayout: true,
-          columns: [
-            LedgerColumn(
-              label: 'التاريخ',
-              valueBuilder: (row) => Text(row.date.formatShort()),
-              minWidth: 118,
-            ),
-            LedgerColumn(
-              label: 'المشروع',
-              valueBuilder: (row) =>
-                  Text(propertyNames[row.propertyId] ?? 'بدون مشروع'),
-              minWidth: 170,
-            ),
-
-            LedgerColumn(
-              label: 'الدافع',
-              valueBuilder: (row) =>
-                  Text(partnerNames[row.paidByPartnerId] ?? 'غير محدد'),
-              minWidth: 150,
-            ),
-
-            LedgerColumn(
-              label: 'القيمة',
-              valueBuilder: (row) => Text(row.amount.egp),
-              minWidth: 130,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'ملاحظات',
-              valueBuilder: (row) => Text(row.notes.isEmpty ? '-' : row.notes),
-              minWidth: 200,
-            ),
-          ],
-          totalsFooter: LedgerTotalsFooter(
-            children: [
-              LedgerFooterValue(
-                label: 'إجمالي المصروفات',
-                value: totalAmount.egp,
-              ),
-              LedgerFooterValue(label: 'عدد السجلات', value: '${rows.length}'),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _OwnershipTablesTab extends StatelessWidget {
-  const _OwnershipTablesTab({
-    required this.mineSnapshot,
-    required this.partnerSnapshot,
-  });
-
-  final _PartyFinanceSnapshot mineSnapshot;
-  final _PartyFinanceSnapshot partnerSnapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      key: const PageStorageKey<String>('ownership-tables-tab'),
-      padding: const EdgeInsets.only(bottom: 120),
-      children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final tableWidth = math.max(420.0, (constraints.maxWidth - 16) / 2);
-            final contentWidth = math.max(
-              constraints.maxWidth,
-              (tableWidth * 2) + 16,
-            );
-
-            return SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SizedBox(
-                width: contentWidth,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: tableWidth,
-                      child: _PartyFinanceTable(snapshot: mineSnapshot),
-                    ),
-                    const SizedBox(width: 16),
-                    SizedBox(
-                      width: tableWidth,
-                      child: _PartyFinanceTable(snapshot: partnerSnapshot),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _ResourcesTab extends StatelessWidget {
-  const _ResourcesTab({
-    required this.snapshot,
-    required this.rows,
-    required this.propertyNames,
-  });
-
-  final MaterialsLedgerSnapshot snapshot;
-  final List<PartnerLedgerSummaryRow> rows;
-  final Map<String, String> propertyNames;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      key: const PageStorageKey<String>('resources-tab'),
-      padding: const EdgeInsets.only(bottom: 120),
-      children: [
-        FinancialLedgerTable<MaterialExpenseEntry>(
-          title: 'جدول الموارد',
-          subtitle:
-              '${snapshot.entries.length} صف - إجمالي الموارد ${snapshot.overallTotal.egp}',
-          rows: snapshot.entries,
-          sheetLabel: 'ورقة الموارد والموردين',
-          forceTableLayout: true,
-          columns: [
-            LedgerColumn(
-              label: 'التاريخ',
-              valueBuilder: (row) => Text(row.date.formatShort()),
-              minWidth: 116,
-            ),
-            LedgerColumn(
-              label: 'المشروع',
-              valueBuilder: (row) =>
-                  Text(propertyNames[row.propertyId] ?? 'بدون مشروع'),
-              minWidth: 160,
-            ),
-            LedgerColumn(
-              label: 'المورد',
-              valueBuilder: (row) => Text(row.supplierName),
-              minWidth: 160,
-            ),
-            LedgerColumn(
-              label: 'الصنف',
-              valueBuilder: (row) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    row.materialCategory.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    row.itemName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-              minWidth: 180,
-            ),
-            LedgerColumn(
-              label: 'الكمية',
-              valueBuilder: (row) => Text('${row.quantity}'),
-              minWidth: 90,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'المدفوع',
-              valueBuilder: (row) => Text(row.amountPaid.egp),
-              minWidth: 120,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'المتبقي',
-              valueBuilder: (row) => Text(row.amountRemaining.egp),
-              minWidth: 124,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'الإجمالي',
-              valueBuilder: (row) => Text(row.totalPrice.egp),
-              minWidth: 124,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'الحالة',
-              valueBuilder: (row) => FinancialStatusChip(
-                label: row.status.label,
-                color: _statusColor(row.status),
-              ),
-              minWidth: 120,
-            ),
-          ],
-          totalsFooter: LedgerTotalsFooter(
-            children: [
-              LedgerFooterValue(
-                label: 'إجمالي الفواتير',
-                value: snapshot.overallTotal.egp,
-              ),
-              LedgerFooterValue(
-                label: 'إجمالي المدفوع',
-                value: snapshot.overallPaid.egp,
-              ),
-              LedgerFooterValue(
-                label: 'إجمالي المتبقي',
-                value: snapshot.overallRemaining.egp,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        FinancialLedgerTable<SupplierLedgerSummary>(
-          title: 'ملخص الموردين',
-          subtitle: 'كم دفعت لكل مورد وكم تبقى عليه',
-          rows: snapshot.supplierSummaries,
-          sheetLabel: 'ورقة ملخص الموردين',
-          forceTableLayout: true,
-          columns: [
-            LedgerColumn(
-              label: 'اسم المورد',
-              valueBuilder: (row) => Text(row.supplierName),
-              minWidth: 180,
-            ),
-            LedgerColumn(
-              label: 'عدد الفواتير',
-              valueBuilder: (row) => Text('${row.invoiceCount}'),
-              minWidth: 110,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'إجمالي المشتريات',
-              valueBuilder: (row) => Text(row.totalPurchased.egp),
-              minWidth: 140,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'إجمالي المدفوع',
-              valueBuilder: (row) => Text(row.totalPaid.egp),
-              minWidth: 140,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'إجمالي المتبقي',
-              valueBuilder: (row) => Text(row.totalRemaining.egp),
-              minWidth: 140,
-              numeric: true,
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        FinancialLedgerTable<PartnerLedgerSummaryRow>(
-          title: 'ملخص التزامات الشركة',
-          subtitle: 'جدول سريع يوضح رصيد كل شريك مقارنة بإجمالي الالتزامات',
-          rows: rows,
-          sheetLabel: 'ورقة ملخص الشركاء',
-          forceTableLayout: true,
-          columns: [
-            LedgerColumn(
-              label: 'الشريك',
-              valueBuilder: (row) => Text(row.partner.name),
-              minWidth: 170,
-            ),
-            LedgerColumn(
-              label: 'إجمالي المدفوع',
-              valueBuilder: (row) => Text(row.totalPaid.egp),
-              minWidth: 140,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'إجمالي المستحق',
-              valueBuilder: (row) => Text(row.totalOwed.egp),
-              minWidth: 140,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'الرصيد',
-              valueBuilder: (row) => Text(row.balance.egp),
-              minWidth: 130,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'آخر تحديث',
-              valueBuilder: (row) => Text(row.lastUpdated.formatShort()),
-              minWidth: 116,
-            ),
-            LedgerColumn(
-              label: 'ملاحظات',
-              valueBuilder: (row) => Text(row.notes.isEmpty ? '-' : row.notes),
-              minWidth: 190,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _PartyFinanceTable extends StatelessWidget {
-  const _PartyFinanceTable({required this.snapshot});
-
-  final _PartyFinanceSnapshot snapshot;
-
-  @override
-  Widget build(BuildContext context) {
-    return FinancialLedgerTable<_PartyFinanceRow>(
-      title: snapshot.title,
-      subtitle: snapshot.subtitle,
-      rows: snapshot.rows,
-      sheetLabel: 'ورقة ${snapshot.title}',
-      forceTableLayout: true,
-      columns: [
-        LedgerColumn(
-          label: 'التاريخ',
-          valueBuilder: (row) => Text(row.date.formatShort()),
-          minWidth: 116,
-        ),
-        LedgerColumn(
-          label: 'الطرف',
-          valueBuilder: (row) => Text(row.partyName),
-          minWidth: 140,
-        ),
-        LedgerColumn(
-          label: 'المشروع',
-          valueBuilder: (row) => Text(row.projectName),
-          minWidth: 160,
-        ),
-
-        LedgerColumn(
-          label: 'القيمة',
-          valueBuilder: (row) => Text(row.amount.egp),
-          minWidth: 130,
-          numeric: true,
-        ),
-        LedgerColumn(
-          label: 'ملاحظات',
-          valueBuilder: (row) => Text(row.notes.isEmpty ? '-' : row.notes),
-          minWidth: 180,
-        ),
-      ],
-      totalsFooter: LedgerTotalsFooter(
-        children: [
-          LedgerFooterValue(
-            label: 'مصروف مباشر',
-            value: snapshot.directExpenses.egp,
-          ),
-          LedgerFooterValue(
-            label: 'مساهمات وتسويات',
-            value: snapshot.authorizedPaid.egp,
-          ),
-          LedgerFooterValue(
-            label: 'الإجمالي المدفوع',
-            value: snapshot.totalPaid.egp,
-          ),
-          LedgerFooterValue(
-            label: 'المستحق المتوقع',
-            value: snapshot.expectedShare.egp,
-          ),
-          LedgerFooterValue(
-            label: 'المتبقي عليه',
-            value: snapshot.totalOwed.egp,
-          ),
-          LedgerFooterValue(label: 'الرصيد', value: snapshot.balance.egp),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExpenseSummaryGrid extends StatelessWidget {
-  const _ExpenseSummaryGrid({required this.cards});
-
-  final List<Widget> cards;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final count = constraints.maxWidth >= 1080
-            ? 4
-            : constraints.maxWidth >= 760
-            ? 3
-            : 2;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: cards.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: count,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 10,
-            childAspectRatio: count >= 4
-                ? 1.18
-                : count == 3
-                ? 1.08
-                : 1.02,
-          ),
-          itemBuilder: (context, index) => cards[index],
-        );
-      },
-    );
-  }
-}
-
-class _TabBarHeaderDelegate extends SliverPersistentHeaderDelegate {
-  const _TabBarHeaderDelegate({required this.child});
-
-  static const double _extent = 60;
-
-  @override
-  double get minExtent => _extent;
-
-  @override
-  double get maxExtent => _extent;
-
-  final Widget child;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return ColoredBox(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: SizedBox.expand(child: child),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _TabBarHeaderDelegate oldDelegate) {
-    return child != oldDelegate.child;
-  }
-}
-
-class _PartyFinanceRow {
-  const _PartyFinanceRow({
-    required this.date,
-    required this.partyName,
-    required this.projectName,
-    required this.entryTypeLabel,
-    required this.description,
-    required this.paymentMethodLabel,
-    required this.amount,
-    required this.notes,
-  });
-
-  final DateTime date;
-  final String partyName;
-  final String projectName;
-  final String entryTypeLabel;
-  final String description;
-  final String paymentMethodLabel;
-  final double amount;
-  final String notes;
-}
-
-class _PartyFinanceSnapshot {
-  const _PartyFinanceSnapshot({
-    required this.title,
-    required this.subtitle,
-    required this.rows,
-    required this.directExpenses,
-    required this.authorizedPaid,
-    required this.totalPaid,
-    required this.expectedShare,
-    required this.totalOwed,
-    required this.balance,
-  });
-
-  final String title;
-  final String subtitle;
-  final List<_PartyFinanceRow> rows;
-  final double directExpenses;
-  final double authorizedPaid;
-  final double totalPaid;
-  final double expectedShare;
-  final double totalOwed;
-  final double balance;
-}
-
-_PartyFinanceSnapshot _buildPartyFinanceSnapshot({
-  required String title,
-  required String fallbackSubtitle,
+Future<void> _showExpenseSheet(
+  BuildContext context, {
+  required List<PropertyProject> properties,
   required List<Partner> partners,
+}) async {
+  final property = await _pickProperty(context, properties);
+  if (property == null || !context.mounted) {
+    return;
+  }
+
+  await showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    useSafeArea: true,
+    builder: (_) =>
+        ExpenseFormSheet(propertyId: property.id, partners: partners),
+  );
+}
+
+Future<PropertyProject?> _pickProperty(
+  BuildContext context,
+  List<PropertyProject> properties,
+) async {
+  if (properties.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('لا توجد مشروعات متاحة لإضافة مصروف.')),
+    );
+    return null;
+  }
+
+  if (properties.length == 1) {
+    return properties.first;
+  }
+
+  return showModalBottomSheet<PropertyProject>(
+    context: context,
+    useSafeArea: true,
+    builder: (sheetContext) => _SelectionSheet<PropertyProject>(
+      title: 'اختاري المشروع لإضافة مصروف',
+      items: properties,
+      labelBuilder: (item) => item.name,
+      onSelected: (item) => Navigator.of(sheetContext).pop(item),
+    ),
+  );
+}
+
+bool _showingHistory(BuildContext context) {
+  return GoRouterState.of(context).uri.queryParameters['history'] == 'older';
+}
+
+bool _isSameCalendarDay(DateTime first, DateTime second) {
+  return DateUtils.isSameDay(first, second);
+}
+
+List<_ExpenseDisplayRow> _buildExpenseRows({
   required List<ExpenseRecord> expenses,
-  required List<PartnerLedgerEntry> ledgerEntries,
-  required Map<String, String> propertyNames,
-  required Map<String, String> partnerNames,
-  required double totalExposure,
+  required String? currentPartnerId,
+  required DateTime referenceDate,
+  required bool includeOlderDays,
 }) {
-  final partnerIds = partners.map((partner) => partner.id).toSet();
-  final shareRatio = partners.fold<double>(
-    0,
-    (sum, partner) => sum + partner.shareRatio,
-  );
+  final filtered = expenses.where((expense) {
+    final sameDay = _isSameCalendarDay(expense.date, referenceDate);
+    return includeOlderDays ? !sameDay : sameDay;
+  }).toList()..sort((a, b) => b.date.compareTo(a.date));
 
-  final directExpenses =
-      expenses
-          .where((expense) => partnerIds.contains(expense.paidByPartnerId))
-          .toList()
-        ..sort((a, b) => b.date.compareTo(a.date));
-  final partnerTransactions =
-      ledgerEntries
-          .where(
-            (entry) => !entry.archived && partnerIds.contains(entry.partnerId),
-          )
-          .toList()
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-
-  final directExpenseTotal = directExpenses.fold<double>(
-    0,
-    (sum, expense) => sum + expense.amount,
-  );
-  final authorizedPaid = partnerTransactions
-      .where(
-        (entry) =>
-            entry.entryType == PartnerLedgerEntryType.contribution ||
-            entry.entryType == PartnerLedgerEntryType.settlement ||
-            entry.entryType == PartnerLedgerEntryType.adjustment,
+  return filtered
+      .map(
+        (expense) => _ExpenseDisplayRow(
+          expense: expense,
+          isCurrentUser:
+              currentPartnerId != null &&
+              expense.paidByPartnerId == currentPartnerId,
+        ),
       )
-      .fold<double>(0, (sum, entry) => sum + entry.amount);
-  final totalPaid = directExpenseTotal + authorizedPaid;
-  final expectedShare = totalExposure * shareRatio;
-  final totalOwed = (expectedShare - totalPaid)
-      .clamp(0, expectedShare)
-      .toDouble();
-  final balance = totalPaid - expectedShare;
-
-  final rows = <_PartyFinanceRow>[
-    for (final expense in directExpenses)
-      _PartyFinanceRow(
-        date: expense.date,
-        partyName: partnerNames[expense.paidByPartnerId] ?? 'غير محدد',
-        projectName: propertyNames[expense.propertyId] ?? 'بدون مشروع',
-        entryTypeLabel: 'مصروف مباشر',
-        description: '${expense.category.label} - ${expense.description}',
-        paymentMethodLabel: expense.paymentMethod.label,
-        amount: expense.amount,
-        notes: expense.notes,
-      ),
-    for (final entry in partnerTransactions)
-      _PartyFinanceRow(
-        date: entry.updatedAt,
-        partyName: partnerNames[entry.partnerId] ?? 'غير محدد',
-        projectName: propertyNames[entry.propertyId] ?? 'بدون مشروع',
-        entryTypeLabel: entry.entryType.label,
-        description: _ledgerDescription(entry.entryType),
-        paymentMethodLabel: 'قيد مالي',
-        amount: entry.amount,
-        notes: entry.notes,
-      ),
-  ]..sort((a, b) => b.date.compareTo(a.date));
-
-  final subtitle = rows.isEmpty
-      ? fallbackSubtitle
-      : '${rows.length} حركة مالية - إجمالي المدفوع ${totalPaid.egp}';
-
-  return _PartyFinanceSnapshot(
-    title: title,
-    subtitle: subtitle,
-    rows: rows,
-    directExpenses: directExpenseTotal,
-    authorizedPaid: authorizedPaid,
-    totalPaid: totalPaid,
-    expectedShare: expectedShare,
-    totalOwed: totalOwed,
-    balance: balance,
-  );
+      .toList(growable: false);
 }
 
-String _ledgerDescription(PartnerLedgerEntryType type) {
-  switch (type) {
-    case PartnerLedgerEntryType.contribution:
-      return 'مساهمة رأسمالية';
-    case PartnerLedgerEntryType.settlement:
-      return 'تسوية مالية';
-    case PartnerLedgerEntryType.obligation:
-      return 'التزام على الشريك';
-    case PartnerLedgerEntryType.adjustment:
-      return 'تعديل رصيد';
-  }
-}
+class _ExpenseDisplayRow {
+  const _ExpenseDisplayRow({
+    required this.expense,
+    required this.isCurrentUser,
+  });
 
-int _resolveInitialTabIndex(BuildContext context) {
-  final tab = GoRouterState.of(context).uri.queryParameters['tab'];
-  switch (tab) {
-    case 'parties':
-      return 1;
-    case 'resources':
-      return 2;
-    default:
-      return 0;
-  }
-}
-
-Color _statusColor(SupplierInvoiceStatus status) {
-  switch (status) {
-    case SupplierInvoiceStatus.paid:
-      return Colors.green;
-    case SupplierInvoiceStatus.partiallyPaid:
-      return Colors.orange;
-    case SupplierInvoiceStatus.overdue:
-      return Colors.redAccent;
-    case SupplierInvoiceStatus.unpaid:
-      return Colors.blueGrey;
-  }
+  final ExpenseRecord expense;
+  final bool isCurrentUser;
 }
