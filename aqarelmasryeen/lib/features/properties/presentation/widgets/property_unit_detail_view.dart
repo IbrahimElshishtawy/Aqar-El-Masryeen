@@ -101,12 +101,12 @@ class PropertyUnitDetailView extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         FinancialLedgerTable<PaymentRecord>(
-          title: 'شيت التحصيل',
+          title: 'سجل الدفعات',
           subtitle:
               '${data.payments.length} دفعة - الإجمالي ${data.payments.fold<double>(0, (sum, item) => sum + item.amount).egp}',
           rows: data.payments,
           forceTableLayout: true,
-          sheetLabel: 'شيت التحصيل',
+          sheetLabel: 'سجل الدفعات',
           onEdit: onEditPayment,
           onDelete: onDeletePayment,
           onAdd: summary.installmentRows.isEmpty

@@ -2,6 +2,7 @@ import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/dashboard/domain/dashboard_snapshot.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
+import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_ledger_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/partners/domain/partner_ledger_calculator.dart';
@@ -22,6 +23,11 @@ final dashboardUnitsProvider = StreamProvider.autoDispose(
 );
 final dashboardPaymentsProvider = StreamProvider.autoDispose(
   (ref) => _fallbackToEmpty(ref.watch(paymentRepositoryProvider).watchAll()),
+);
+final dashboardInstallmentsProvider = StreamProvider.autoDispose(
+  (ref) => _fallbackToEmpty(
+    ref.watch(installmentRepositoryProvider).watchAllInstallments(),
+  ),
 );
 final dashboardExpensesProvider = StreamProvider.autoDispose(
   (ref) => _fallbackToEmpty(ref.watch(expenseRepositoryProvider).watchAll()),
@@ -45,6 +51,7 @@ final dashboardViewDataProvider =
         ref.watch(dashboardPropertiesProvider),
         ref.watch(dashboardUnitsProvider),
         ref.watch(dashboardPaymentsProvider),
+        ref.watch(dashboardInstallmentsProvider),
         ref.watch(dashboardExpensesProvider),
         ref.watch(dashboardMaterialsProvider),
         ref.watch(dashboardPartnersProvider),
@@ -98,8 +105,13 @@ final dashboardViewDataProvider =
             properties:
                 ref.watch(dashboardPropertiesProvider).valueOrNull ?? const [],
             units: ref.watch(dashboardUnitsProvider).valueOrNull ?? const [],
+            installments:
+                ref.watch(dashboardInstallmentsProvider).valueOrNull ??
+                const [],
             payments:
                 ref.watch(dashboardPaymentsProvider).valueOrNull ?? const [],
+            expenses:
+                ref.watch(dashboardExpensesProvider).valueOrNull ?? const [],
             materials: materials,
             partners: partners,
           ),
@@ -119,7 +131,9 @@ DashboardViewData _buildEmptyDashboardViewData(Ref ref) {
     snapshot: const DashboardSnapshotBuilder().build(
       properties: const [],
       units: const [],
+      installments: const [],
       payments: const [],
+      expenses: const [],
       materials: const [],
       partners: const [],
     ),

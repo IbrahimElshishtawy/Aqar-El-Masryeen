@@ -73,10 +73,10 @@ class PropertyProjectViewData {
   final double myTotalExpenseShare;
   final double counterpartTotalExpenseShare;
 
-  int get totalUnitsCount => unitSummaries.length;
+  int get totalUnitsCount =>
+      property.apartmentCount > 0 ? property.apartmentCount : unitSummaries.length;
 
-  int get soldUnitsCount =>
-      unitSummaries.where((item) => item.unit.status == UnitStatus.sold).length;
+  int get soldUnitsCount => unitSummaries.length;
 
   String get myLabel => currentColumnLabel;
 

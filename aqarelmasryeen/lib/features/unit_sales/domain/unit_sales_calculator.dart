@@ -131,7 +131,11 @@ class UnitSalesCalculator {
         0,
         (sum, row) => sum + row.remainingAmount,
       );
-      final totalPaidSoFar = unit.downPayment + totalPaidInstallmentsAmount;
+      final totalUnitPayments = unitPayments.fold<double>(
+        0,
+        (sum, payment) => sum + payment.amount,
+      );
+      final totalPaidSoFar = unit.downPayment + totalUnitPayments;
       final totalContractAmount = unit.contractAmount;
       final totalRemaining = (totalContractAmount - totalPaidSoFar)
           .clamp(0, totalContractAmount)

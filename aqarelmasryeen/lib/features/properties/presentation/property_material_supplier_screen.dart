@@ -284,13 +284,13 @@ class _PropertyMaterialSupplierScreenState
                 totalPaid: totalPaid,
                 totalRemaining: totalRemaining,
                 nextDueDate: nextDueDate,
-                onAddPayment: canAddPayment
-                    ? () => _showSupplierPaymentSheet(
-                        supplierName: supplierName,
-                        rows: rows,
-                        totalRemaining: totalRemaining,
-                      )
-                    : null,
+                canShowPaymentButton: rows.isNotEmpty,
+                isPaymentEnabled: canAddPayment,
+                onAddPayment: () => _showSupplierPaymentSheet(
+                  supplierName: supplierName,
+                  rows: rows,
+                  totalRemaining: totalRemaining,
+                ),
               ),
               const SizedBox(height: 16),
               if (rows.isEmpty)
@@ -452,7 +452,9 @@ class _SupplierHeaderPanel extends StatelessWidget {
     required this.totalPaid,
     required this.totalRemaining,
     required this.nextDueDate,
-    this.onAddPayment,
+    required this.canShowPaymentButton,
+    required this.isPaymentEnabled,
+    required this.onAddPayment,
   });
 
   final String supplierName;
@@ -461,7 +463,9 @@ class _SupplierHeaderPanel extends StatelessWidget {
   final double totalPaid;
   final double totalRemaining;
   final DateTime? nextDueDate;
-  final VoidCallback? onAddPayment;
+  final bool canShowPaymentButton;
+  final bool isPaymentEnabled;
+  final VoidCallback onAddPayment;
 
   @override
   Widget build(BuildContext context) {
@@ -495,16 +499,25 @@ class _SupplierHeaderPanel extends StatelessWidget {
               ),
             ],
           ),
-          if (onAddPayment != null) ...[
+          if (canShowPaymentButton) ...[
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: onAddPayment,
+                onPressed: isPaymentEnabled ? onAddPayment : null,
                 icon: const Icon(Icons.add_card_rounded),
                 label: const Text('إضافة دفعة حساب'),
               ),
             ),
+            if (!isPaymentEnabled) ...[
+              const SizedBox(height: 8),
+              Text(
+                'لا يوجد متبقي حاليا على حساب المورد.',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+            ],
           ],
         ],
       ),
