@@ -43,6 +43,7 @@ class PropertyExpensesWorkspace extends StatelessWidget {
         .toList(growable: false);
     final rows = _filterRows(allRows);
     final recentTotal = _sumAmounts(rows);
+    final linkedPartnerName = data.currentPartner?.name.trim();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,6 +51,9 @@ class PropertyExpensesWorkspace extends StatelessWidget {
         if (showSummaryPanel) ...[
           _AddExpensePanel(
             onOpenMaterials: onOpenMaterials,
+            linkedPartnerName: (linkedPartnerName?.isEmpty ?? true)
+                ? null
+                : linkedPartnerName,
             todayTotal: recentTotal,
             overallTotal: data.totalDirectExpenses,
             entriesCount: rows.length,
@@ -77,15 +81,15 @@ class PropertyExpensesWorkspace extends StatelessWidget {
   }
 
   List<_ExpenseDisplayRow> _filterRows(List<_ExpenseDisplayRow> rows) {
-    final cutoff = DateTime.now().subtract(const Duration(hours: 24));
+    final today = DateTime.now();
     return rows
         .where((row) {
-          final isRecent = !row.row.expense.date.isBefore(cutoff);
+          final isToday = DateUtils.isSameDay(row.row.expense.date, today);
           switch (scope) {
             case ExpenseTableScope.recent24Hours:
-              return isRecent;
+              return isToday;
             case ExpenseTableScope.olderThan24Hours:
-              return !isRecent;
+              return !isToday;
             case ExpenseTableScope.all:
               return true;
           }
@@ -125,7 +129,7 @@ class PropertyExpensesWorkspace extends StatelessWidget {
       case ExpenseTableScope.recent24Hours:
         return 'جدول المصروفات اليومية';
       case ExpenseTableScope.olderThan24Hours:
-        return 'المصاريف الأقدم';
+        return 'مصاريف الأيام السابقة';
       case ExpenseTableScope.all:
         return 'جدول المصروفات';
     }
@@ -135,12 +139,12 @@ class PropertyExpensesWorkspace extends StatelessWidget {
     switch (scope) {
       case ExpenseTableScope.recent24Hours:
         return count == 0
-            ? 'لا توجد مصروفات مسجلة خلال آخر 24 ساعة.'
-            : 'يعرض مصروفات آخر 24 ساعة فقط، وما قبل ذلك يظهر في عرض التفاصيل.';
+            ? 'لا توجد مصروفات مسجلة بتاريخ اليوم.'
+            : 'يعرض مصروفات اليوم فقط، وأي تواريخ أقدم ستظهر في صفحة الأيام السابقة.';
       case ExpenseTableScope.olderThan24Hours:
         return count == 0
-            ? 'لا توجد مصروفات أقدم من 24 ساعة.'
-            : 'يعرض كل المصروفات الأقدم من آخر 24 ساعة.';
+            ? 'لا توجد مصروفات بتواريخ أقدم من اليوم.'
+            : 'يعرض كل المصروفات مرتبة حسب تواريخ الأيام السابقة.';
       case ExpenseTableScope.all:
         return count == 0
             ? 'لا توجد مصروفات مسجلة لهذا العقار حتى الآن.'
@@ -151,9 +155,9 @@ class PropertyExpensesWorkspace extends StatelessWidget {
   String get _emptyTitle {
     switch (scope) {
       case ExpenseTableScope.recent24Hours:
-        return 'لا توجد مصروفات يومية';
+        return 'لا توجد مصروفات اليوم';
       case ExpenseTableScope.olderThan24Hours:
-        return 'لا توجد مصروفات قديمة';
+        return 'لا توجد مصروفات للأيام السابقة';
       case ExpenseTableScope.all:
         return 'لا توجد مصروفات بعد';
     }
@@ -162,9 +166,9 @@ class PropertyExpensesWorkspace extends StatelessWidget {
   String get _emptyMessage {
     switch (scope) {
       case ExpenseTableScope.recent24Hours:
-        return 'بمجرد إضافة مصروف خلال آخر 24 ساعة سيظهر هنا تحت ${data.currentColumnLabel} أو ${data.counterpartColumnLabel}.';
+        return 'بمجرد إضافة مصروف بتاريخ اليوم سيظهر هنا تحت ${data.currentColumnLabel} أو ${data.counterpartColumnLabel}.';
       case ExpenseTableScope.olderThan24Hours:
-        return 'كل المصروفات الأقدم من 24 ساعة ستظهر هنا تلقائيًا.';
+        return 'كل المصروفات المسجلة في أيام أقدم من اليوم ستظهر هنا تلقائيًا مع تاريخ كل حركة.';
       case ExpenseTableScope.all:
         return 'بمجرد إضافة أول مصروف سيظهر هنا التاريخ والمبلغ والوصف لـ ${data.currentColumnLabel} أو ${data.counterpartColumnLabel}.';
     }
@@ -174,12 +178,14 @@ class PropertyExpensesWorkspace extends StatelessWidget {
 class _AddExpensePanel extends StatelessWidget {
   const _AddExpensePanel({
     required this.onOpenMaterials,
+    required this.linkedPartnerName,
     required this.todayTotal,
     required this.overallTotal,
     required this.entriesCount,
   });
 
   final VoidCallback? onOpenMaterials;
+  final String? linkedPartnerName;
   final double todayTotal;
   final double overallTotal;
   final int entriesCount;
@@ -188,7 +194,8 @@ class _AddExpensePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppPanel(
       title: 'ملخص المصروفات',
-      subtitle: 'راجع أرقام المصروفات سريعًا وافتح صفحة مواد البناء من هنا.',
+      subtitle:
+          'راجع أرقام مصروفات اليوم سريعًا وافتح صفحة مواد البناء من هنا.',
       trailing: onOpenMaterials == null
           ? null
           : FilledButton.icon(
@@ -196,16 +203,51 @@ class _AddExpensePanel extends StatelessWidget {
               icon: const Icon(Icons.inventory_2_outlined),
               label: const Text('مواد البناء'),
             ),
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _ExpenseMetricPill(
-            label: 'مصروفات آخر 24 ساعة',
-            value: todayTotal.egp,
+          if (linkedPartnerName != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF4EF),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.person_outline_rounded,
+                    size: 18,
+                    color: Color(0xFF1D5140),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'الحساب الحالي مربوط بالشريك: $linkedPartnerName',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF1D5140),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _ExpenseMetricPill(label: 'مصاريف اليوم', value: todayTotal.egp),
+              _ExpenseMetricPill(
+                label: 'الإجمالي العام',
+                value: overallTotal.egp,
+              ),
+              _ExpenseMetricPill(label: 'عدد الحركات', value: '$entriesCount'),
+            ],
           ),
-          _ExpenseMetricPill(label: 'الإجمالي العام', value: overallTotal.egp),
-          _ExpenseMetricPill(label: 'عدد الحركات', value: '$entriesCount'),
         ],
       ),
     );

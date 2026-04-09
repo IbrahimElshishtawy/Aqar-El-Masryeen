@@ -54,10 +54,17 @@ class PartnerLedgerCalculator {
           .where((expense) => expense.paidByPartnerId == partner.id)
           .fold<double>(0, (sum, expense) => sum + expense.amount);
       final totalPaid = authorizedPaid + directExpensePaid;
-      final expectedShare = totalExpenseExposure * partner.shareRatio;
-      final totalOwed = (expectedShare - totalPaid)
-          .clamp(0, expectedShare)
-          .toDouble();
+      final safeShareRatio =
+          partner.shareRatio.isFinite && partner.shareRatio > 0
+          ? partner.shareRatio
+          : 0.0;
+      final expectedShare = totalExpenseExposure * safeShareRatio;
+      final rawOutstanding = expectedShare - totalPaid;
+      final totalOwed = rawOutstanding <= 0
+          ? 0.0
+          : rawOutstanding >= expectedShare
+          ? expectedShare
+          : rawOutstanding;
       final balance = totalPaid - expectedShare;
       final lastUpdated =
           partnerEntries.firstOrNull?.updatedAt ?? partner.updatedAt;

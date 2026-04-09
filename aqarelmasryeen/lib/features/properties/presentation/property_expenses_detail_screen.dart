@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
@@ -88,7 +89,7 @@ class _PropertyExpensesDetailScreenState
         currentIndex: 1,
         child: EmptyStateView(
           title: 'تعذر تحميل جدول المصروفات',
-          message: error.toString(),
+          message: mapException(error).message,
         ),
       ),
       data: (data) {
@@ -106,7 +107,7 @@ class _PropertyExpensesDetailScreenState
 
         return AppShellScaffold(
           title: 'تفاصيل المصروفات',
-          subtitle: '${data.property.name} - الأقدم من 24 ساعة',
+          subtitle: '${data.property.name} - الأيام السابقة',
           currentIndex: 1,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 24),

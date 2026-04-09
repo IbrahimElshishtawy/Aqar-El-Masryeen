@@ -18,12 +18,12 @@ class PartnerLedgerRepository {
   Stream<List<PartnerLedgerEntry>> watchAll() {
     final source = _firestore
         .collection(FirestorePaths.partnerLedgers)
-        .where('archived', isEqualTo: false)
         .orderBy('updatedAt', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => PartnerLedgerEntry.fromMap(doc.id, doc.data()))
+              .where((entry) => !entry.archived)
               .toList(),
         );
 

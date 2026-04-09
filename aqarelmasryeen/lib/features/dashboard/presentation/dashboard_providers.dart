@@ -53,7 +53,15 @@ final dashboardViewDataProvider =
 
       final error = values.firstWhereOrNull((value) => value.hasError);
       if (error != null) {
-        return AsyncError(error.error!, error.stackTrace ?? StackTrace.current);
+        final currentError = error.error;
+        if (currentError is FirebaseException &&
+            _shouldShowEmptyState(currentError)) {
+          return AsyncData(_buildEmptyDashboardViewData(ref));
+        }
+        return AsyncError(
+          currentError!,
+          error.stackTrace ?? StackTrace.current,
+        );
       }
       if (values.any((value) => !value.hasValue)) {
         return const AsyncLoading();
@@ -103,6 +111,25 @@ final dashboardViewDataProvider =
         ),
       );
     });
+
+DashboardViewData _buildEmptyDashboardViewData(Ref ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+
+  return DashboardViewData(
+    snapshot: const DashboardSnapshotBuilder().build(
+      properties: const [],
+      units: const [],
+      payments: const [],
+      materials: const [],
+      partners: const [],
+    ),
+    partners: const [],
+    currentPartner: null,
+    currentUserId: session?.userId ?? '',
+    linkedPartnersCount: 0,
+    partnerSummaries: const [],
+  );
+}
 
 class DashboardViewData {
   const DashboardViewData({

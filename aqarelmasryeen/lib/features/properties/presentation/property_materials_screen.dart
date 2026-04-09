@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
@@ -52,7 +53,7 @@ class _PropertyMaterialsScreenState
         currentIndex: 1,
         child: EmptyStateView(
           title: 'تعذر تحميل مواد البناء',
-          message: error.toString(),
+          message: mapException(error).message,
         ),
       ),
       data: (data) {
@@ -81,6 +82,12 @@ class _PropertyMaterialsScreenState
               _SupplierOverviewPanel(
                 summaries: data.materialsSnapshot.supplierSummaries,
                 onOpenSupplier: (supplierName) => context.push(
+                  AppRoutes.propertyMaterialSupplier(
+                    widget.propertyId,
+                    supplierName,
+                  ),
+                ),
+                onAddPayment: (supplierName) => context.push(
                   AppRoutes.propertyMaterialSupplier(
                     widget.propertyId,
                     supplierName,
@@ -123,10 +130,12 @@ class _SupplierOverviewPanel extends StatelessWidget {
   const _SupplierOverviewPanel({
     required this.summaries,
     required this.onOpenSupplier,
+    required this.onAddPayment,
   });
 
   final List<SupplierLedgerSummary> summaries;
   final ValueChanged<String> onOpenSupplier;
+  final ValueChanged<String> onAddPayment;
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +143,7 @@ class _SupplierOverviewPanel extends StatelessWidget {
       title: 'الموردون',
       subtitle: summaries.isEmpty
           ? 'أضف أول مورد من البار العلوي لبدء تسجيل فواتير مواد البناء.'
-          : 'اضغط على اسم المورد لفتح كشف الحساب، ويمكنك إضافة مورد جديد من الأعلى.',
+          : 'اضغط على اسم المورد لفتح كشف الحساب، ويمكنك أيضًا الوصول سريعًا إلى إضافة دفعة للموردين الذين لديهم متبقي.',
       child: summaries.isEmpty
           ? const EmptyStateView(
               title: 'لا يوجد موردون بعد',
@@ -162,6 +171,9 @@ class _SupplierOverviewPanel extends StatelessWidget {
                     return _SupplierSummaryCard(
                       summary: supplier,
                       onTap: () => onOpenSupplier(supplier.supplierName),
+                      onAddPayment: _summaryHasRemaining(supplier)
+                          ? () => onAddPayment(supplier.supplierName)
+                          : null,
                     );
                   },
                 );
@@ -172,10 +184,15 @@ class _SupplierOverviewPanel extends StatelessWidget {
 }
 
 class _SupplierSummaryCard extends StatelessWidget {
-  const _SupplierSummaryCard({required this.summary, required this.onTap});
+  const _SupplierSummaryCard({
+    required this.summary,
+    required this.onTap,
+    this.onAddPayment,
+  });
 
   final SupplierLedgerSummary summary;
   final VoidCallback onTap;
+  final VoidCallback? onAddPayment;
 
   @override
   Widget build(BuildContext context) {
@@ -241,18 +258,35 @@ class _SupplierSummaryCard extends StatelessWidget {
               ],
             ),
             const Spacer(),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.tonal(
-                onPressed: onTap,
-                child: const Text('فتح كشف المورد'),
-              ),
+            Row(
+              children: [
+                if (onAddPayment != null) ...[
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: onAddPayment,
+                      icon: const Icon(Icons.add_card_rounded, size: 18),
+                      label: const Text('إضافة دفعة'),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  child: FilledButton.tonal(
+                    onPressed: onTap,
+                    child: const Text('فتح كشف المورد'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+}
+
+bool _summaryHasRemaining(SupplierLedgerSummary summary) {
+  return summary.totalRemaining > 0;
 }
 
 class _SupplierMetricPill extends StatelessWidget {

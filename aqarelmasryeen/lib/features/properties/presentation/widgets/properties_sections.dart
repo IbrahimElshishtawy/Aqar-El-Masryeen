@@ -1,9 +1,14 @@
+import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
+import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
+import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/properties/domain/property_financial_summary.dart';
+import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 class ProjectsOverviewSection extends StatelessWidget {
@@ -279,13 +284,77 @@ class OverviewMetricCard extends StatelessWidget {
   }
 }
 
-class PropertySummaryCard extends StatelessWidget {
+class PropertySummaryCard extends ConsumerWidget {
   const PropertySummaryCard({super.key, required this.summary});
 
   final PropertyFinancialSummary summary;
 
+  Future<void> _archiveProperty(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('أرشفة العقار'),
+        content: Text(
+          'سيتم إخفاء "${summary.property.name}" من قائمة المشروعات ولن يظهر ضمن المشروعات النشطة.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('أرشفة'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+
+    final session = ref.read(authSessionProvider).valueOrNull;
+    if (session == null) {
+      return;
+    }
+
+    try {
+      await ref
+          .read(propertyRepositoryProvider)
+          .archive(summary.property.id, actorId: session.userId);
+      await ref
+          .read(activityRepositoryProvider)
+          .log(
+            actorId: session.userId,
+            actorName: session.profile?.name ?? 'شريك',
+            action: 'property_archived',
+            entityType: 'property',
+            entityId: summary.property.id,
+            metadata: {
+              'name': summary.property.name,
+              'location': summary.property.location,
+            },
+          );
+
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تمت أرشفة ${summary.property.name}.')),
+      );
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(mapException(error).message)));
+    }
+  }
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return InkWell(
       borderRadius: BorderRadius.circular(22),
       onTap: () => context.push(AppRoutes.propertyDetails(summary.property.id)),
@@ -330,7 +399,16 @@ class PropertySummaryCard extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const OpenProjectBadge(),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const OpenProjectBadge(),
+                            const SizedBox(width: 8),
+                            _PropertyCardMenu(
+                              onArchive: () => _archiveProperty(context, ref),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 10),
                         StatusChip(label: summary.property.status.label),
                       ],
@@ -390,6 +468,42 @@ class PropertySummaryCard extends StatelessWidget {
     );
   }
 }
+
+class _PropertyCardMenu extends StatelessWidget {
+  const _PropertyCardMenu({required this.onArchive});
+
+  final Future<void> Function() onArchive;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_PropertyCardAction>(
+      tooltip: 'إجراءات العقار',
+      onSelected: (value) async {
+        if (value == _PropertyCardAction.archive) {
+          await onArchive();
+        }
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem<_PropertyCardAction>(
+          value: _PropertyCardAction.archive,
+          child: Text('أرشفة العقار'),
+        ),
+      ],
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F8F4),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFD8D8D2)),
+        ),
+        child: const Icon(Icons.more_horiz_rounded, size: 18),
+      ),
+    );
+  }
+}
+
+enum _PropertyCardAction { archive }
 
 class OpenProjectBadge extends StatelessWidget {
   const OpenProjectBadge({super.key});

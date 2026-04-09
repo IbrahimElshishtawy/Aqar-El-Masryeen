@@ -3,20 +3,22 @@ import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/properties/domain/property_financial_summary.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 
 final propertiesStreamProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(propertyRepositoryProvider).watchProperties(),
+  (ref) =>
+      _fallbackToEmpty(ref.watch(propertyRepositoryProvider).watchProperties()),
 );
 final propertyExpensesStreamProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
+  (ref) => _fallbackToEmpty(ref.watch(expenseRepositoryProvider).watchAll()),
 );
 final propertyPaymentsStreamProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
+  (ref) => _fallbackToEmpty(ref.watch(paymentRepositoryProvider).watchAll()),
 );
 final propertyUnitsStreamProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(salesRepositoryProvider).watchAll(),
+  (ref) => _fallbackToEmpty(ref.watch(salesRepositoryProvider).watchAll()),
 );
 
 final propertiesViewDataProvider =
@@ -46,11 +48,11 @@ final propertiesViewDataProvider =
       );
       final totalExpenses = summaries.fold<double>(
         0,
-        (sum, summary) => sum + summary.totalExpenses,
+        (total, summary) => total + summary.totalExpenses,
       );
       final totalPayments = summaries.fold<double>(
         0,
-        (sum, summary) => sum + summary.totalPayments,
+        (total, summary) => total + summary.totalPayments,
       );
 
       return AsyncData(
@@ -72,4 +74,21 @@ class PropertiesViewData {
   final List<PropertyFinancialSummary> summaries;
   final double totalExpenses;
   final double totalPayments;
+}
+
+Stream<List<T>> _fallbackToEmpty<T>(Stream<List<T>> source) async* {
+  try {
+    yield* source;
+  } on FirebaseException catch (error) {
+    if (_shouldShowEmptyState(error)) {
+      yield const [];
+      return;
+    }
+    rethrow;
+  }
+}
+
+bool _shouldShowEmptyState(FirebaseException error) {
+  return error.plugin == 'cloud_firestore' &&
+      (error.code == 'permission-denied' || error.code == 'unauthenticated');
 }

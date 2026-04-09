@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
@@ -208,7 +209,7 @@ class _PropertyMaterialSupplierScreenState
         currentIndex: 1,
         child: EmptyStateView(
           title: 'تعذر تحميل كشف المورد',
-          message: error.toString(),
+          message: mapException(error).message,
         ),
       ),
       data: (data) {

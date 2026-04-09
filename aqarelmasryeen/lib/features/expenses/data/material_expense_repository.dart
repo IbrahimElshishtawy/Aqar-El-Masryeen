@@ -18,12 +18,12 @@ class MaterialExpenseRepository {
   Stream<List<MaterialExpenseEntry>> watchAll() {
     final source = _firestore
         .collection(FirestorePaths.materialExpenses)
-        .where('archived', isEqualTo: false)
         .orderBy('date', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()))
+              .where((entry) => !entry.archived)
               .toList(),
         );
 
@@ -39,13 +39,14 @@ class MaterialExpenseRepository {
   Stream<List<MaterialExpenseEntry>> watchByProperty(String propertyId) {
     final source = _firestore
         .collection(FirestorePaths.materialExpenses)
-        .where('propertyId', isEqualTo: propertyId)
-        .where('archived', isEqualTo: false)
         .orderBy('date', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()))
+              .where(
+                (entry) => entry.propertyId == propertyId && !entry.archived,
+              )
               .toList(),
         );
 

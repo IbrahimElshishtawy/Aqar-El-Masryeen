@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/widgets/app_loading_view.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:flutter/material.dart';
@@ -27,7 +28,7 @@ class AsyncValueView<T> extends StatelessWidget {
       ),
       error: (error, _) => EmptyStateView(
         title: 'حدث خطأ ما',
-        message: error.toString(),
+        message: mapException(error).message,
         actionLabel: onRetry == null ? null : 'إعادة المحاولة',
         onAction: onRetry,
       ),

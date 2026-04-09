@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
@@ -285,7 +286,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         currentIndex: 1,
         child: EmptyStateView(
           title: 'تعذر تحميل بيانات الوحدة',
-          message: error.toString(),
+          message: mapException(error).message,
         ),
       ),
       data: (data) {
@@ -347,7 +348,7 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         currentIndex: 1,
         child: EmptyStateView(
           title: 'تعذر تحميل بيانات العقار',
-          message: error.toString(),
+          message: mapException(error).message,
         ),
       ),
       data: (data) {

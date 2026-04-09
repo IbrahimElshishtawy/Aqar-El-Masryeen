@@ -6,6 +6,7 @@ AppException mapException(Object error) {
   if (error is AppException) {
     return error;
   }
+
   if (error is FirebaseAuthException) {
     final message = error.message ?? '';
     switch (error.code) {
@@ -63,6 +64,7 @@ AppException mapException(Object error) {
         );
     }
   }
+
   if (error is LocalAuthException) {
     switch (error.code) {
       case LocalAuthExceptionCode.userCanceled:
@@ -89,20 +91,41 @@ AppException mapException(Object error) {
         );
     }
   }
+
   if (error is FirebaseException) {
     if (error.plugin == 'cloud_firestore') {
       final message = error.message ?? '';
+
       if (message.contains('database (default) does not exist')) {
         return const AppException(
           'لم يتم إعداد Cloud Firestore لهذا المشروع بعد. أنشئ قاعدة البيانات الافتراضية من Firebase Console ثم حاول مرة أخرى.',
           code: 'firestore_not_configured',
         );
       }
+
       switch (error.code) {
         case 'unavailable':
           return const AppException(
             'خدمة Cloud Firestore غير متاحة الآن. إذا كان المشروع جديدًا فأنشئ قاعدة البيانات الافتراضية أولًا.',
             code: 'firestore_unavailable',
+          );
+        case 'failed-precondition':
+          if (message.contains('requires an index') &&
+              message.contains('currently building')) {
+            return const AppException(
+              'يتم الآن تجهيز فهرس البيانات في Firestore. انتظر قليلًا ثم أعد المحاولة خلال دقائق.',
+              code: 'firestore_index_building',
+            );
+          }
+          if (message.contains('requires an index')) {
+            return const AppException(
+              'هذا الاستعلام يحتاج فهرسًا إضافيًا في Firestore. تم نشر الفهارس الآن، لكن قد يلزم الانتظار حتى يكتمل بناؤها.',
+              code: 'firestore_index_required',
+            );
+          }
+          return const AppException(
+            'تعذر تنفيذ طلب Firestore بسبب إعداد ناقص أو غير مكتمل.',
+            code: 'firestore_failed_precondition',
           );
         case 'permission-denied':
           return const AppException(
@@ -111,7 +134,12 @@ AppException mapException(Object error) {
           );
       }
     }
-    return AppException(error.message ?? 'فشل طلب Firebase.', code: error.code);
+
+    return AppException(
+      error.message ?? 'فشل طلب Firebase.',
+      code: error.code,
+    );
   }
+
   return AppException(error.toString());
 }
