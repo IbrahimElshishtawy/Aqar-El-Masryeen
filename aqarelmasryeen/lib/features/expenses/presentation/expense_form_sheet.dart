@@ -69,20 +69,16 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    final session = ref.read(authSessionProvider).valueOrNull;
-    if (session == null) return;
-
-    final paidByPartnerId = _resolvePaidByPartnerId(session.userId);
-    if (paidByPartnerId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('لا يوجد شريك مربوط بالحساب الحالي لإضافة المصروف.'),
-        ),
-      );
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
+    final session = ref.read(authSessionProvider).valueOrNull;
+    if (session == null) {
+      return;
+    }
+
+    final paidByPartnerId = _resolvePaidByPartnerId(session.userId);
     setState(() => _saving = true);
     final savedId = await ref
         .read(expenseRepositoryProvider)
@@ -114,9 +110,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
         .log(
           actorId: session.userId,
           actorName: session.profile?.name ?? 'شريك',
-          action: widget.expense == null
-              ? 'expense_created'
-              : 'expense_updated',
+          action: widget.expense == null ? 'expense_created' : 'expense_updated',
           entityType: 'expense',
           entityId: savedId,
           metadata: {'propertyId': widget.propertyId},
@@ -131,7 +125,9 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
           route: '/properties/${widget.propertyId}',
         );
 
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   String _resolvePaidByPartnerId(String currentUserId) {
@@ -143,17 +139,34 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
         return partner.id;
       }
     }
-    return widget.partners.isEmpty ? '' : widget.partners.first.id;
+    return '';
+  }
+
+  Partner? _resolveCurrentPartner(String currentUserId) {
+    for (final partner in widget.partners) {
+      if (partner.userId == currentUserId) {
+        return partner;
+      }
+    }
+    return null;
   }
 
   @override
   Widget build(BuildContext context) {
+    final session = ref.watch(authSessionProvider).valueOrNull;
+    final currentPartner = session == null
+        ? null
+        : _resolveCurrentPartner(session.userId);
+
     return AppFormSheet(
       title: widget.expense == null ? 'إضافة مصروف' : 'تعديل مصروف',
       child: Form(
         key: _formKey,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _ExpenseOwnerBanner(currentPartner: currentPartner),
+            const SizedBox(height: 12),
             TextFormField(
               controller: _descriptionController,
               decoration: const InputDecoration(labelText: 'البيان / الوصف'),
@@ -163,9 +176,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               decoration: const InputDecoration(labelText: 'المبلغ'),
               validator: (value) {
                 final parsed = double.tryParse((value ?? '').trim());
@@ -205,6 +216,31 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ExpenseOwnerBanner extends StatelessWidget {
+  const _ExpenseOwnerBanner({required this.currentPartner});
+
+  final Partner? currentPartner;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F8F4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
+      ),
+      child: Text(
+        currentPartner == null
+            ? 'سيتم تسجيل المصروف باسم المستخدم الحالي مباشرة. إذا لم يوجد شريك مرتبط بهذا الحساب فستظهر بيانات المستخدم فقط.'
+            : 'سيتم تسجيل المصروف باسم المستخدم الحالي، والحساب مرتبط بالشريك ${currentPartner.name}.',
+        style: Theme.of(context).textTheme.bodyMedium,
       ),
     );
   }

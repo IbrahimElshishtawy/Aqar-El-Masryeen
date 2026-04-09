@@ -14,6 +14,7 @@ class PropertyDetailComposer {
   PropertyProjectViewData buildProjectViewData({
     required PropertyProject property,
     required String? currentUserId,
+    required String currentUserDisplayName,
     required List<UnitSale> units,
     required List<Installment> installments,
     required List<PaymentRecord> payments,
@@ -146,6 +147,7 @@ class PropertyDetailComposer {
     return PropertyProjectViewData(
       property: property,
       currentUserId: currentUserId,
+      currentUserDisplayName: currentUserDisplayName,
       currentPartner: currentPartner,
       normalizedCurrentShare: normalizedCurrentShare,
       partners: partners,
@@ -196,9 +198,12 @@ class PropertyDetailComposer {
   PropertyUnitViewData? buildUnitViewData({
     required PropertyProject property,
     required String unitId,
+    required String? currentUserId,
+    required String currentUserDisplayName,
     required List<UnitSale> units,
     required List<Installment> installments,
     required List<PaymentRecord> payments,
+    required List<Partner> partners,
   }) {
     final summaries = const UnitSalesCalculator().build(
       units: units,
@@ -226,6 +231,9 @@ class PropertyDetailComposer {
       summary: summary,
       payments: unitPayments,
       planId: planId,
+      currentUserId: currentUserId,
+      currentUserDisplayName: currentUserDisplayName,
+      partners: partners,
     );
   }
 

@@ -1,8 +1,12 @@
+// ignore_for_file: avoid_types_as_parameter_names
+
 import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
 import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
 import 'package:aqarelmasryeen/core/storage/cache_policy.dart';
 import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
+
+import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -79,6 +83,14 @@ class PaymentRepository {
 
   Future<String> save(PaymentRecord payment) async {
     final id = payment.id.isEmpty ? _uuid.v4() : payment.id;
+    final paymentsCollection = _firestore.collection(FirestorePaths.payments);
+    final previousSnapshot = payment.id.isEmpty
+        ? null
+        : await paymentsCollection.doc(payment.id).get();
+    final previousPayment = previousSnapshot != null && previousSnapshot.exists
+        ? PaymentRecord.fromMap(previousSnapshot.id, previousSnapshot.data())
+        : null;
+
     await _firestore
         .collection(FirestorePaths.payments)
         .doc(id)
@@ -91,14 +103,74 @@ class PaymentRepository {
             ..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );
+
+    final previousInstallmentId = previousPayment?.installmentId?.trim();
+    final nextInstallmentId = payment.installmentId?.trim();
+
+    if (previousInstallmentId != null &&
+        previousInstallmentId.isNotEmpty &&
+        previousInstallmentId != nextInstallmentId) {
+      await _recalculateInstallment(previousInstallmentId);
+    }
+    if (nextInstallmentId != null && nextInstallmentId.isNotEmpty) {
+      await _recalculateInstallment(nextInstallmentId);
+    }
+
     return id;
   }
 
   Future<void> delete(String paymentId) async {
-    return _firestore
+    final ref = _firestore.collection(FirestorePaths.payments).doc(paymentId);
+    final snapshot = await ref.get();
+    final payment = snapshot.exists
+        ? PaymentRecord.fromMap(snapshot.id, snapshot.data())
+        : null;
+    await ref.delete();
+
+    final installmentId = payment?.installmentId?.trim();
+    if (installmentId != null && installmentId.isNotEmpty) {
+      await _recalculateInstallment(installmentId);
+    }
+  }
+
+  Future<void> _recalculateInstallment(String installmentId) async {
+    final installmentRef = _firestore
+        .collection(FirestorePaths.installments)
+        .doc(installmentId);
+    final installmentSnapshot = await installmentRef.get();
+    if (!installmentSnapshot.exists) {
+      return;
+    }
+
+    final installment = Installment.fromMap(
+      installmentSnapshot.id,
+      installmentSnapshot.data(),
+    );
+    final paymentsSnapshot = await _firestore
         .collection(FirestorePaths.payments)
-        .doc(paymentId)
-        .delete();
+        .where('installmentId', isEqualTo: installmentId)
+        .get();
+    final payments = paymentsSnapshot.docs
+        .map((doc) => PaymentRecord.fromMap(doc.id, doc.data()))
+        .toList(growable: false);
+    final paidAmount = payments.fold<double>(
+      0,
+      (sum, payment) => sum + payment.amount,
+    );
+
+    final status = paidAmount >= installment.amount
+        ? InstallmentStatus.paid
+        : paidAmount > 0
+        ? InstallmentStatus.partiallyPaid
+        : installment.dueDate.isBefore(DateTime.now())
+        ? InstallmentStatus.overdue
+        : InstallmentStatus.pending;
+
+    await installmentRef.update({
+      'paidAmount': paidAmount,
+      'status': status.name,
+      'updatedAt': DateTime.now(),
+    });
   }
 }
 

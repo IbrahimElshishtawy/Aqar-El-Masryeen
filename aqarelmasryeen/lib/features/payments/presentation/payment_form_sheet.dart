@@ -1,9 +1,11 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
+import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
 import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
+import 'package:aqarelmasryeen/features/unit_sales/domain/unit_sales_calculator.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:flutter/material.dart';
@@ -13,15 +15,21 @@ class PaymentFormSheet extends ConsumerStatefulWidget {
   const PaymentFormSheet({
     super.key,
     required this.propertyId,
+    required this.unitId,
+    required this.unitLabel,
+    required this.customerName,
+    required this.installmentRows,
     this.payment,
     this.installmentId,
-    this.initialUnitId,
   });
 
   final String propertyId;
+  final String unitId;
+  final String unitLabel;
+  final String customerName;
+  final List<InstallmentComputedRow> installmentRows;
   final PaymentRecord? payment;
   final String? installmentId;
-  final String? initialUnitId;
 
   @override
   ConsumerState<PaymentFormSheet> createState() => _PaymentFormSheetState();
@@ -29,45 +37,55 @@ class PaymentFormSheet extends ConsumerStatefulWidget {
 
 class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _payerController;
-  late final TextEditingController _unitController;
   late final TextEditingController _amountController;
-  late final TextEditingController _sourceController;
   late final TextEditingController _notesController;
   late PaymentMethod _paymentMethod;
   late DateTime _receivedAt;
+  late String _paymentType;
+  late String _selectedInstallmentId;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
     final payment = widget.payment;
-    _payerController = TextEditingController(
-      text: payment?.effectivePayerName ?? '',
-    );
-    _unitController = TextEditingController(
-      text: payment?.unitId ?? widget.initialUnitId ?? '',
-    );
+    final initialInstallmentId =
+        payment?.installmentId?.trim() ??
+        widget.installmentId?.trim() ??
+        '';
+
     _amountController = TextEditingController(
       text: payment == null ? '' : payment.amount.toStringAsFixed(0),
     );
-    _sourceController = TextEditingController(
-      text: payment?.paymentSource ?? '',
-    );
     _notesController = TextEditingController(text: payment?.notes ?? '');
-    _paymentMethod = payment?.paymentMethod ?? PaymentMethod.bankTransfer;
+    _paymentMethod = payment?.paymentMethod ?? PaymentMethod.cash;
     _receivedAt = payment?.receivedAt ?? DateTime.now();
+    _selectedInstallmentId = initialInstallmentId;
+    _paymentType = payment?.paymentSource.trim().isNotEmpty == true
+        ? payment!.paymentSource.trim()
+        : (initialInstallmentId.isNotEmpty ? _installmentPaymentType : _defaultPaymentType);
   }
 
   @override
   void dispose() {
-    _payerController.dispose();
-    _unitController.dispose();
     _amountController.dispose();
-    _sourceController.dispose();
     _notesController.dispose();
     super.dispose();
   }
+
+  InstallmentComputedRow? get _selectedInstallmentRow {
+    if (_selectedInstallmentId.isEmpty) {
+      return null;
+    }
+    for (final row in widget.installmentRows) {
+      if (row.installment.id == _selectedInstallmentId) {
+        return row;
+      }
+    }
+    return null;
+  }
+
+  bool get _isInstallmentPaymentType => _paymentType == _installmentPaymentType;
 
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
@@ -82,9 +100,18 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     final session = ref.read(authSessionProvider).valueOrNull;
-    if (session == null) return;
+    if (session == null) {
+      return;
+    }
+
+    final installmentId = _isInstallmentPaymentType && _selectedInstallmentId.isNotEmpty
+        ? _selectedInstallmentId
+        : null;
 
     setState(() => _saving = true);
     final savedId = await ref
@@ -93,15 +120,16 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
           PaymentRecord(
             id: widget.payment?.id ?? '',
             propertyId: widget.propertyId,
-            unitId: _unitController.text.trim(),
-            payerName: _payerController.text.trim(),
-            customerName: _payerController.text.trim(),
-            installmentId:
-                widget.payment?.installmentId ?? widget.installmentId,
+            unitId: widget.unitId,
+            payerName: widget.payment?.payerName.trim().isNotEmpty == true
+                ? widget.payment!.payerName.trim()
+                : widget.customerName.trim(),
+            customerName: widget.customerName.trim(),
+            installmentId: installmentId,
             amount: double.parse(_amountController.text.trim()),
             receivedAt: _receivedAt,
             paymentMethod: _paymentMethod,
-            paymentSource: _sourceController.text.trim(),
+            paymentSource: _paymentType,
             notes: _notesController.text.trim(),
             createdAt:
                 widget.payment?.createdAt ??
@@ -117,15 +145,15 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
         .log(
           actorId: session.userId,
           actorName: session.profile?.name ?? 'شريك',
-          action: widget.payment == null
-              ? 'payment_created'
-              : 'payment_updated',
+          action: widget.payment == null ? 'payment_created' : 'payment_updated',
           entityType: 'payment',
           entityId: savedId,
           metadata: {
             'propertyId': widget.propertyId,
-            'installmentId':
-                widget.installmentId ?? widget.payment?.installmentId,
+            'unitId': widget.unitId,
+            'installmentId': installmentId,
+            'paymentType': _paymentType,
+            'amount': double.parse(_amountController.text.trim()),
           },
         );
     await ref
@@ -133,71 +161,147 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
         .create(
           userId: session.userId,
           title: widget.payment == null ? 'تم استلام دفعة' : 'تم تحديث الدفعة',
-          body: _payerController.text.trim().isEmpty
-              ? 'تم تسجيل دفعة واردة'
-              : _payerController.text.trim(),
+          body: widget.customerName.trim().isEmpty
+              ? 'تم تسجيل دفعة جديدة على الوحدة ${widget.unitLabel}'
+              : 'دفعة للوحدة ${widget.unitLabel} - ${widget.customerName}',
           type: NotificationType.paymentReceived,
           route: '/properties/${widget.propertyId}',
         );
 
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final selectedInstallment = _selectedInstallmentRow;
+
     return AppFormSheet(
       title: widget.payment == null ? 'إضافة دفعة' : 'تعديل الدفعة',
       child: Form(
         key: _formKey,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextFormField(
-              controller: _payerController,
-              decoration: const InputDecoration(labelText: 'اسم الدافع'),
+            _PaymentInfoBanner(
+              unitLabel: widget.unitLabel,
+              customerName: widget.customerName,
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _unitController,
-              decoration: const InputDecoration(labelText: 'رقم الوحدة'),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(labelText: 'المبلغ'),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'قيمة الدفعة'),
               validator: (value) {
                 final parsed = double.tryParse((value ?? '').trim());
                 if (parsed == null || parsed <= 0) {
-                  return 'أدخل مبلغاً صحيحاً.';
+                  return 'أدخل قيمة دفعة صحيحة.';
                 }
                 return null;
               },
             ),
             const SizedBox(height: 12),
-            TextFormField(
-              controller: _sourceController,
-              decoration: const InputDecoration(labelText: 'مصدر الدفعة'),
+            DropdownButtonFormField<String>(
+              initialValue: _paymentType,
+              items: _paymentTypes
+                  .map(
+                    (item) => DropdownMenuItem<String>(
+                      value: item,
+                      child: Text(item),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                final nextValue = value ?? _paymentType;
+                setState(() {
+                  _paymentType = nextValue;
+                  if (!_isInstallmentPaymentType) {
+                    _selectedInstallmentId = '';
+                  }
+                });
+              },
+              decoration: const InputDecoration(labelText: 'نوع الدفعة'),
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<PaymentMethod>(
               initialValue: _paymentMethod,
               items: PaymentMethod.values
                   .map(
-                    (item) =>
-                        DropdownMenuItem(value: item, child: Text(item.label)),
+                    (item) => DropdownMenuItem(
+                      value: item,
+                      child: Text(item.label),
+                    ),
                   )
                   .toList(),
-              onChanged: (value) =>
-                  setState(() => _paymentMethod = value ?? _paymentMethod),
-              decoration: const InputDecoration(labelText: 'طريقة الدفع'),
+              onChanged: (value) {
+                setState(() => _paymentMethod = value ?? _paymentMethod);
+              },
+              decoration: const InputDecoration(labelText: 'طريقة التحصيل'),
             ),
+            const SizedBox(height: 12),
+            if (widget.installmentRows.isNotEmpty)
+              DropdownButtonFormField<String>(
+                initialValue:
+                    _selectedInstallmentId.isEmpty ? _noInstallmentValue : _selectedInstallmentId,
+                items: [
+                  const DropdownMenuItem<String>(
+                    value: _noInstallmentValue,
+                    child: Text('بدون ربط بقسط'),
+                  ),
+                  for (final row in widget.installmentRows)
+                    DropdownMenuItem<String>(
+                      value: row.installment.id,
+                      child: Text(
+                        'قسط ${row.installment.sequence} - المتبقي ${row.remainingAmount.egp}',
+                      ),
+                    ),
+                ],
+                onChanged: (value) {
+                  final nextValue =
+                      value == null || value == _noInstallmentValue ? '' : value;
+                  setState(() {
+                    _selectedInstallmentId = nextValue;
+                    if (nextValue.isNotEmpty) {
+                      _paymentType = _installmentPaymentType;
+                    }
+                  });
+                },
+                validator: (value) {
+                  final selectedValue =
+                      value == null || value == _noInstallmentValue ? '' : value;
+                  if (_isInstallmentPaymentType && selectedValue.isEmpty) {
+                    return 'اختر القسط المرتبط بهذه الدفعة.';
+                  }
+                  return null;
+                },
+                decoration: const InputDecoration(
+                  labelText: 'القسط المرتبط',
+                ),
+              ),
+            if (widget.installmentRows.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F8F4),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFD8D8D2)),
+                ),
+                child: Text(
+                  'لم يتم إنشاء شيت الأقساط لهذه الوحدة بعد. يمكنك تسجيل دفعة غير مربوطة بقسط الآن، وسيظهر الربط بمجرد تجهيز الأقساط.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ),
+            if (selectedInstallment != null) ...[
+              const SizedBox(height: 12),
+              _SelectedInstallmentCard(row: selectedInstallment),
+            ],
             const SizedBox(height: 12),
             InkWell(
               onTap: _pickDate,
               child: InputDecorator(
-                decoration: const InputDecoration(labelText: 'تاريخ الاستلام'),
+                decoration: const InputDecoration(labelText: 'تاريخ الدفع'),
                 child: Row(
                   children: [
                     Expanded(child: Text(_receivedAt.formatShort())),
@@ -211,7 +315,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
               controller: _notesController,
               minLines: 2,
               maxLines: 4,
-              decoration: const InputDecoration(labelText: 'ملاحظات'),
+              decoration: const InputDecoration(labelText: 'ملاحظات اختيارية'),
             ),
             const SizedBox(height: 18),
             SizedBox(
@@ -227,3 +331,100 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
     );
   }
 }
+
+class _PaymentInfoBanner extends StatelessWidget {
+  const _PaymentInfoBanner({
+    required this.unitLabel,
+    required this.customerName,
+  });
+
+  final String unitLabel;
+  final String customerName;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedCustomerName = customerName.trim().isEmpty
+        ? 'عميل غير محدد'
+        : customerName.trim();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF6F7F1),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'الوحدة $unitLabel',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            resolvedCustomerName,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelectedInstallmentCard extends StatelessWidget {
+  const _SelectedInstallmentCard({required this.row});
+
+  final InstallmentComputedRow row;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF5EC),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'القسط ${row.installment.sequence}',
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF1D5140),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'الاستحقاق ${row.installment.dueDate.formatShort()}',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'قيمة القسط ${row.installment.amount.egp} - المدفوع ${row.amountPaid.egp} - المتبقي ${row.remainingAmount.egp}',
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+const String _defaultPaymentType = 'مقدم';
+const String _installmentPaymentType = 'دفعة قسط';
+const String _noInstallmentValue = '__none__';
+
+const List<String> _paymentTypes = <String>[
+  _defaultPaymentType,
+  _installmentPaymentType,
+  'دفعة إضافية',
+  'تسوية',
+  'أخرى',
+];

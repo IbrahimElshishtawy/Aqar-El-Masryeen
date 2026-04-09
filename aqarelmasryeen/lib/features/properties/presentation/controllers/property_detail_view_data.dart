@@ -11,6 +11,7 @@ class PropertyProjectViewData {
   const PropertyProjectViewData({
     required this.property,
     required this.currentUserId,
+    required this.currentUserDisplayName,
     required this.currentPartner,
     required this.normalizedCurrentShare,
     required this.partners,
@@ -43,6 +44,7 @@ class PropertyProjectViewData {
 
   final PropertyProject property;
   final String? currentUserId;
+  final String currentUserDisplayName;
   final Partner? currentPartner;
   final double normalizedCurrentShare;
   final List<Partner> partners;
@@ -80,8 +82,7 @@ class PropertyProjectViewData {
 
   String get myLabel => currentColumnLabel;
 
-  String get currentColumnLabel =>
-      resolveCurrentPartyLabel(currentPartner, fallback: 'المستخدم');
+  String get currentColumnLabel => 'المستخدم';
 
   List<Partner> get counterpartPartners {
     if (currentPartner == null) {
@@ -94,10 +95,25 @@ class PropertyProjectViewData {
 
   String get counterpartLabel => counterpartColumnLabel;
 
-  String get counterpartColumnLabel => resolveCounterpartPartyLabel(
-    partners: partners,
-    currentPartner: currentPartner,
-  );
+  String get counterpartColumnLabel {
+    if (counterpartPartners.isEmpty) {
+      return 'الشريك المرتبط';
+    }
+    return 'الشريك المرتبط (${summarizePartnerNames(counterpartPartners)})';
+  }
+
+  bool get hasLinkedPartner => counterpartPartners.isNotEmpty;
+
+  String? get linkedPartnerName {
+    if (!hasLinkedPartner) {
+      return null;
+    }
+    return summarizePartnerNames(
+      counterpartPartners,
+      fallback: 'الشريك المرتبط',
+      maxVisibleNames: 1,
+    );
+  }
 }
 
 class PropertyUnitViewData {
@@ -106,12 +122,18 @@ class PropertyUnitViewData {
     required this.summary,
     required this.payments,
     required this.planId,
+    required this.currentUserId,
+    required this.currentUserDisplayName,
+    required this.partners,
   });
 
   final PropertyProject property;
   final UnitSaleComputedSummary summary;
   final List<PaymentRecord> payments;
   final String planId;
+  final String? currentUserId;
+  final String currentUserDisplayName;
+  final List<Partner> partners;
 }
 
 class PropertyExpenseLedgerRow {

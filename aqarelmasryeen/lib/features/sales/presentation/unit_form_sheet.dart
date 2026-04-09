@@ -1,5 +1,6 @@
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
+import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
@@ -125,7 +126,14 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
       updatedBy: session.userId,
     );
 
-    await ref.read(salesRepositoryProvider).save(unit);
+    final unitId = await ref.read(salesRepositoryProvider).save(unit);
+    final savedUnit = unit.copyWith(id: unitId);
+    if (savedUnit.installmentScheduleCount > 0 &&
+        savedUnit.paymentPlanType != PaymentPlanType.cash) {
+      await ref
+          .read(installmentRepositoryProvider)
+          .syncUnitInstallments(unit: savedUnit, actorId: session.userId);
+    }
     await ref
         .read(activityRepositoryProvider)
         .log(
@@ -133,11 +141,11 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
           actorName: session.profile?.name ?? 'شريك',
           action: widget.unit == null ? 'unit_created' : 'unit_updated',
           entityType: 'unit',
-          entityId: unit.id.isEmpty ? unit.unitNumber : unit.id,
+          entityId: unitId,
           metadata: {
             'propertyId': widget.propertyId,
-            'contractAmount': unit.contractAmount,
-            'status': unit.status.name,
+            'contractAmount': savedUnit.contractAmount,
+            'status': savedUnit.status.name,
           },
         );
 

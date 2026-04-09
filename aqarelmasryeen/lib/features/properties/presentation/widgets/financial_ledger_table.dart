@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
+import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:flutter/material.dart';
 
 typedef CompactLedgerCardBuilder<T> =
@@ -35,6 +36,8 @@ class FinancialLedgerTable<T> extends StatelessWidget {
     required this.columns,
     this.subtitle,
     this.emptyLabel = 'لا توجد بيانات حالياً',
+    this.emptyTitle,
+    this.emptyMessage,
     this.onAdd,
     this.onEdit,
     this.onDelete,
@@ -52,6 +55,8 @@ class FinancialLedgerTable<T> extends StatelessWidget {
   final List<T> rows;
   final List<LedgerColumn<T>> columns;
   final String emptyLabel;
+  final String? emptyTitle;
+  final String? emptyMessage;
   final VoidCallback? onAdd;
   final ValueChanged<T>? onEdit;
   final ValueChanged<T>? onDelete;
@@ -78,6 +83,12 @@ class FinancialLedgerTable<T> extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           if (rows.isEmpty) {
+            if (emptyTitle != null || emptyMessage != null) {
+              return EmptyStateView(
+                title: emptyTitle ?? emptyLabel,
+                message: emptyMessage ?? emptyLabel,
+              );
+            }
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Text(emptyLabel),

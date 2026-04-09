@@ -15,7 +15,6 @@ import 'package:aqarelmasryeen/features/payments/presentation/payment_form_sheet
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_expenses_workspace.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_sales_workspace.dart';
-import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_unit_detail_view.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
 import 'package:aqarelmasryeen/features/sales/presentation/unit_form_sheet.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
@@ -46,6 +45,9 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
+  String? _lastUnitInstallmentSyncSignature;
+  bool _syncingUnitInstallments = false;
+
   bool get _showExpensesOnly => widget.showExpensesOnly == true;
 
   Future<void> _showUnitSheet({UnitSale? unit}) {
@@ -103,11 +105,52 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       useSafeArea: true,
       builder: (_) => PaymentFormSheet(
         propertyId: widget.propertyId,
+        unitId: data.summary.unit.id,
+        unitLabel: data.summary.unit.unitNumber,
+        customerName: data.summary.unit.customerName,
+        installmentRows: data.summary.installmentRows,
         payment: payment,
         installmentId: payment?.installmentId ?? installmentId,
-        initialUnitId: data.summary.unit.unitNumber,
       ),
     );
+  }
+
+  Future<void> _syncUnitInstallmentsIfNeeded({
+    required PropertyUnitViewData data,
+    required String actorId,
+  }) async {
+    final summary = data.summary;
+    if (!summary.hasInstallmentScheduleIssues ||
+        summary.installmentScheduleCount <= 0 ||
+        _syncingUnitInstallments) {
+      return;
+    }
+
+    final signature = [
+      summary.unit.id,
+      summary.installmentScheduleCount,
+      summary.actualInstallmentsCount,
+      summary.missingInstallmentsCount,
+      summary.duplicateInstallmentsCount,
+      summary.extraInstallmentsCount,
+    ].join(':');
+    if (_lastUnitInstallmentSyncSignature == signature) {
+      return;
+    }
+
+    _lastUnitInstallmentSyncSignature = signature;
+    _syncingUnitInstallments = true;
+    try {
+      await ref
+          .read(installmentRepositoryProvider)
+          .syncUnitInstallments(
+            unit: summary.unit,
+            actorId: actorId,
+            preferredPlanId: data.planId,
+          );
+    } finally {
+      _syncingUnitInstallments = false;
+    }
   }
 
   Future<bool> _confirm(String title, String message) async {
@@ -302,6 +345,13 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           );
         }
 
+        final session = ref.watch(authSessionProvider).valueOrNull;
+        if (session != null && data.summary.hasInstallmentScheduleIssues) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _syncUnitInstallmentsIfNeeded(data: data, actorId: session.userId);
+          });
+        }
+
         return AppShellScaffold(
           title: 'الوحدة ${data.summary.unit.unitNumber}',
           subtitle: data.property.name,
@@ -318,8 +368,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                 _showInstallmentSheet(data: data, installment: installment),
             onDeleteInstallment: _deleteInstallment,
             onViewInstallmentPayments: _showInstallmentPaymentsSheet,
-            onAddPayment: (installmentId) =>
-                _showPaymentSheet(data: data, installmentId: installmentId),
+            onAddPayment: (installmentId) => _showPaymentSheet(
+              data: data,
+              installmentId: installmentId.trim().isEmpty
+                  ? null
+                  : installmentId,
+            ),
             onEditPayment: (payment) =>
                 _showPaymentSheet(data: data, payment: payment),
             onDeletePayment: _deletePayment,
@@ -531,10 +585,7 @@ class _PropertyHeroCard extends StatelessWidget {
                 label: 'إجمالي المصاريف',
                 value: data.totalProjectExpenses.egp,
               ),
-              _HeroMetric(
-                label: 'الشقق',
-                value: '${data.totalUnitsCount}',
-              ),
+              _HeroMetric(label: 'الشقق', value: '${data.totalUnitsCount}'),
               _HeroMetric(
                 label: 'المباع منها',
                 value: '${data.soldUnitsCount}',

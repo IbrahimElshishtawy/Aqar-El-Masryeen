@@ -248,6 +248,22 @@ class PaymentRecord {
     return customerName.trim();
   }
 
+  String get paymentTypeLabel {
+    final normalizedSource = paymentSource.trim();
+    if (normalizedSource.isNotEmpty) {
+      return normalizedSource;
+    }
+    if (installmentId != null && installmentId!.trim().isNotEmpty) {
+      return 'دفعة قسط';
+    }
+    return 'دفعة';
+  }
+
+  bool get isDownPayment => paymentTypeLabel == 'مقدم';
+
+  bool get isInstallmentPayment =>
+      installmentId != null && installmentId!.trim().isNotEmpty;
+
   Map<String, dynamic> toMap() {
     return {
       'propertyId': propertyId,

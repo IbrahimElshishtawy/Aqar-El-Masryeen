@@ -162,6 +162,10 @@ final propertyProjectViewDataProvider = Provider.autoDispose
         composer.buildProjectViewData(
           property: property,
           currentUserId: session?.userId,
+          currentUserDisplayName:
+              session?.profile?.name ??
+              session?.displayName?.trim() ??
+              'المستخدم الحالي',
           units:
               ref.watch(propertyUnitsProvider(propertyId)).valueOrNull ??
               const [],
@@ -194,6 +198,7 @@ final propertyUnitViewDataProvider = Provider.autoDispose
         ref.watch(propertyUnitsProvider(request.propertyId)),
         ref.watch(propertyInstallmentsProvider(request.propertyId)),
         ref.watch(propertyPaymentsProvider(request.propertyId)),
+        ref.watch(propertyPartnersProvider),
       ];
 
       final error = values.firstWhereOrNull((value) => value.hasError);
@@ -211,11 +216,17 @@ final propertyUnitViewDataProvider = Provider.autoDispose
         return const AsyncData(null);
       }
 
+      final session = ref.watch(authSessionProvider).valueOrNull;
       final composer = const PropertyDetailComposer();
       return AsyncData(
         composer.buildUnitViewData(
           property: property,
           unitId: request.unitId,
+          currentUserId: session?.userId,
+          currentUserDisplayName:
+              session?.profile?.name ??
+              session?.displayName?.trim() ??
+              'المستخدم الحالي',
           units:
               ref
                   .watch(propertyUnitsProvider(request.propertyId))
@@ -231,6 +242,7 @@ final propertyUnitViewDataProvider = Provider.autoDispose
                   .watch(propertyPaymentsProvider(request.propertyId))
                   .valueOrNull ??
               const [],
+          partners: ref.watch(propertyPartnersProvider).valueOrNull ?? const [],
         ),
       );
     });
