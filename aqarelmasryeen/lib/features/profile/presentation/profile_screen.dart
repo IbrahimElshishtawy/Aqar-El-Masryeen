@@ -53,7 +53,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       currentIndex: 3,
       actions: [
         TextButton.icon(
-          onPressed: () => context.push(AppRoutes.expensesTab('resources')),
+          onPressed: () => context.go(AppRoutes.expensesTab('resources')),
           icon: const Icon(Icons.inventory_2_outlined),
           label: const Text('الموارد'),
         ),

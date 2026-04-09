@@ -26,49 +26,70 @@ class AppPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: const Color(0xFFD8D8D2)),
       ),
-      child: Padding(
-        padding: padding,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (title != null || subtitle != null || trailing != null) ...[
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final hasHeader =
+              title != null || subtitle != null || trailing != null;
+          final useStackedHeader =
+              trailing != null && constraints.maxWidth < 560;
+
+          Widget buildHeaderText() {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (title != null)
+                  Text(
+                    title!,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.secondary,
+                    ),
+                  ),
+                ],
+              ],
+            );
+          }
+
+          return Padding(
+            padding: padding,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (hasHeader) ...[
+                  if (useStackedHeader) ...[
+                    buildHeaderText(),
+                    if (trailing != null) ...[
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: trailing!,
+                      ),
+                    ],
+                  ] else
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (title != null)
-                          Text(
-                            title!,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        if (subtitle != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            subtitle!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.secondary,
-                            ),
-                          ),
+                        Expanded(child: buildHeaderText()),
+                        if (trailing != null) ...[
+                          const SizedBox(width: 12),
+                          trailing!,
                         ],
                       ],
                     ),
-                  ),
-                  if (trailing != null) ...[
-                    const SizedBox(width: 12),
-                    trailing!,
-                  ],
+                  const SizedBox(height: 16),
                 ],
-              ),
-              const SizedBox(height: 16),
-            ],
-            child,
-          ],
-        ),
+                child,
+              ],
+            ),
+          );
+        },
       ),
     );
   }

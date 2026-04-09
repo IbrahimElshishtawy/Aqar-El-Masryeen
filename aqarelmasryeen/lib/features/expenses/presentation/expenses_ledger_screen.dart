@@ -108,7 +108,11 @@ class ExpensesLedgerScreen extends ConsumerWidget {
       currentIndex: 1,
       automaticallyImplyLeading: false,
       titleActions: [
-        _ExpensesTopBarActions(properties: properties, partners: partners),
+        _ExpensesTopBarActions(
+          properties: properties,
+          partners: partners,
+          showingHistory: showingHistory,
+        ),
       ],
       child: ListView(
         padding: const EdgeInsets.fromLTRB(6, 8, 6, 24),
@@ -154,36 +158,43 @@ class _ExpensesTopBarActions extends StatelessWidget {
   const _ExpensesTopBarActions({
     required this.properties,
     required this.partners,
+    required this.showingHistory,
   });
 
   final List<PropertyProject> properties;
   final List<Partner> partners;
+  final bool showingHistory;
 
   @override
   Widget build(BuildContext context) {
+    final canGoBack = showingHistory || context.canPop();
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         _TopBarIconButton(
           icon: Icons.add_rounded,
-          tooltip: 'إضافة مصروف',
+          tooltip: 'Add expense',
           onPressed: () => _showExpenseSheet(
             context,
             properties: properties,
             partners: partners,
           ),
         ),
-        _TopBarIconButton(
-          icon: Icons.arrow_forward_rounded,
-          tooltip: 'رجوع',
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-              return;
-            }
-            context.go(AppRoutes.properties);
-          },
-        ),
+        if (canGoBack)
+          _TopBarIconButton(
+            icon: Icons.arrow_forward_rounded,
+            tooltip: 'Back',
+            onPressed: () {
+              if (showingHistory) {
+                context.go(AppRoutes.expenses);
+                return;
+              }
+              if (context.canPop()) {
+                context.pop();
+              }
+            },
+          ),
       ],
     );
   }

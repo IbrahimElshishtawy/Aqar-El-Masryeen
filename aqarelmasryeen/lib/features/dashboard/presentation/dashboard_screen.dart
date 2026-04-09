@@ -40,17 +40,17 @@ class DashboardScreen extends ConsumerWidget {
                 runSpacing: 12,
                 children: [
                   OutlinedButton.icon(
-                    onPressed: () => context.push(AppRoutes.properties),
+                    onPressed: () => context.go(AppRoutes.properties),
                     icon: const Icon(Icons.apartment_outlined),
                     label: const Text('المشروعات'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => context.push(AppRoutes.expenses),
+                    onPressed: () => context.go(AppRoutes.expenses),
                     icon: const Icon(Icons.receipt_long_outlined),
                     label: const Text('المصروفات'),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => context.push(AppRoutes.partners),
+                    onPressed: () => context.go(AppRoutes.partners),
                     icon: const Icon(Icons.groups_outlined),
                     label: const Text('الشركاء'),
                   ),
@@ -92,12 +92,12 @@ class DashboardScreen extends ConsumerWidget {
   List<Widget> _actions(BuildContext context) {
     return [
       TextButton.icon(
-        onPressed: () => context.push(AppRoutes.expensesTab('resources')),
+        onPressed: () => context.go(AppRoutes.expensesTab('resources')),
         icon: const Icon(Icons.inventory_2_outlined),
         label: const Text('الموارد'),
       ),
       IconButton(
-        onPressed: () => context.push(AppRoutes.expenses),
+        onPressed: () => context.go(AppRoutes.expenses),
         icon: const Icon(Icons.receipt_long_outlined),
       ),
       IconButton(

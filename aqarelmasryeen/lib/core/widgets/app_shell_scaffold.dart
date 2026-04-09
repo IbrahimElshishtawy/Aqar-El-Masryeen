@@ -82,7 +82,7 @@ class AppShellScaffold extends StatelessWidget {
       ),
       bottomNavigationBar: showBottomNavigation
           ? SafeArea(
-              minimum: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              minimum: const EdgeInsets.fromLTRB(6, 0, 6, 6),
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
@@ -91,7 +91,7 @@ class AppShellScaffold extends StatelessWidget {
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 18,
+                      blurRadius: 28,
                       offset: const Offset(0, 10),
                     ),
                   ],
