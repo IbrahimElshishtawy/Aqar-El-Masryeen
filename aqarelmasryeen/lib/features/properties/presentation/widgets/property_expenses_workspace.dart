@@ -3,9 +3,8 @@ import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
+import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
-import 'package:aqarelmasryeen/shared/models/partner_models.dart';
-import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 enum ExpenseTableScope { recent24Hours, olderThan24Hours, all }
@@ -36,14 +35,15 @@ class PropertyExpensesWorkspace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final filteredRows = _filterRows(data.expenseLedgerRows);
-    final linkedPartner = data.counterpartPartners.firstOrNull;
-    final dayRows = _buildDayRows(filteredRows, linkedPartner: linkedPartner);
-
-    final currentColumnLabel = 'المستخدم';
-    final counterpartColumnLabel = linkedPartner == null
-        ? 'الشريك المرتبط'
-        : 'الشريك المرتبط (${linkedPartner.name})';
+    final allRows = data.expenseLedgerRows
+        .map(
+          (row) =>
+              _ExpenseDisplayRow(row: row, isCurrentSide: _isCurrentSide(row)),
+        )
+        .toList(growable: false);
+    final rows = _filterRows(allRows);
+    final recentTotal = _sumAmounts(rows);
+    final linkedPartnerName = data.currentPartner?.name.trim();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,29 +51,25 @@ class PropertyExpensesWorkspace extends StatelessWidget {
         if (showSummaryPanel) ...[
           _AddExpensePanel(
             onOpenMaterials: onOpenMaterials,
-            linkedPartnerName: linkedPartner?.name.trim(),
-            todayTotal: _sumAmounts(filteredRows),
+            linkedPartnerName: (linkedPartnerName?.isEmpty ?? true)
+                ? null
+                : linkedPartnerName,
+            todayTotal: recentTotal,
             overallTotal: data.totalDirectExpenses,
-            entriesCount: filteredRows.length,
+            entriesCount: rows.length,
           ),
           const SizedBox(height: 16),
         ],
         _ExpenseComparisonTable(
           title: _tableTitle,
-          subtitle: _tableSubtitle(dayRows.length),
+          subtitle: _tableSubtitle(rows.length),
           emptyTitle: _emptyTitle,
-          emptyMessage: _emptyMessage(
-            currentColumnLabel: currentColumnLabel,
-            counterpartColumnLabel: counterpartColumnLabel,
-          ),
-          currentColumnLabel: currentColumnLabel,
-          counterpartColumnLabel: counterpartColumnLabel,
-          dayRows: dayRows,
-          currentTotal: _sumRows(dayRows, currentSide: true),
-          counterpartTotal: _sumRows(dayRows, currentSide: false),
-          linkedPartner: linkedPartner,
-          partners: data.partners,
-          currentUserId: data.currentUserId,
+          emptyMessage: _emptyMessage,
+          currentColumnLabel: data.currentColumnLabel,
+          counterpartColumnLabel: data.counterpartColumnLabel,
+          rows: rows,
+          currentTotal: _sumRows(rows, currentSide: true),
+          counterpartTotal: _sumRows(rows, currentSide: false),
           onOpenDetailedExpenses: onOpenDetailedExpenses,
           showDetailedButton: showDetailedButton,
           onAddExpense: onAddExpense,
@@ -84,11 +80,11 @@ class PropertyExpensesWorkspace extends StatelessWidget {
     );
   }
 
-  List<PropertyExpenseLedgerRow> _filterRows(List<PropertyExpenseLedgerRow> rows) {
+  List<_ExpenseDisplayRow> _filterRows(List<_ExpenseDisplayRow> rows) {
     final today = DateTime.now();
     return rows
         .where((row) {
-          final isToday = DateUtils.isSameDay(row.expense.date, today);
+          final isToday = DateUtils.isSameDay(row.row.expense.date, today);
           switch (scope) {
             case ExpenseTableScope.recent24Hours:
               return isToday;
@@ -101,72 +97,31 @@ class PropertyExpensesWorkspace extends StatelessWidget {
         .toList(growable: false);
   }
 
-  List<_DailyExpenseComparisonRow> _buildDayRows(
-    List<PropertyExpenseLedgerRow> rows, {
-    required Partner? linkedPartner,
-  }) {
-    final grouped = rows.groupListsBy(
-      (row) => DateTime(
-        row.expense.date.year,
-        row.expense.date.month,
-        row.expense.date.day,
-      ),
-    );
-
-    return grouped.entries
-        .map((entry) {
-          final currentEntries = entry.value
-              .where((row) => _isCurrentSide(row))
-              .toList(growable: false);
-          final counterpartEntries = linkedPartner == null
-              ? const <PropertyExpenseLedgerRow>[]
-              : entry.value
-                    .where((row) => _isLinkedCounterpart(row, linkedPartner))
-                    .toList(growable: false);
-          return _DailyExpenseComparisonRow(
-            day: entry.key,
-            currentEntries: currentEntries,
-            counterpartEntries: counterpartEntries,
-          );
-        })
-        .sorted((a, b) => b.day.compareTo(a.day));
-  }
-
   bool _isCurrentSide(PropertyExpenseLedgerRow row) {
     final currentPartner = data.currentPartner;
     if (currentPartner != null) {
       return row.payer?.id == currentPartner.id;
     }
     if (data.currentUserId != null) {
-      return row.expense.createdBy == data.currentUserId;
+      return row.payer?.userId == data.currentUserId;
     }
     return false;
   }
 
-  bool _isLinkedCounterpart(PropertyExpenseLedgerRow row, Partner linkedPartner) {
-    if (row.payer?.id == linkedPartner.id) {
-      return true;
-    }
-    return linkedPartner.userId.isNotEmpty &&
-        row.expense.createdBy == linkedPartner.userId;
-  }
-
   double _sumRows(
-    Iterable<_DailyExpenseComparisonRow> rows, {
+    Iterable<_ExpenseDisplayRow> rows, {
     required bool currentSide,
   }) {
     return rows.fold<double>(0, (sum, row) {
-      final entries = currentSide ? row.currentEntries : row.counterpartEntries;
-      return sum +
-          entries.fold<double>(
-            0,
-            (sideSum, entry) => sideSum + entry.expense.amount,
-          );
+      if (row.isCurrentSide != currentSide) {
+        return sum;
+      }
+      return sum + row.row.expense.amount;
     });
   }
 
-  double _sumAmounts(Iterable<PropertyExpenseLedgerRow> rows) {
-    return rows.fold<double>(0, (sum, row) => sum + row.expense.amount);
+  double _sumAmounts(Iterable<_ExpenseDisplayRow> rows) {
+    return rows.fold<double>(0, (sum, row) => sum + row.row.expense.amount);
   }
 
   String get _tableTitle {
@@ -185,7 +140,7 @@ class PropertyExpensesWorkspace extends StatelessWidget {
       case ExpenseTableScope.recent24Hours:
         return count == 0
             ? 'لا توجد مصروفات مسجلة بتاريخ اليوم.'
-            : 'يعرض مصروفات اليوم للمستخدم والشريك المرتبط في نفس الصف.';
+            : 'يعرض مصروفات اليوم فقط، وأي تواريخ أقدم ستظهر في صفحة الأيام السابقة.';
       case ExpenseTableScope.olderThan24Hours:
         return count == 0
             ? 'لا توجد مصروفات بتواريخ أقدم من اليوم.'
@@ -193,7 +148,7 @@ class PropertyExpensesWorkspace extends StatelessWidget {
       case ExpenseTableScope.all:
         return count == 0
             ? 'لا توجد مصروفات مسجلة لهذا العقار حتى الآن.'
-            : 'كل صف يمثل يومًا واحدًا ويقسم مصروفات المستخدم والشريك بوضوح.';
+            : 'كل صف يعرض تاريخ المصروف والمبلغ ووصفه تحت ${data.currentColumnLabel} أو ${data.counterpartColumnLabel}.';
     }
   }
 
@@ -208,17 +163,14 @@ class PropertyExpensesWorkspace extends StatelessWidget {
     }
   }
 
-  String _emptyMessage({
-    required String currentColumnLabel,
-    required String counterpartColumnLabel,
-  }) {
+  String get _emptyMessage {
     switch (scope) {
       case ExpenseTableScope.recent24Hours:
-        return 'بمجرد إضافة مصروف بتاريخ اليوم سيظهر هنا تحت $currentColumnLabel أو $counterpartColumnLabel.';
+        return 'بمجرد إضافة مصروف بتاريخ اليوم سيظهر هنا تحت ${data.currentColumnLabel} أو ${data.counterpartColumnLabel}.';
       case ExpenseTableScope.olderThan24Hours:
-        return 'كل المصروفات المسجلة في أيام أقدم من اليوم ستظهر هنا تلقائيًا.';
+        return 'كل المصروفات المسجلة في أيام أقدم من اليوم ستظهر هنا تلقائيًا مع تاريخ كل حركة.';
       case ExpenseTableScope.all:
-        return 'بمجرد إضافة أول مصروف سيظهر هنا التاريخ وإجمالي كل طرف.';
+        return 'بمجرد إضافة أول مصروف سيظهر هنا التاريخ والمبلغ والوصف لـ ${data.currentColumnLabel} أو ${data.counterpartColumnLabel}.';
     }
   }
 }
@@ -254,18 +206,33 @@ class _AddExpensePanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (linkedPartnerName?.isNotEmpty == true) ...[
-            _InfoBanner(
-              message: 'الحساب الحالي مربوط بالشريك: $linkedPartnerName',
-              color: const Color(0xFFEAF4EF),
-              textColor: const Color(0xFF1D5140),
-            ),
-            const SizedBox(height: 12),
-          ] else ...[
-            const _InfoBanner(
-              message: 'لا يوجد شريك مرتبط بهذا الحساب',
-              color: Color(0xFFFFF4E6),
-              textColor: Color(0xFF9A5A00),
+          if (linkedPartnerName != null) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF4EF),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.person_outline_rounded,
+                    size: 18,
+                    color: Color(0xFF1D5140),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      'الحساب الحالي مربوط بالشريك: $linkedPartnerName',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF1D5140),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
             const SizedBox(height: 12),
           ],
@@ -274,45 +241,12 @@ class _AddExpensePanel extends StatelessWidget {
             runSpacing: 10,
             children: [
               _ExpenseMetricPill(label: 'مصاريف اليوم', value: todayTotal.egp),
-              _ExpenseMetricPill(label: 'الإجمالي العام', value: overallTotal.egp),
+              _ExpenseMetricPill(
+                label: 'الإجمالي العام',
+                value: overallTotal.egp,
+              ),
               _ExpenseMetricPill(label: 'عدد الحركات', value: '$entriesCount'),
             ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoBanner extends StatelessWidget {
-  const _InfoBanner({
-    required this.message,
-    required this.color,
-    required this.textColor,
-  });
-
-  final String message;
-  final Color color;
-  final Color textColor;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(14)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.person_outline_rounded, size: 18, color: textColor),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              message,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: textColor,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
           ),
         ],
       ),
@@ -341,17 +275,17 @@ class _ExpenseMetricPill extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.secondary,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: Theme.of(context).colorScheme.secondary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             value,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF17352F),
-                ),
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF17352F),
+            ),
           ),
         ],
       ),
@@ -367,12 +301,9 @@ class _ExpenseComparisonTable extends StatelessWidget {
     required this.emptyMessage,
     required this.currentColumnLabel,
     required this.counterpartColumnLabel,
-    required this.dayRows,
+    required this.rows,
     required this.currentTotal,
     required this.counterpartTotal,
-    required this.linkedPartner,
-    required this.partners,
-    required this.currentUserId,
     required this.onOpenDetailedExpenses,
     required this.showDetailedButton,
     required this.onAddExpense,
@@ -386,12 +317,9 @@ class _ExpenseComparisonTable extends StatelessWidget {
   final String emptyMessage;
   final String currentColumnLabel;
   final String counterpartColumnLabel;
-  final List<_DailyExpenseComparisonRow> dayRows;
+  final List<_ExpenseDisplayRow> rows;
   final double currentTotal;
   final double counterpartTotal;
-  final Partner? linkedPartner;
-  final List<Partner> partners;
-  final String? currentUserId;
   final VoidCallback? onOpenDetailedExpenses;
   final bool showDetailedButton;
   final VoidCallback? onAddExpense;
@@ -420,7 +348,7 @@ class _ExpenseComparisonTable extends StatelessWidget {
             ),
         ],
       ),
-      child: dayRows.isEmpty
+      child: rows.isEmpty
           ? EmptyStateView(title: emptyTitle, message: emptyMessage)
           : LayoutBuilder(
               builder: (context, constraints) {
@@ -448,14 +376,11 @@ class _ExpenseComparisonTable extends StatelessWidget {
                           currentColumnLabel: currentColumnLabel,
                           counterpartColumnLabel: counterpartColumnLabel,
                         ),
-                        for (final row in dayRows)
+                        for (final row in rows)
                           _ExpenseLedgerTableRow(
                             row: row,
                             dateColumnWidth: dateColumnWidth,
                             sideColumnWidth: sideColumnWidth,
-                            linkedPartner: linkedPartner,
-                            partners: partners,
-                            currentUserId: currentUserId,
                             onEditExpense: onEditExpense,
                             onDeleteExpense: onDeleteExpense,
                           ),
@@ -526,9 +451,9 @@ class _HeaderCell extends StatelessWidget {
         label,
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF21463D),
-            ),
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFF21463D),
+        ),
       ),
     );
   }
@@ -539,24 +464,21 @@ class _ExpenseLedgerTableRow extends StatelessWidget {
     required this.row,
     required this.dateColumnWidth,
     required this.sideColumnWidth,
-    required this.linkedPartner,
-    required this.partners,
-    required this.currentUserId,
     required this.onEditExpense,
     required this.onDeleteExpense,
   });
 
-  final _DailyExpenseComparisonRow row;
+  final _ExpenseDisplayRow row;
   final double dateColumnWidth;
   final double sideColumnWidth;
-  final Partner? linkedPartner;
-  final List<Partner> partners;
-  final String? currentUserId;
   final ValueChanged<ExpenseRecord> onEditExpense;
   final ValueChanged<ExpenseRecord> onDeleteExpense;
 
   @override
   Widget build(BuildContext context) {
+    final currentRow = row.isCurrentSide ? row.row : null;
+    final counterpartRow = row.isCurrentSide ? null : row.row;
+
     return Container(
       decoration: const BoxDecoration(
         border: Border(top: BorderSide(color: Color(0xFFD9DED6))),
@@ -565,38 +487,23 @@ class _ExpenseLedgerTableRow extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _ExpenseDateCell(width: dateColumnWidth, date: row.day),
-            _ExpenseDaySideCell(
+            _ExpenseDateCell(
+              width: dateColumnWidth,
+              date: row.row.expense.date,
+            ),
+            _ExpenseSideCell(
               width: sideColumnWidth,
-              day: row.day,
-              entries: row.currentEntries,
-              counterpartEntries: row.counterpartEntries,
+              entry: currentRow,
               tint: const Color(0xFFEAF4EF),
               borderColor: const Color(0xFFD9DED6),
-              title: 'مصروفات المستخدم',
-              counterpartTitle: linkedPartner == null
-                  ? 'مصروفات الشريك'
-                  : 'مصروفات ${linkedPartner!.name}',
-              partners: partners,
-              currentUserId: currentUserId,
-              sideOwner: null,
               onEditExpense: onEditExpense,
               onDeleteExpense: onDeleteExpense,
             ),
-            _ExpenseDaySideCell(
+            _ExpenseSideCell(
               width: sideColumnWidth,
-              day: row.day,
-              entries: row.counterpartEntries,
-              counterpartEntries: row.currentEntries,
+              entry: counterpartRow,
               tint: const Color(0xFFF6F4EF),
               borderColor: const Color(0xFFD9DED6),
-              title: linkedPartner == null
-                  ? 'مصروفات الشريك'
-                  : 'مصروفات ${linkedPartner!.name}',
-              counterpartTitle: 'مصروفات المستخدم',
-              partners: partners,
-              currentUserId: currentUserId,
-              sideOwner: linkedPartner,
               onEditExpense: onEditExpense,
               onDeleteExpense: onDeleteExpense,
             ),
@@ -627,288 +534,150 @@ class _ExpenseDateCell extends StatelessWidget {
         date.formatShort(),
         textAlign: TextAlign.center,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF17352F),
-            ),
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFF17352F),
+        ),
       ),
     );
   }
 }
 
-class _ExpenseDaySideCell extends StatelessWidget {
-  const _ExpenseDaySideCell({
+class _ExpenseSideCell extends StatelessWidget {
+  const _ExpenseSideCell({
     required this.width,
-    required this.day,
-    required this.entries,
-    required this.counterpartEntries,
+    required this.entry,
     required this.tint,
     required this.borderColor,
-    required this.title,
-    required this.counterpartTitle,
-    required this.partners,
-    required this.currentUserId,
-    required this.sideOwner,
     required this.onEditExpense,
     required this.onDeleteExpense,
   });
 
   final double width;
-  final DateTime day;
-  final List<PropertyExpenseLedgerRow> entries;
-  final List<PropertyExpenseLedgerRow> counterpartEntries;
+  final PropertyExpenseLedgerRow? entry;
   final Color tint;
   final Color borderColor;
-  final String title;
-  final String counterpartTitle;
-  final List<Partner> partners;
-  final String? currentUserId;
-  final Partner? sideOwner;
   final ValueChanged<ExpenseRecord> onEditExpense;
   final ValueChanged<ExpenseRecord> onDeleteExpense;
 
   @override
   Widget build(BuildContext context) {
-    final total = entries.fold<double>(0, (sum, item) => sum + item.expense.amount);
     return Container(
       width: width,
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         border: Border(left: BorderSide(color: borderColor)),
       ),
-      child: entries.isEmpty
+      child: entry == null
           ? Center(
               child: Text(
                 'لا يوجد',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.secondary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  color: Theme.of(context).colorScheme.secondary,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             )
-          : Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-              decoration: BoxDecoration(
-                color: tint,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFD5DDD5)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    total.egp,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFF17352F),
-                        ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '$title • ${entries.length} حركة',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF40564F),
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () => _showDayDetails(
-                      context,
-                      day: day,
-                      primaryEntries: entries,
-                      primaryTitle: title,
-                      secondaryEntries: counterpartEntries,
-                      secondaryTitle: counterpartTitle,
-                      partners: partners,
-                      currentUserId: currentUserId,
-                      sideOwner: sideOwner,
-                      onEditExpense: onEditExpense,
-                      onDeleteExpense: onDeleteExpense,
-                    ),
-                    child: const Text('عرض التفصيل'),
-                  ),
-                ],
-              ),
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _ExpenseEntryCard(row: entry!, tint: tint),
+                ),
+                const SizedBox(width: 6),
+                _ExpenseEntryMenuButton(
+                  row: entry!,
+                  onEditExpense: onEditExpense,
+                  onDeleteExpense: onDeleteExpense,
+                ),
+              ],
             ),
     );
   }
 }
 
-Future<void> _showDayDetails(
-  BuildContext context, {
-  required DateTime day,
-  required List<PropertyExpenseLedgerRow> primaryEntries,
-  required String primaryTitle,
-  required List<PropertyExpenseLedgerRow> secondaryEntries,
-  required String secondaryTitle,
-  required List<Partner> partners,
-  required String? currentUserId,
-  required Partner? sideOwner,
-  required ValueChanged<ExpenseRecord> onEditExpense,
-  required ValueChanged<ExpenseRecord> onDeleteExpense,
-}) {
-  final primary = primaryEntries.sorted(
-    (a, b) => b.expense.updatedAt.compareTo(a.expense.updatedAt),
-  );
-  final secondary = secondaryEntries.sorted(
-    (a, b) => b.expense.updatedAt.compareTo(a.expense.updatedAt),
-  );
+class _ExpenseEntryCard extends StatelessWidget {
+  const _ExpenseEntryCard({required this.row, required this.tint});
 
-  return showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text('تفاصيل مصروفات ${day.formatShort()}'),
-      content: SizedBox(
-        width: 520,
-        child: ListView(
-          shrinkWrap: true,
-          children: [
-            _ExpenseDetailsSection(
-              title: primaryTitle,
-              entries: primary,
-              partners: partners,
-              currentUserId: currentUserId,
-              sideOwner: sideOwner,
-              onEditExpense: onEditExpense,
-              onDeleteExpense: onDeleteExpense,
-            ),
-            const SizedBox(height: 16),
-            _ExpenseDetailsSection(
-              title: secondaryTitle,
-              entries: secondary,
-              partners: partners,
-              currentUserId: currentUserId,
-              sideOwner: sideOwner,
-              onEditExpense: onEditExpense,
-              onDeleteExpense: onDeleteExpense,
-            ),
-          ],
-        ),
+  final PropertyExpenseLedgerRow row;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    final description = row.expense.description.trim().isEmpty
+        ? row.expense.category.label
+        : row.expense.description.trim();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: tint,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFD5DDD5)),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('إغلاق'),
-        ),
-      ],
-    ),
-  );
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            row.expense.amount.egp,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF17352F),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF40564F),
+              height: 1.25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _ExpenseDetailsSection extends StatelessWidget {
-  const _ExpenseDetailsSection({
-    required this.title,
-    required this.entries,
-    required this.partners,
-    required this.currentUserId,
-    required this.sideOwner,
+class _ExpenseEntryMenuButton extends StatelessWidget {
+  const _ExpenseEntryMenuButton({
+    required this.row,
     required this.onEditExpense,
     required this.onDeleteExpense,
   });
 
-  final String title;
-  final List<PropertyExpenseLedgerRow> entries;
-  final List<Partner> partners;
-  final String? currentUserId;
-  final Partner? sideOwner;
+  final PropertyExpenseLedgerRow row;
   final ValueChanged<ExpenseRecord> onEditExpense;
   final ValueChanged<ExpenseRecord> onDeleteExpense;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: Theme.of(
-            context,
-          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        const SizedBox(height: 8),
-        if (entries.isEmpty)
-          const Text('لا يوجد')
-        else
-          ...entries.map((row) {
-            final expense = row.expense;
-            final actor = _resolveCreatedByLabel(
-              expense: expense,
-              partners: partners,
-              currentUserId: currentUserId,
-              sideOwner: sideOwner,
-            );
-            final description = expense.description.trim().isEmpty
-                ? expense.category.label
-                : expense.description.trim();
-            final time = TimeOfDay.fromDateTime(expense.updatedAt).format(
-              context,
-            );
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    expense.amount.egp,
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  Text('النوع: ${expense.category.label}'),
-                  Text('الوصف: $description'),
-                  Text('الوقت: $time'),
-                  Text('من قام بالإضافة: $actor'),
-                  if (expense.notes.trim().isNotEmpty)
-                    Text('ملاحظات: ${expense.notes.trim()}'),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          onEditExpense(expense);
-                        },
-                        child: const Text('تعديل'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          onDeleteExpense(expense);
-                        },
-                        child: const Text('حذف'),
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 12),
-                ],
-              ),
-            );
-          }),
+    return PopupMenuButton<_ExpenseEntryAction>(
+      tooltip: 'خيارات الحركة',
+      padding: EdgeInsets.zero,
+      iconSize: 18,
+      onSelected: (action) {
+        switch (action) {
+          case _ExpenseEntryAction.edit:
+            onEditExpense(row.expense);
+            break;
+          case _ExpenseEntryAction.delete:
+            onDeleteExpense(row.expense);
+            break;
+        }
+      },
+      itemBuilder: (context) => const [
+        PopupMenuItem(value: _ExpenseEntryAction.edit, child: Text('تعديل')),
+        PopupMenuItem(value: _ExpenseEntryAction.delete, child: Text('حذف')),
       ],
     );
   }
-}
-
-String _resolveCreatedByLabel({
-  required ExpenseRecord expense,
-  required List<Partner> partners,
-  required String? currentUserId,
-  required Partner? sideOwner,
-}) {
-  if (currentUserId != null && expense.createdBy == currentUserId) {
-    return 'المستخدم الحالي';
-  }
-  final byUser = partners.firstWhereOrNull(
-    (partner) => partner.userId == expense.createdBy,
-  );
-  if (byUser != null && byUser.name.trim().isNotEmpty) {
-    return byUser.name.trim();
-  }
-  if (sideOwner?.name.trim().isNotEmpty == true) {
-    return sideOwner!.name.trim();
-  }
-  return 'غير معروف';
 }
 
 class _ExpenseTotalsRow extends StatelessWidget {
@@ -948,9 +717,9 @@ class _ExpenseTotalsRow extends StatelessWidget {
               'الإجمالي',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF17352F),
-                  ),
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF17352F),
+              ),
             ),
           ),
           _TotalsCell(
@@ -994,17 +763,17 @@ class _TotalsCell extends StatelessWidget {
           Text(
             label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.secondary,
-                  fontWeight: FontWeight.w600,
-                ),
+              color: Theme.of(context).colorScheme.secondary,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             total.egp,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF17352F),
-                ),
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF17352F),
+            ),
           ),
         ],
       ),
@@ -1012,14 +781,11 @@ class _TotalsCell extends StatelessWidget {
   }
 }
 
-class _DailyExpenseComparisonRow {
-  const _DailyExpenseComparisonRow({
-    required this.day,
-    required this.currentEntries,
-    required this.counterpartEntries,
-  });
+enum _ExpenseEntryAction { edit, delete }
 
-  final DateTime day;
-  final List<PropertyExpenseLedgerRow> currentEntries;
-  final List<PropertyExpenseLedgerRow> counterpartEntries;
+class _ExpenseDisplayRow {
+  const _ExpenseDisplayRow({required this.row, required this.isCurrentSide});
+
+  final PropertyExpenseLedgerRow row;
+  final bool isCurrentSide;
 }
