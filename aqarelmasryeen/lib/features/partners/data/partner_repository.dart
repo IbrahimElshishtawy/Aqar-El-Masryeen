@@ -35,6 +35,10 @@ class PartnerRepository {
     );
   }
 
+
+  Future<void> delete(String partnerId) async {
+    await _firestore.collection(FirestorePaths.partners).doc(partnerId).delete();
+  }
   Future<String> upsert(Partner partner) async {
     final id = partner.id.isEmpty ? _uuid.v4() : partner.id;
     await _firestore
