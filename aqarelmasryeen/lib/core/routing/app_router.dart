@@ -1,8 +1,5 @@
-import 'dart:async';
-
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/security/session_lock_controller.dart';
-import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/screens/biometric_setup_screen.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/screens/login_screen.dart';
@@ -29,14 +26,16 @@ import 'package:go_router/go_router.dart';
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final refreshListenable = GoRouterRefreshStream(
-    ref.watch(authRepositoryProvider).watchSession(),
-  );
+  final refreshListenable = _GoRouterRefreshListenable();
+  ref.listen(authSessionProvider, (previous, next) {
+    refreshListenable.refresh();
+  });
+  ref.listen<SessionLockState>(sessionLockControllerProvider, (previous, next) {
+    if (_shouldRefreshRouter(previous, next)) {
+      refreshListenable.refresh();
+    }
+  });
   ref.onDispose(refreshListenable.dispose);
-
-  final sessionState = ref.watch(authSessionProvider);
-  final session = sessionState.valueOrNull;
-  final lockState = ref.watch(sessionLockControllerProvider);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
@@ -185,6 +184,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) {
+      final sessionState = ref.read(authSessionProvider);
+      final session = sessionState.valueOrNull;
+      final lockState = ref.read(sessionLockControllerProvider);
       final location = state.matchedLocation;
       final isSplashRoute = location == AppRoutes.splash;
       final isAuthRoute = location.startsWith('/auth');
@@ -271,6 +273,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
+bool _shouldRefreshRouter(
+  SessionLockState? previous,
+  SessionLockState next,
+) {
+  if (previous == null) {
+    return true;
+  }
+
+  return previous.isInitialized != next.isInitialized ||
+      previous.isLocked != next.isLocked ||
+      previous.appLockEnabled != next.appLockEnabled ||
+      previous.trustedDeviceEnabled != next.trustedDeviceEnabled;
+}
+
 CustomTransitionPage<void> _buildAppPage({
   required GoRouterState state,
   required Widget child,
@@ -300,20 +316,6 @@ CustomTransitionPage<void> _buildAppPage({
   );
 }
 
-class GoRouterRefreshStream extends ChangeNotifier {
-  GoRouterRefreshStream(Stream<dynamic> stream) {
-    notifyListeners();
-    _subscription = stream.asBroadcastStream().listen(
-      (_) => notifyListeners(),
-      onError: (error, stackTrace) => notifyListeners(),
-    );
-  }
-
-  late final StreamSubscription<dynamic> _subscription;
-
-  @override
-  void dispose() {
-    _subscription.cancel();
-    super.dispose();
-  }
+class _GoRouterRefreshListenable extends ChangeNotifier {
+  void refresh() => notifyListeners();
 }

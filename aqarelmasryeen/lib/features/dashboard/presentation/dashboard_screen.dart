@@ -91,11 +91,6 @@ class DashboardScreen extends ConsumerWidget {
 
   List<Widget> _actions(BuildContext context) {
     return [
-      TextButton.icon(
-        onPressed: () => context.go(AppRoutes.expensesTab('resources')),
-        icon: const Icon(Icons.inventory_2_outlined),
-        label: const Text('الموارد'),
-      ),
       IconButton(
         onPressed: () => context.go(AppRoutes.expenses),
         icon: const Icon(Icons.receipt_long_outlined),

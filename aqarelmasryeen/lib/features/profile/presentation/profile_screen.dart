@@ -43,21 +43,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final email = profile?.email.isNotEmpty == true
         ? profile!.email
         : (session?.email ?? 'لا يوجد بريد إلكتروني محفوظ');
-    final phone = profile?.phone.isNotEmpty == true
-        ? profile!.phone
-        : (session?.phoneNumber ?? 'لا يوجد رقم هاتف محفوظ');
 
     return AppShellScaffold(
       title: 'الحساب',
       subtitle: 'بيانات الشريك وإعدادات الأمان',
       currentIndex: 3,
-      actions: [
-        TextButton.icon(
-          onPressed: () => context.go(AppRoutes.expensesTab('resources')),
-          icon: const Icon(Icons.inventory_2_outlined),
-          label: const Text('الموارد'),
-        ),
-      ],
+
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
@@ -103,11 +94,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           AppPanel(
             title: 'بيانات التواصل',
             child: Column(
-              children: [
-                _ProfileRow(label: 'البريد', value: email),
-                const Divider(height: 24),
-                _ProfileRow(label: 'الهاتف', value: phone),
-              ],
+              children: [_ProfileRow(label: 'البريد', value: email)],
             ),
           ),
           const SizedBox(height: 12),

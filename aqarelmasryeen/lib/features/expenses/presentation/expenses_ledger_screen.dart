@@ -105,7 +105,7 @@ class ExpensesLedgerScreen extends ConsumerWidget {
     return AppShellScaffold(
       title: showingHistory ? 'سجل المصروفات' : 'مصاريف اليوم',
       subtitle: showingHistory
-          ? 'عرض تواريخ بقية الأيام للمصاريف'
+          ? 'عرض تواريخ بقية الأيام للمصروفات'
           : 'جدول يومي بسيط بين $currentColumnLabel و$counterpartColumnLabel',
       currentIndex: 1,
       automaticallyImplyLeading: false,
@@ -176,23 +176,13 @@ class _ExpensesTopBarActions extends StatelessWidget {
       children: [
         _TopBarIconButton(
           icon: Icons.add_rounded,
-          tooltip: 'Ø¥Ø¶Ø§ÙØ© Ù…ØµØ±ÙˆÙ',
+          tooltip: 'إضافة مصروف',
           onPressed: () => _showExpenseSheet(
             context,
             properties: properties,
             partners: partners,
           ),
         ),
-        if (false)
-          _TopBarIconButton(
-            icon: Icons.add_rounded,
-            tooltip: 'إضافة مصروف',
-            onPressed: () => _showExpenseSheet(
-              context,
-              properties: properties,
-              partners: partners,
-            ),
-          ),
         if (canGoBack)
           _TopBarIconButton(
             icon: Icons.arrow_forward_rounded,
@@ -694,7 +684,7 @@ Future<PropertyProject?> _pickProperty(
 ) async {
   if (properties.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('لا توجد مشروعات متاحة لإضافة مصروف.')),
+      const SnackBar(content: Text('لا توجد عقارات متاحة لإضافة المصروف.')),
     );
     return null;
   }
@@ -707,7 +697,7 @@ Future<PropertyProject?> _pickProperty(
     context: context,
     useSafeArea: true,
     builder: (sheetContext) => _SelectionSheet<PropertyProject>(
-      title: 'اختاري المشروع لإضافة مصروف',
+      title: 'اختر العقار',
       items: properties,
       labelBuilder: (item) => item.name,
       onSelected: (item) => Navigator.of(sheetContext).pop(item),
