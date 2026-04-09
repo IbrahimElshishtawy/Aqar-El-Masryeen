@@ -9,60 +9,125 @@ import 'package:aqarelmasryeen/features/properties/data/property_repository.dart
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_composer.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_view_data.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
+import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 export 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_composer.dart';
 export 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_view_data.dart';
 
-final propertyDetailsProvider = StreamProvider.autoDispose
-    .family<PropertyProject?, String>(
-      (ref, propertyId) =>
-          ref.watch(propertyRepositoryProvider).watchProperty(propertyId),
+final _allPropertiesProvider =
+    StreamProvider.autoDispose<List<PropertyProject>>(
+      (ref) => _fallbackToEmpty(
+        ref.watch(propertyRepositoryProvider).watchProperties(),
+      ),
     );
 
-final propertyUnitsProvider = StreamProvider.autoDispose
-    .family<List<UnitSale>, String>(
-      (ref, propertyId) =>
-          ref.watch(salesRepositoryProvider).watchByProperty(propertyId),
+final _allUnitsProvider = StreamProvider.autoDispose<List<UnitSale>>(
+  (ref) => _fallbackToEmpty(ref.watch(salesRepositoryProvider).watchAll()),
+);
+
+final _allInstallmentsProvider = StreamProvider.autoDispose<List<Installment>>(
+  (ref) => _fallbackToEmpty(
+    ref.watch(installmentRepositoryProvider).watchAllInstallments(),
+  ),
+);
+
+final _allPaymentsProvider = StreamProvider.autoDispose<List<PaymentRecord>>(
+  (ref) => _fallbackToEmpty(ref.watch(paymentRepositoryProvider).watchAll()),
+);
+
+final _allExpensesProvider = StreamProvider.autoDispose<List<ExpenseRecord>>(
+  (ref) => _fallbackToEmpty(ref.watch(expenseRepositoryProvider).watchAll()),
+);
+
+final _allMaterialsProvider =
+    StreamProvider.autoDispose<List<MaterialExpenseEntry>>(
+      (ref) => _fallbackToEmpty(
+        ref.watch(materialExpenseRepositoryProvider).watchAll(),
+      ),
     );
 
-final propertyInstallmentsProvider = StreamProvider.autoDispose
-    .family<List<Installment>, String>(
-      (ref, propertyId) => ref
-          .watch(installmentRepositoryProvider)
-          .watchInstallmentsByProperty(propertyId),
-    );
+final propertyDetailsProvider = Provider.autoDispose
+    .family<AsyncValue<PropertyProject?>, String>((ref, propertyId) {
+      final properties = ref.watch(_allPropertiesProvider);
+      if (properties.hasError) {
+        return AsyncError(
+          properties.error!,
+          properties.stackTrace ?? StackTrace.current,
+        );
+      }
+      if (!properties.hasValue) {
+        return const AsyncLoading();
+      }
 
-final propertyPaymentsProvider = StreamProvider.autoDispose
-    .family<List<PaymentRecord>, String>(
-      (ref, propertyId) =>
-          ref.watch(paymentRepositoryProvider).watchByProperty(propertyId),
-    );
+      return AsyncData(
+        properties.valueOrNull?.firstWhereOrNull(
+          (property) => property.id == propertyId,
+        ),
+      );
+    });
 
-final propertyExpensesProvider = StreamProvider.autoDispose
-    .family<List<ExpenseRecord>, String>(
-      (ref, propertyId) =>
-          ref.watch(expenseRepositoryProvider).watchByProperty(propertyId),
-    );
+final propertyUnitsProvider = Provider.autoDispose
+    .family<AsyncValue<List<UnitSale>>, String>((ref, propertyId) {
+      final units = ref.watch(_allUnitsProvider);
+      return _filterByProperty(units, propertyId, (unit) => unit.propertyId);
+    });
 
-final propertyMaterialsProvider = StreamProvider.autoDispose
-    .family<List<MaterialExpenseEntry>, String>(
-      (ref, propertyId) => ref
-          .watch(materialExpenseRepositoryProvider)
-          .watchByProperty(propertyId),
-    );
+final propertyInstallmentsProvider = Provider.autoDispose
+    .family<AsyncValue<List<Installment>>, String>((ref, propertyId) {
+      final installments = ref.watch(_allInstallmentsProvider);
+      return _filterByProperty(
+        installments,
+        propertyId,
+        (installment) => installment.propertyId,
+      );
+    });
+
+final propertyPaymentsProvider = Provider.autoDispose
+    .family<AsyncValue<List<PaymentRecord>>, String>((ref, propertyId) {
+      final payments = ref.watch(_allPaymentsProvider);
+      return _filterByProperty(
+        payments,
+        propertyId,
+        (payment) => payment.propertyId,
+      );
+    });
+
+final propertyExpensesProvider = Provider.autoDispose
+    .family<AsyncValue<List<ExpenseRecord>>, String>((ref, propertyId) {
+      final expenses = ref.watch(_allExpensesProvider);
+      return _filterByProperty(
+        expenses,
+        propertyId,
+        (expense) => expense.propertyId,
+      );
+    });
+
+final propertyMaterialsProvider = Provider.autoDispose
+    .family<AsyncValue<List<MaterialExpenseEntry>>, String>((ref, propertyId) {
+      final materials = ref.watch(_allMaterialsProvider);
+      return _filterByProperty(
+        materials,
+        propertyId,
+        (material) => material.propertyId,
+      );
+    });
 
 final propertyPartnersProvider = StreamProvider.autoDispose<List<Partner>>(
-  (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
+  (ref) =>
+      _fallbackToEmpty(ref.watch(partnerRepositoryProvider).watchPartners()),
 );
 
 final propertyPartnerLedgerProvider =
     StreamProvider.autoDispose<List<PartnerLedgerEntry>>(
-      (ref) => ref.watch(partnerLedgerRepositoryProvider).watchAll(),
+      (ref) => _fallbackToEmpty(
+        ref.watch(partnerLedgerRepositoryProvider).watchAll(),
+      ),
     );
 
 final propertyProjectViewDataProvider = Provider.autoDispose
@@ -86,12 +151,9 @@ final propertyProjectViewDataProvider = Provider.autoDispose
         return const AsyncLoading();
       }
 
-      final property = ref
-          .watch(propertyDetailsProvider(propertyId))
-          .valueOrNull;
-      if (property == null) {
-        return const AsyncData(null);
-      }
+      final property =
+          ref.watch(propertyDetailsProvider(propertyId)).valueOrNull ??
+          _buildFallbackProperty(propertyId);
 
       final session = ref.watch(authSessionProvider).valueOrNull;
       final composer = const PropertyDetailComposer();
@@ -188,4 +250,59 @@ class PropertyUnitRequest {
 
   @override
   int get hashCode => Object.hash(propertyId, unitId);
+}
+
+AsyncValue<List<T>> _filterByProperty<T>(
+  AsyncValue<List<T>> source,
+  String propertyId,
+  String Function(T item) propertyIdSelector,
+) {
+  if (source.hasError) {
+    return AsyncError(source.error!, source.stackTrace ?? StackTrace.current);
+  }
+  if (!source.hasValue) {
+    return const AsyncLoading();
+  }
+
+  return AsyncData(
+    (source.valueOrNull ?? <T>[])
+        .where((item) => propertyIdSelector(item) == propertyId)
+        .toList(growable: false),
+  );
+}
+
+Stream<List<T>> _fallbackToEmpty<T>(Stream<List<T>> source) async* {
+  try {
+    yield* source;
+  } on FirebaseException catch (error) {
+    if (_shouldShowEmptyState(error)) {
+      yield const [];
+      return;
+    }
+    rethrow;
+  }
+}
+
+bool _shouldShowEmptyState(FirebaseException error) {
+  return error.plugin == 'cloud_firestore' &&
+      (error.code == 'permission-denied' || error.code == 'unauthenticated');
+}
+
+PropertyProject _buildFallbackProperty(String propertyId) {
+  final now = DateTime.now();
+  return PropertyProject(
+    id: propertyId,
+    name: 'العقار',
+    location: 'بيانات محلية أو قيم افتراضية',
+    apartmentCount: 0,
+    description: '',
+    status: PropertyStatus.active,
+    totalBudget: 0,
+    totalSalesTarget: 0,
+    createdAt: now,
+    updatedAt: now,
+    createdBy: '',
+    updatedBy: '',
+    archived: false,
+  );
 }

@@ -2,6 +2,7 @@ import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/properties/domain/property_financial_summary.dart';
+import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 
@@ -14,6 +15,9 @@ final propertyExpensesStreamProvider = StreamProvider.autoDispose(
 final propertyPaymentsStreamProvider = StreamProvider.autoDispose(
   (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
 );
+final propertyUnitsStreamProvider = StreamProvider.autoDispose(
+  (ref) => ref.watch(salesRepositoryProvider).watchAll(),
+);
 
 final propertiesViewDataProvider =
     Provider.autoDispose<AsyncValue<PropertiesViewData>>((ref) {
@@ -21,6 +25,7 @@ final propertiesViewDataProvider =
         ref.watch(propertiesStreamProvider),
         ref.watch(propertyExpensesStreamProvider),
         ref.watch(propertyPaymentsStreamProvider),
+        ref.watch(propertyUnitsStreamProvider),
       ];
 
       final error = values.firstWhereOrNull((value) => value.hasError);
@@ -37,6 +42,7 @@ final propertiesViewDataProvider =
             ref.watch(propertyExpensesStreamProvider).valueOrNull ?? const [],
         payments:
             ref.watch(propertyPaymentsStreamProvider).valueOrNull ?? const [],
+        units: ref.watch(propertyUnitsStreamProvider).valueOrNull ?? const [],
       );
       final totalExpenses = summaries.fold<double>(
         0,

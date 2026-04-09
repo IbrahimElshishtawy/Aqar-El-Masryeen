@@ -8,6 +8,7 @@ class AuthScaffold extends StatelessWidget {
     required this.child,
     this.leading,
     this.footer,
+    this.maxWidth = 480,
   });
 
   final String title;
@@ -15,6 +16,7 @@ class AuthScaffold extends StatelessWidget {
   final Widget child;
   final Widget? leading;
   final Widget? footer;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -26,12 +28,12 @@ class AuthScaffold extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
-              theme.colorScheme.primary.withValues(alpha: 0.12),
-              theme.scaffoldBackgroundColor,
-              theme.colorScheme.secondary.withValues(alpha: 0.08),
+              theme.colorScheme.primary.withValues(alpha: 0.08),
+              const Color(0xFFF3F1EC),
+              theme.colorScheme.surface,
             ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
         child: GestureDetector(
@@ -40,84 +42,127 @@ class AuthScaffold extends StatelessWidget {
             child: Stack(
               children: [
                 Positioned(
-                  top: -80,
-                  right: -30,
+                  top: -70,
+                  right: -16,
                   child: _GlowBubble(
-                    size: 180,
+                    size: 210,
                     color: theme.colorScheme.primary.withValues(alpha: 0.08),
                   ),
                 ),
                 Positioned(
-                  bottom: -40,
-                  left: -20,
+                  top: 120,
+                  left: -48,
                   child: _GlowBubble(
-                    size: 140,
-                    color: theme.colorScheme.secondary.withValues(alpha: 0.08),
+                    size: 150,
+                    color: theme.colorScheme.secondary.withValues(alpha: 0.06),
+                  ),
+                ),
+                Positioned(
+                  bottom: -56,
+                  right: 24,
+                  child: _GlowBubble(
+                    size: 170,
+                    color: theme.colorScheme.primary.withValues(alpha: 0.05),
                   ),
                 ),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final height = constraints.maxHeight;
-                    final isCompact = height < 720;
-                    final isVeryCompact = height < 640;
-                    final horizontalPadding = isVeryCompact ? 16.0 : 20.0;
-                    final verticalPadding = isVeryCompact ? 16.0 : 20.0;
-                    final bottomPadding = isVeryCompact ? 20.0 : 28.0;
-                    final cardPadding = isVeryCompact ? 18.0 : 24.0;
-                    final leadingSpacing = isVeryCompact ? 12.0 : 18.0;
-                    final subtitleSpacing = isVeryCompact ? 8.0 : 10.0;
-                    final sectionSpacing = isCompact ? 18.0 : 24.0;
-                    final footerSpacing = isCompact ? 14.0 : 20.0;
-                    final titleStyle =
-                        (isCompact
-                                ? theme.textTheme.headlineSmall
-                                : theme.textTheme.headlineMedium)
-                            ?.copyWith(fontWeight: FontWeight.w800);
-                    final subtitleStyle =
-                        (isCompact
-                                ? theme.textTheme.bodyMedium
-                                : theme.textTheme.bodyLarge)
-                            ?.copyWith(
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.78,
-                              ),
-                              height: 1.4,
-                            );
+                    final isCompact = constraints.maxHeight < 720;
+                    final horizontalPadding = isCompact ? 18.0 : 24.0;
+                    final verticalPadding = isCompact ? 18.0 : 26.0;
+                    final minHeight =
+                        constraints.maxHeight - (verticalPadding * 2);
 
                     return SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(
-                        horizontalPadding,
-                        verticalPadding,
-                        horizontalPadding,
-                        bottomPadding,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
+                        vertical: verticalPadding,
                       ),
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
-                      child: Align(
-                        alignment: Alignment.topCenter,
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 480),
-                          child: Card(
-                            child: Padding(
-                              padding: EdgeInsets.all(cardPadding),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (leading != null) ...[
-                                    leading!,
-                                    SizedBox(height: leadingSpacing),
-                                  ],
-                                  Text(title, style: titleStyle),
-                                  SizedBox(height: subtitleSpacing),
-                                  Text(subtitle, style: subtitleStyle),
-                                  SizedBox(height: sectionSpacing),
-                                  child,
-                                  if (footer != null) ...[
-                                    SizedBox(height: footerSpacing),
-                                    footer!,
-                                  ],
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: minHeight),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: maxWidth),
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surface.withValues(
+                                  alpha: 0.96,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  isCompact ? 30 : 36,
+                                ),
+                                border: Border.all(
+                                  color: theme.colorScheme.outlineVariant
+                                      .withValues(alpha: 0.55),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 28,
+                                    offset: const Offset(0, 12),
+                                  ),
                                 ],
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.fromLTRB(
+                                  isCompact ? 18 : 24,
+                                  isCompact ? 18 : 24,
+                                  isCompact ? 18 : 24,
+                                  isCompact ? 16 : 22,
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    if (leading != null)
+                                      Align(
+                                        alignment: Alignment.centerRight,
+                                        child: leading!,
+                                      ),
+                                    SizedBox(height: isCompact ? 14 : 18),
+                                    Text(
+                                      title,
+                                      textAlign: TextAlign.right,
+                                      style:
+                                          (isCompact
+                                                  ? theme
+                                                        .textTheme
+                                                        .headlineMedium
+                                                  : theme
+                                                        .textTheme
+                                                        .headlineLarge)
+                                              ?.copyWith(
+                                                fontWeight: FontWeight.w800,
+                                                height: 1.05,
+                                              ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Text(
+                                      subtitle,
+                                      textAlign: TextAlign.right,
+                                      style:
+                                          (isCompact
+                                                  ? theme.textTheme.bodyMedium
+                                                  : theme.textTheme.bodyLarge)
+                                              ?.copyWith(
+                                                color: theme
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withValues(alpha: 0.70),
+                                                height: 1.5,
+                                              ),
+                                    ),
+                                    SizedBox(height: isCompact ? 20 : 26),
+                                    child,
+                                    if (footer != null) ...[
+                                      SizedBox(height: isCompact ? 16 : 20),
+                                      footer!,
+                                    ],
+                                  ],
+                                ),
                               ),
                             ),
                           ),

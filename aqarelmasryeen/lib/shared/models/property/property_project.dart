@@ -6,6 +6,7 @@ class PropertyProject {
     required this.id,
     required this.name,
     required this.location,
+    required int apartmentCount,
     required this.description,
     required this.status,
     required this.totalBudget,
@@ -15,11 +16,12 @@ class PropertyProject {
     required this.createdBy,
     required this.updatedBy,
     required this.archived,
-  });
+  }) : _apartmentCount = apartmentCount;
 
   final String id;
   final String name;
   final String location;
+  final int? _apartmentCount;
   final String description;
   final PropertyStatus status;
   final double totalBudget;
@@ -30,10 +32,13 @@ class PropertyProject {
   final String updatedBy;
   final bool archived;
 
+  int get apartmentCount => _apartmentCount ?? 0;
+
   Map<String, dynamic> toMap() {
     return {
       'name': name,
       'location': location,
+      'apartmentCount': apartmentCount,
       'description': description,
       'status': status.name,
       'totalBudget': totalBudget,
@@ -52,6 +57,7 @@ class PropertyProject {
       id: id,
       name: data['name'] as String? ?? '',
       location: data['location'] as String? ?? '',
+      apartmentCount: (data['apartmentCount'] as num?)?.toInt() ?? 0,
       description: data['description'] as String? ?? '',
       status: PropertyStatus.values.firstWhere(
         (value) => value.name == data['status'],
@@ -71,6 +77,7 @@ class PropertyProject {
     String? id,
     String? name,
     String? location,
+    int? apartmentCount,
     String? description,
     PropertyStatus? status,
     double? totalBudget,
@@ -85,6 +92,7 @@ class PropertyProject {
       id: id ?? this.id,
       name: name ?? this.name,
       location: location ?? this.location,
+      apartmentCount: apartmentCount ?? this.apartmentCount,
       description: description ?? this.description,
       status: status ?? this.status,
       totalBudget: totalBudget ?? this.totalBudget,

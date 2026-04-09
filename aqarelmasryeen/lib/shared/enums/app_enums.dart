@@ -63,11 +63,11 @@ extension EnumLabelX on Enum {
       case UserRole.partner:
         return 'شريك';
       case PropertyStatus.planning:
-        return 'تحت التخطيط';
+        return 'تحت الإنشاء';
       case PropertyStatus.active:
         return 'نشط';
       case PropertyStatus.delivered:
-        return 'تم التسليم';
+        return 'تم الإنشاء';
       case PropertyStatus.archived:
         return 'مؤرشف';
       case ExpenseCategory.construction:
@@ -123,7 +123,7 @@ extension EnumLabelX on Enum {
       case InstallmentStatus.pending:
         return 'غير مدفوع';
       case InstallmentStatus.partiallyPaid:
-        return 'مدفوع جزئياً';
+        return 'مدفوع جزئيًا';
       case InstallmentStatus.paid:
         return 'مدفوع';
       case InstallmentStatus.overdue:
@@ -181,7 +181,7 @@ extension EnumLabelX on Enum {
       case SupplierInvoiceStatus.unpaid:
         return 'غير مدفوع';
       case SupplierInvoiceStatus.partiallyPaid:
-        return 'مدفوع جزئياً';
+        return 'مدفوع جزئيًا';
       case SupplierInvoiceStatus.paid:
         return 'مدفوع';
       case SupplierInvoiceStatus.overdue:

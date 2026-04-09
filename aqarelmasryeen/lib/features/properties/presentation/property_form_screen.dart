@@ -23,20 +23,29 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _locationController = TextEditingController();
+  final _apartmentCountController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _budgetController = TextEditingController();
-  final _salesTargetController = TextEditingController();
-  PropertyStatus _status = PropertyStatus.active;
+  PropertyStatus _status = PropertyStatus.planning;
   bool _saving = false;
   bool _prefilled = false;
+
+  List<PropertyStatus> get _availableStatuses {
+    final statuses = <PropertyStatus>[
+      PropertyStatus.planning,
+      PropertyStatus.delivered,
+    ];
+    if (!statuses.contains(_status) && _status != PropertyStatus.archived) {
+      statuses.add(_status);
+    }
+    return statuses;
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _locationController.dispose();
+    _apartmentCountController.dispose();
     _descriptionController.dispose();
-    _budgetController.dispose();
-    _salesTargetController.dispose();
     super.dispose();
   }
 
@@ -47,9 +56,10 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
     _prefilled = true;
     _nameController.text = property.name;
     _locationController.text = property.location;
+    _apartmentCountController.text = property.apartmentCount > 0
+        ? property.apartmentCount.toString()
+        : '';
     _descriptionController.text = property.description;
-    _budgetController.text = property.totalBudget.toStringAsFixed(0);
-    _salesTargetController.text = property.totalSalesTarget.toStringAsFixed(0);
     _status = property.status;
   }
 
@@ -61,6 +71,9 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
     setState(() => _saving = true);
     final session = ref.read(authSessionProvider).value;
     if (session == null) {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
       return;
     }
 
@@ -68,15 +81,16 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       id: existing?.id ?? '',
       name: _nameController.text.trim(),
       location: _locationController.text.trim(),
+      apartmentCount: int.tryParse(_apartmentCountController.text.trim()) ?? 0,
       description: _descriptionController.text.trim(),
       status: _status,
-      totalBudget: double.tryParse(_budgetController.text) ?? 0,
-      totalSalesTarget: double.tryParse(_salesTargetController.text) ?? 0,
+      totalBudget: existing?.totalBudget ?? 0,
+      totalSalesTarget: existing?.totalSalesTarget ?? 0,
       createdAt: existing?.createdAt ?? DateTime.now(),
       updatedAt: DateTime.now(),
       createdBy: existing?.createdBy ?? session.userId,
       updatedBy: session.userId,
-      archived: false,
+      archived: existing?.archived ?? false,
     );
 
     final propertyId = await ref
@@ -91,13 +105,26 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
           action: existing == null ? 'property_created' : 'property_updated',
           entityType: 'property',
           entityId: propertyId,
-          metadata: {'name': property.name, 'status': property.status.label},
+          metadata: {
+            'name': property.name,
+            'location': property.location,
+            'apartmentCount': property.apartmentCount,
+            'status': property.status.label,
+          },
         );
 
     if (mounted) {
       setState(() => _saving = false);
       context.go(AppRoutes.propertyDetails(propertyId));
     }
+  }
+
+  String? _validateApartmentCount(String? value) {
+    final count = int.tryParse((value ?? '').trim());
+    if (count == null || count <= 0) {
+      return 'أدخل عدد الشقق داخل العقار.';
+    }
+    return null;
   }
 
   @override
@@ -114,8 +141,8 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
 
     return Scaffold(
       appBar: AppTopBar(
-        title: widget.propertyId == null ? 'إضافة مشروع' : 'تعديل المشروع',
-        subtitle: 'البيانات الأساسية والميزانية المستهدفة',
+        title: widget.propertyId == null ? 'إضافة عقار' : 'تعديل بيانات العقار',
+        subtitle: 'الاسم والموقع وعدد الشقق وحالة التنفيذ والوصف',
       ),
       body: SafeArea(
         child: AsyncValueView<PropertyProject?>(
@@ -137,10 +164,10 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                         TextFormField(
                           controller: _nameController,
                           decoration: const InputDecoration(
-                            labelText: 'اسم المشروع',
+                            labelText: 'اسم العقار',
                           ),
                           validator: (value) => (value ?? '').trim().isEmpty
-                              ? 'أدخل اسم المشروع.'
+                              ? 'أدخل اسم العقار.'
                               : null,
                         ),
                         const SizedBox(height: 14),
@@ -150,19 +177,22 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                             labelText: 'الموقع',
                           ),
                           validator: (value) => (value ?? '').trim().isEmpty
-                              ? 'أدخل موقع المشروع.'
+                              ? 'أدخل موقع العقار.'
                               : null,
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
-                          controller: _descriptionController,
-                          maxLines: 3,
-                          decoration: const InputDecoration(labelText: 'الوصف'),
+                          controller: _apartmentCountController,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'عدد الشقق',
+                          ),
+                          validator: _validateApartmentCount,
                         ),
                         const SizedBox(height: 14),
                         DropdownButtonFormField<PropertyStatus>(
                           initialValue: _status,
-                          items: PropertyStatus.values
+                          items: _availableStatuses
                               .map(
                                 (status) => DropdownMenuItem(
                                   value: status,
@@ -171,7 +201,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                               )
                               .toList(),
                           onChanged: (value) => setState(
-                            () => _status = value ?? PropertyStatus.active,
+                            () => _status = value ?? PropertyStatus.planning,
                           ),
                           decoration: const InputDecoration(
                             labelText: 'الحالة',
@@ -179,22 +209,11 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                         ),
                         const SizedBox(height: 14),
                         TextFormField(
-                          controller: _budgetController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
+                          controller: _descriptionController,
+                          maxLines: 4,
                           decoration: const InputDecoration(
-                            labelText: 'الميزانية',
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        TextFormField(
-                          controller: _salesTargetController,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          decoration: const InputDecoration(
-                            labelText: 'المستهدف البيعي',
+                            labelText: 'الوصف',
+                            alignLabelWithHint: true,
                           ),
                         ),
                         const SizedBox(height: 20),
@@ -206,7 +225,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
                               _saving
                                   ? 'جار الحفظ...'
                                   : widget.propertyId == null
-                                  ? 'إنشاء المشروع'
+                                  ? 'إنشاء العقار'
                                   : 'حفظ التعديلات',
                             ),
                           ),

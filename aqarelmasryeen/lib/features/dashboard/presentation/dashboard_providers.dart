@@ -8,30 +8,35 @@ import 'package:aqarelmasryeen/features/partners/domain/partner_ledger_calculato
 import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final dashboardPropertiesProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(propertyRepositoryProvider).watchProperties(),
+  (ref) =>
+      _fallbackToEmpty(ref.watch(propertyRepositoryProvider).watchProperties()),
 );
 final dashboardUnitsProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(salesRepositoryProvider).watchAll(),
+  (ref) => _fallbackToEmpty(ref.watch(salesRepositoryProvider).watchAll()),
 );
 final dashboardPaymentsProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
+  (ref) => _fallbackToEmpty(ref.watch(paymentRepositoryProvider).watchAll()),
 );
 final dashboardExpensesProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
+  (ref) => _fallbackToEmpty(ref.watch(expenseRepositoryProvider).watchAll()),
 );
 final dashboardMaterialsProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(materialExpenseRepositoryProvider).watchAll(),
+  (ref) =>
+      _fallbackToEmpty(ref.watch(materialExpenseRepositoryProvider).watchAll()),
 );
 final dashboardPartnersProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
+  (ref) =>
+      _fallbackToEmpty(ref.watch(partnerRepositoryProvider).watchPartners()),
 );
 final dashboardPartnerLedgerProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(partnerLedgerRepositoryProvider).watchAll(),
+  (ref) =>
+      _fallbackToEmpty(ref.watch(partnerLedgerRepositoryProvider).watchAll()),
 );
 
 final dashboardViewDataProvider =
@@ -115,4 +120,21 @@ class DashboardViewData {
   final String currentUserId;
   final int linkedPartnersCount;
   final List<PartnerLedgerSummaryRow> partnerSummaries;
+}
+
+Stream<List<T>> _fallbackToEmpty<T>(Stream<List<T>> source) async* {
+  try {
+    yield* source;
+  } on FirebaseException catch (error) {
+    if (_shouldShowEmptyState(error)) {
+      yield const [];
+      return;
+    }
+    rethrow;
+  }
+}
+
+bool _shouldShowEmptyState(FirebaseException error) {
+  return error.plugin == 'cloud_firestore' &&
+      (error.code == 'permission-denied' || error.code == 'unauthenticated');
 }

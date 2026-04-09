@@ -286,12 +286,6 @@ class PropertySummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalMovement = summary.totalMovement == 0
-        ? 1
-        : summary.totalMovement;
-    final paymentRatio = summary.totalPayments / totalMovement;
-    final expenseRatio = summary.totalExpenses / totalMovement;
-
     return InkWell(
       borderRadius: BorderRadius.circular(22),
       onTap: () => context.push(AppRoutes.propertyDetails(summary.property.id)),
@@ -348,7 +342,7 @@ class PropertySummaryCard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: MiniStat(
-                        label: 'المصروفات',
+                        label: 'إجمالي المصاريف',
                         value: summary.totalExpenses.egp,
                         compact: isCompact,
                         icon: Icons.north_east_rounded,
@@ -357,34 +351,22 @@ class PropertySummaryCard extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: MiniStat(
-                        label: 'التحصيلات',
-                        value: summary.totalPayments.egp,
+                        label: 'إجمالي المبيعات',
+                        value: summary.totalSales.egp,
                         compact: isCompact,
-                        icon: Icons.south_west_rounded,
+                        icon: Icons.trending_up_rounded,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: SizedBox(
-                    height: 9,
-                    child: Row(
-                      children: [
-                        Expanded(
-                          flex: (paymentRatio * 1000).round().clamp(1, 1000),
-                          child: Container(color: Colors.black),
-                        ),
-                        Expanded(
-                          flex: (expenseRatio * 1000).round().clamp(1, 1000),
-                          child: Container(color: const Color(0xFFBBB6AB)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 10),
+                MiniStat(
+                  label: 'عدد الشقق',
+                  value: '${summary.apartmentCount}',
+                  compact: isCompact,
+                  icon: Icons.apartment_rounded,
+                ),
+                const SizedBox(height: 14),
                 Row(
                   children: [
                     Expanded(
@@ -396,12 +378,6 @@ class PropertySummaryCard extends StatelessWidget {
                           fontWeight: FontWeight.w800,
                           fontSize: isCompact ? 15 : null,
                         ),
-                      ),
-                    ),
-                    Text(
-                      'تحصيل / مصروف',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.secondary,
                       ),
                     ),
                   ],
