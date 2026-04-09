@@ -60,6 +60,10 @@ class NotificationRepository {
       'createdAt': DateTime.now(),
       'referenceKey': referenceKey ?? '',
       'metadata': metadata ?? const {},
+      'pushDelivery': const {
+        'status': 'queued',
+        'reason': 'awaiting_function_dispatch',
+      },
     });
   }
 

@@ -32,13 +32,15 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
   Future<void> _initializeServices() async {
     await initializeFirebase();
     try {
-      await ref.read(notificationServiceProvider).initialize(
-        onNotificationTap: (payload) {
-          ref
-              .read(notificationNavigationControllerProvider.notifier)
-              .queue(payload);
-        },
-      );
+      await ref
+          .read(notificationServiceProvider)
+          .initialize(
+            onNotificationTap: (payload) {
+              ref
+                  .read(notificationNavigationControllerProvider.notifier)
+                  .queue(payload);
+            },
+          );
     } catch (error, stackTrace) {
       debugPrint('Notification service initialization failed: $error');
       debugPrintStack(stackTrace: stackTrace, maxFrames: 6);
@@ -241,13 +243,13 @@ class _NotificationNavigationListenerState
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(notificationNavigationControllerProvider, (_, __) {
+    ref.listen(notificationNavigationControllerProvider, (previous, next) {
       _attemptNavigation();
     });
-    ref.listen(authSessionProvider, (_, __) {
+    ref.listen(authSessionProvider, (previous, next) {
       _attemptNavigation();
     });
-    ref.listen(sessionLockControllerProvider, (_, __) {
+    ref.listen(sessionLockControllerProvider, (previous, next) {
       _attemptNavigation();
     });
 

@@ -7,6 +7,7 @@
 - Cloud Firestore
 - Firebase Storage
 - Firebase Cloud Messaging
+- Cloud Functions
 - Firebase Analytics
 - Firebase Crashlytics
 - Firebase App Check
@@ -14,8 +15,12 @@
 ## Platform status
 
 - Android config موجود بالفعل في `android/app/google-services.json`.
-- iOS يحتاج `ios/Runner/GoogleService-Info.plist`.
+- iOS التهيئة الأساسية تتم من `lib/firebase_options.dart`، لكن Push Notifications يحتاج:
+  - تفعيل `Push Notifications` و `Background Modes` داخل Xcode.
+  - تفعيل `Remote notifications` و `Background fetch`.
+  - رفع `APNs Authentication Key` أو `APNs certificates` داخل Firebase Console.
 - Firebase initialization يعمل من `lib/core/services/firebase_initializer.dart`.
+- إرسال Push الخارجي أصبح معتمدًا على `functions/index.js` عند إنشاء مستند جديد داخل `notifications`.
 
 ## Firestore collections
 
@@ -42,6 +47,29 @@
 - انشر `storage.rules`.
 - انشر `firestore.indexes.json`.
 
+## Cloud Functions setup
+
+1. ادخل إلى مجلد `functions`.
+2. ثبّت الاعتمادات:
+
+```bash
+npm install
+```
+
+3. انشر الدوال:
+
+```bash
+firebase deploy --only functions
+```
+
+الدالة `sendNotificationPush` ستراقب:
+
+```text
+notifications/{notificationId}
+```
+
+وعند إنشاء مستند جديد ستقرأ `users/{uid}.fcmTokens` وترسل Push فعلي إلى Android وiOS.
+
 ## Recommended rollout
 
 1. فعّل Authentication و Firestore و Storage.
@@ -53,7 +81,9 @@
 7. اختبر إنشاء وحدة.
 8. اختبر خطة تقسيط ثم أقساط.
 9. اختبر تسجيل دفعة ومصروف ومصروف خامات.
-10. اختبر الإشعارات وقراءة الملفات من Storage.
+10. اختبر إنشاء مستند جديد داخل `notifications`.
+11. تأكد من ظهور `pushDelivery.status` داخل نفس المستند بعد تشغيل Function.
+12. اختبر الإشعار والتطبيق في foreground وbackground وclosed state على Android وiPhone.
 
 ## Important note
 

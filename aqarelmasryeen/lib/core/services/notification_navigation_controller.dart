@@ -18,7 +18,8 @@ class NotificationNavigationController
   }
 }
 
-final notificationNavigationControllerProvider = NotifierProvider<
-  NotificationNavigationController,
-  NotificationRoutePayload?
->(NotificationNavigationController.new);
+final notificationNavigationControllerProvider =
+    NotifierProvider<
+      NotificationNavigationController,
+      NotificationRoutePayload?
+    >(NotificationNavigationController.new);

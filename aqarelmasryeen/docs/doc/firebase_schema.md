@@ -19,6 +19,11 @@
 | `appLockEnabled` | `bool` | yes | قفل التطبيق |
 | `inactivityTimeoutSeconds` | `int` | yes | مهلة عدم النشاط |
 | `deviceInfo` | `map` | optional | بيانات الجهاز |
+| `fcmTokens` | `array<string>` | optional | قائمة أجهزة FCM النشطة للمستخدم |
+| `lastFcmToken` | `string` | optional | آخر FCM token تمت مزامنته من التطبيق |
+| `lastFcmTokenUpdatedAt` | `timestamp` | optional | وقت آخر تحديث لـ FCM token |
+| `lastApnsToken` | `string` | optional | آخر APNs token تم استقباله على أجهزة Apple |
+| `lastApnsTokenUpdatedAt` | `timestamp` | optional | وقت آخر تحديث لـ APNs token |
 | `isActive` | `bool` | yes | حالة الحساب |
 | `securitySetupCompletedAt` | `timestamp` | optional | وقت إكمال إعدادات الحماية |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
@@ -221,6 +226,7 @@
 | `isRead` | `bool` | yes | مقروء أم لا |
 | `referenceKey` | `string` | optional | مفتاح مرجعي لتفادي التكرار |
 | `metadata` | `map` | optional | بيانات إضافية |
+| `pushDelivery` | `map` | optional | حالة تسليم Push الخارجي بواسطة Cloud Functions |
 | `createdAt` | `timestamp` | yes | وقت الإنشاء |
 
 ### `activity_logs`
