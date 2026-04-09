@@ -22,6 +22,7 @@
 أنشئ أو اسمح للتطبيق بإنشاء هذه الـ collections:
 
 - `users`
+- `user_email_lookup`
 - `partners`
 - `properties`
 - `units`

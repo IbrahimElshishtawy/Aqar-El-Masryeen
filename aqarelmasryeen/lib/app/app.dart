@@ -1,12 +1,17 @@
+import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/routing/app_router.dart';
 import 'package:aqarelmasryeen/core/security/session_activity_listener.dart';
+import 'package:aqarelmasryeen/core/security/session_lock_controller.dart';
 import 'package:aqarelmasryeen/core/services/firebase_initializer.dart';
+import 'package:aqarelmasryeen/core/services/notification_navigation_controller.dart';
 import 'package:aqarelmasryeen/core/theme/app_theme.dart';
 import 'package:aqarelmasryeen/core/widgets/app_loading_view.dart';
+import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class AqarPartnersApp extends ConsumerStatefulWidget {
   const AqarPartnersApp({super.key});
@@ -26,6 +31,18 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
 
   Future<void> _initializeServices() async {
     await initializeFirebase();
+    try {
+      await ref.read(notificationServiceProvider).initialize(
+        onNotificationTap: (payload) {
+          ref
+              .read(notificationNavigationControllerProvider.notifier)
+              .queue(payload);
+        },
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Notification service initialization failed: $error');
+      debugPrintStack(stackTrace: stackTrace, maxFrames: 6);
+    }
   }
 
   @override
@@ -70,6 +87,7 @@ class _AqarPartnersAppState extends ConsumerState<AqarPartnersApp> {
 
       if (wrapChildWithSessionListener) {
         safeChild = SessionActivityListener(child: safeChild);
+        safeChild = NotificationNavigationListener(child: safeChild);
       }
 
       return safeChild;
@@ -159,5 +177,84 @@ class _AppBootstrapErrorScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class NotificationNavigationListener extends ConsumerStatefulWidget {
+  const NotificationNavigationListener({required this.child, super.key});
+
+  final Widget child;
+
+  @override
+  ConsumerState<NotificationNavigationListener> createState() =>
+      _NotificationNavigationListenerState();
+}
+
+class _NotificationNavigationListenerState
+    extends ConsumerState<NotificationNavigationListener> {
+  String? _scheduledPayload;
+
+  void _attemptNavigation() {
+    if (!mounted) {
+      return;
+    }
+
+    final payload = ref.read(notificationNavigationControllerProvider);
+    final sessionState = ref.read(authSessionProvider);
+    final lockState = ref.read(sessionLockControllerProvider);
+    if (payload == null || sessionState.isLoading || !lockState.isInitialized) {
+      return;
+    }
+
+    final session = sessionState.valueOrNull;
+    final canOpenRoute =
+        session != null &&
+        session.isActive &&
+        !session.needsProfileCompletion &&
+        !session.needsSecuritySetup &&
+        !lockState.shouldPresentUnlock;
+    if (!canOpenRoute) {
+      return;
+    }
+
+    final encodedPayload = payload.encode();
+    if (_scheduledPayload == encodedPayload) {
+      return;
+    }
+
+    _scheduledPayload = encodedPayload;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scheduledPayload = null;
+      if (!mounted) {
+        return;
+      }
+
+      final pendingPayload = ref.read(notificationNavigationControllerProvider);
+      if (pendingPayload?.encode() != encodedPayload) {
+        return;
+      }
+
+      ref.read(notificationNavigationControllerProvider.notifier).clear();
+      GoRouter.of(context).go(payload.route);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(notificationNavigationControllerProvider, (_, __) {
+      _attemptNavigation();
+    });
+    ref.listen(authSessionProvider, (_, __) {
+      _attemptNavigation();
+    });
+    ref.listen(sessionLockControllerProvider, (_, __) {
+      _attemptNavigation();
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _attemptNavigation();
+    });
+
+    return widget.child;
   }
 }

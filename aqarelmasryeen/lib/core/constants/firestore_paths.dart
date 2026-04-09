@@ -2,6 +2,7 @@ class FirestorePaths {
   const FirestorePaths._();
 
   static const users = 'users';
+  static const userEmailLookup = 'user_email_lookup';
   static const partners = 'partners';
   static const properties = 'properties';
   static const expenses = 'expenses';

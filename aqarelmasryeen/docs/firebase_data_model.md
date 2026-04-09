@@ -17,17 +17,18 @@ Use it when you want to add seed data manually from Firebase Console without bre
 Create data in this order so references stay valid:
 
 1. `users`
-2. `partners`
-3. `properties`
-4. `units`
-5. `installment_plans`
-6. `installments`
-7. `payments`
-8. `expenses`
-9. `material_expenses`
-10. `partner_ledgers`
-11. `notifications`
-12. `activity_logs`
+2. `user_email_lookup`
+3. `partners`
+4. `properties`
+5. `units`
+6. `installment_plans`
+7. `installments`
+8. `payments`
+9. `expenses`
+10. `material_expenses`
+11. `partner_ledgers`
+12. `notifications`
+13. `activity_logs`
 
 ## Collections
 
@@ -85,6 +86,27 @@ Example:
     isPhysicalDevice: true,
     lastSeenAt: Timestamp(...)
   }
+}
+```
+
+### `user_email_lookup/{email}`
+
+Purpose: lightweight lookup used to resolve a partner account by email without
+reading the full `users/{uid}` profile.
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `uid` | `string` | yes | target user uid |
+| `email` | `string` | yes | document id and normalized lowercase email |
+| `updatedAt` | `timestamp` | yes | last sync time |
+
+Example:
+
+```js
+{
+  uid: "uid_partner_001",
+  email: "ahmed@example.com",
+  updatedAt: Timestamp(...)
 }
 ```
 

@@ -11,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
@@ -60,6 +61,24 @@ class NotificationRoutePayload {
       return null;
     }
   }
+
+  static NotificationRoutePayload? fromMessageData(Map<String, dynamic> data) {
+    final decodedPayload = tryDecode(data['payload'] as String?);
+    if (decodedPayload != null) {
+      return decodedPayload;
+    }
+
+    final route = (data['route'] as String? ?? '').trim();
+    if (route.isEmpty) {
+      return null;
+    }
+
+    final extraId = (data['extraId'] as String? ?? '').trim();
+    return NotificationRoutePayload(
+      route: route,
+      extraId: extraId.isEmpty ? null : extraId,
+    );
+  }
 }
 
 class FirebaseMessagingService {
@@ -79,6 +98,7 @@ class FirebaseMessagingService {
   StreamSubscription<RemoteMessage>? _onMessageSubscription;
   StreamSubscription<RemoteMessage>? _onMessageOpenedSubscription;
   StreamSubscription<String>? _tokenRefreshSubscription;
+  StreamSubscription<User?>? _authStateSubscription;
 
   static void registerBackgroundHandler() {
     if (_backgroundHandlerRegistered) {
@@ -116,8 +136,8 @@ class FirebaseMessagingService {
     );
     _onMessageOpenedSubscription ??= FirebaseMessaging.onMessageOpenedApp
         .listen((message) {
-          final payload = NotificationRoutePayload.tryDecode(
-            message.data['payload'] as String?,
+          final payload = NotificationRoutePayload.fromMessageData(
+            message.data,
           );
           if (payload != null) {
             onNotificationTap(payload);
@@ -126,8 +146,8 @@ class FirebaseMessagingService {
 
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
-      final payload = NotificationRoutePayload.tryDecode(
-        initialMessage.data['payload'] as String?,
+      final payload = NotificationRoutePayload.fromMessageData(
+        initialMessage.data,
       );
       if (payload != null) {
         onNotificationTap(payload);
@@ -136,6 +156,13 @@ class FirebaseMessagingService {
 
     _tokenRefreshSubscription ??= _messaging.onTokenRefresh.listen((token) {
       unawaited(_handleTokenRefresh(token));
+    });
+    _authStateSubscription ??= FirebaseAuth.instance.authStateChanges().listen((
+      user,
+    ) {
+      if (user != null) {
+        unawaited(_warmUpToken());
+      }
     });
   }
 
@@ -158,7 +185,8 @@ class FirebaseMessagingService {
 
   Future<void> _warmUpToken() async {
     try {
-      final token = await _messaging.getToken();
+      await _syncApnsTokenIfAvailable();
+      final token = await _resolveFcmToken();
       await _syncCurrentToken(token);
     } catch (_) {
       // Token warm-up should never block app startup.
@@ -192,13 +220,70 @@ class FirebaseMessagingService {
     }
   }
 
-  Future<NotificationSettings> _requestPermissions() {
-    return _messaging.requestPermission(
+  Future<void> _syncApnsTokenIfAvailable() async {
+    if (!_isApplePlatform) {
+      return;
+    }
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      return;
+    }
+
+    String? apnsToken;
+    for (var attempt = 0; attempt < 5; attempt++) {
+      final candidate = (await _messaging.getAPNSToken())?.trim();
+      if (candidate != null && candidate.isNotEmpty) {
+        apnsToken = candidate;
+        break;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+
+    if (apnsToken == null) {
+      return;
+    }
+
+    try {
+      await FirebaseFirestore.instance
+          .collection(FirestorePaths.users)
+          .doc(currentUser.uid)
+          .set({
+            'lastApnsToken': apnsToken,
+            'lastApnsTokenUpdatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+    } catch (error, stackTrace) {
+      debugPrint('Failed to sync APNs token: $error');
+      reportToCrashlytics(error, stackTrace);
+    }
+  }
+
+  Future<String?> _resolveFcmToken() async {
+    for (var attempt = 0; attempt < 5; attempt++) {
+      final token = (await _messaging.getToken())?.trim();
+      if (token != null && token.isNotEmpty) {
+        return token;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+    return null;
+  }
+
+  Future<NotificationSettings> _requestPermissions() async {
+    final settings = await _messaging.requestPermission(
       alert: true,
       badge: true,
       sound: true,
       provisional: false,
     );
+
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.requestNotificationsPermission();
+
+    return settings;
   }
 
   Future<void> _initializeLocalNotifications({
@@ -216,6 +301,9 @@ class FirebaseMessagingService {
   }
 
   Future<void> _showForegroundNotification(RemoteMessage message) async {
+    if (_shouldDeferForegroundPresentationToSystem(message)) {
+      return;
+    }
     await _showMessageAsLocalNotification(_localNotifications, message);
   }
 
@@ -276,7 +364,7 @@ Future<void> _showMessageAsLocalNotification(
     title: title,
     body: body,
     notificationDetails: _notificationDetails,
-    payload: message.data['payload'] as String?,
+    payload: _resolveNotificationPayload(message),
   );
 }
 
@@ -288,6 +376,28 @@ String _resolveNotificationTitle(RemoteMessage message) {
 String _resolveNotificationBody(RemoteMessage message) {
   return message.notification?.body?.trim() ??
       (message.data['body'] as String? ?? '').trim();
+}
+
+String? _resolveNotificationPayload(RemoteMessage message) {
+  return NotificationRoutePayload.fromMessageData(message.data)?.encode();
+}
+
+bool _shouldDeferForegroundPresentationToSystem(RemoteMessage message) {
+  if (message.notification == null || kIsWeb) {
+    return false;
+  }
+
+  final platform = defaultTargetPlatform;
+  return platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
+}
+
+bool get _isApplePlatform {
+  if (kIsWeb) {
+    return false;
+  }
+
+  final platform = defaultTargetPlatform;
+  return platform == TargetPlatform.iOS || platform == TargetPlatform.macOS;
 }
 
 const NotificationDetails _notificationDetails = NotificationDetails(

@@ -46,7 +46,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow create: if isOwner(userId)
+      allow create: if (isOwner(userId) || isActivePartner())
         && validUserProfile(userId)
         && request.resource.data.isActive == true;
 
@@ -57,6 +57,16 @@ service cloud.firestore {
         && validUserProfile(userId);
 
       allow delete: if false;
+    }
+
+    match /user_email_lookup/{email} {
+      allow read: if isActivePartner();
+      allow create, update: if isSignedIn()
+        && request.resource.data.uid is string
+        && request.resource.data.email == email
+        && (request.auth.uid == request.resource.data.uid || isActivePartner());
+      allow delete: if isSignedIn()
+        && (request.auth.uid == resource.data.uid || isActivePartner());
     }
 
     match /notifications/{notificationId} {

@@ -9,7 +9,6 @@ import 'package:aqarelmasryeen/features/notifications/data/notification_reposito
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
-import 'package:aqarelmasryeen/shared/models/app_user.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -79,34 +78,38 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
           .watchPartners()
           .first;
 
-      AppUser? targetProfile;
       var linkedUserId = '';
+      var targetUserId = '';
       var requestSent = false;
       var accountCreated = false;
 
       if (_createPartnerAccount) {
-        targetProfile = await ref
+        final createdProfile = await ref
             .read(authRepositoryProvider)
             .provisionPartnerAccount(
               fullName: _nameController.text.trim(),
               email: normalizedEmail,
               password: _passwordController.text,
             );
-        linkedUserId = targetProfile.uid;
+        linkedUserId = createdProfile.uid;
         accountCreated = true;
       } else if (normalizedEmail.isNotEmpty) {
         if (normalizedEmail == currentEmail) {
           linkedUserId = session.userId;
+        } else if (_isCurrentPartnerEmail(normalizedEmail)) {
+          linkedUserId = widget.partner!.userId;
         } else {
-          targetProfile = await ref
-              .read(userProfileRemoteDataSourceProvider)
-              .fetchProfileByEmail(normalizedEmail);
-          if (targetProfile == null) {
+          targetUserId =
+              await ref
+                  .read(userProfileRemoteDataSourceProvider)
+                  .fetchUserIdByEmail(normalizedEmail) ??
+              '';
+          if (targetUserId.isEmpty) {
             _showMessage('لا يوجد حساب مسجل بهذا البريد الإلكتروني.');
             return;
           }
-          if (widget.partner?.userId == targetProfile.uid) {
-            linkedUserId = targetProfile.uid;
+          if (widget.partner?.userId == targetUserId) {
+            linkedUserId = targetUserId;
           } else {
             requestSent = true;
           }
@@ -137,18 +140,17 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
         );
       }
 
-      if (requestSent && targetProfile != null) {
+      if (requestSent && targetUserId.isNotEmpty) {
         await ref
             .read(notificationRepositoryProvider)
             .create(
-              userId: targetProfile.uid,
+              userId: targetUserId,
               title: 'طلب ربط حساب',
               body:
                   '${session.profile?.name ?? 'شريك'} أرسل طلب ربط حساب للشريك ${partner.name}.',
               type: NotificationType.partnerLinkRequest,
               route: AppRoutes.partners,
-              referenceKey:
-                  'partner-link-request-$partnerId-${targetProfile.uid}',
+              referenceKey: 'partner-link-request-$partnerId-$targetUserId',
               metadata: {
                 'partnerId': partnerId,
                 'partnerName': partner.name,
@@ -229,6 +231,14 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  bool _isCurrentPartnerEmail(String normalizedEmail) {
+    final partner = widget.partner;
+    if (partner == null || partner.userId.isEmpty) {
+      return false;
+    }
+    return partner.linkedEmail.trim().toLowerCase() == normalizedEmail;
   }
 
   @override

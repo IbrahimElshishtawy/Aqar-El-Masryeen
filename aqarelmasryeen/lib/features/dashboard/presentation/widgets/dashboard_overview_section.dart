@@ -134,14 +134,14 @@ class DashboardStatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final count = constraints.maxWidth >= 380
+        final count = constraints.maxWidth >= 520
             ? 3
-            : constraints.maxWidth >= 300
+            : constraints.maxWidth >= 285
             ? 2
             : 1;
         final ratio = switch (count) {
-          3 => 1.38,
-          2 => 1.08,
+          3 => 1.16,
+          2 => constraints.maxWidth < 340 ? 0.94 : 1.0,
           _ => 2.15,
         };
         return GridView.builder(
@@ -181,9 +181,11 @@ class DashboardStatCard extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isCompact = constraints.maxWidth <= 100;
-        final cardPadding = isCompact ? 15.0 : 14.0;
-        final badgeSize = isCompact ? 30.0 : 30.0;
+        final isCompact = constraints.maxWidth <= 132;
+        final isTight = constraints.maxWidth <= 118;
+        final cardPadding = isCompact ? 12.0 : 14.0;
+        final badgeSize = isTight ? 26.0 : 30.0;
+        final sectionSpacing = isCompact ? 8.0 : 10.0;
         final valueStyle =
             (isCompact
                     ? theme.textTheme.titleMedium
@@ -191,7 +193,8 @@ class DashboardStatCard extends StatelessWidget {
                 ?.copyWith(
                   fontWeight: FontWeight.w800,
                   letterSpacing: -0.2,
-                  height: 1.15,
+                  height: isCompact ? 1.05 : 1.15,
+                  fontSize: isTight ? 18 : null,
                 );
 
         return Container(
@@ -218,8 +221,8 @@ class DashboardStatCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
-                        fontSize: isCompact ? 13 : 14,
-                        height: 1.25,
+                        fontSize: isTight ? 12 : (isCompact ? 13 : 14),
+                        height: isCompact ? 1.15 : 1.25,
                       ),
                     ),
                   ),
@@ -232,26 +235,29 @@ class DashboardStatCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: const Color(0xFFD8D8D2)),
                     ),
-                    child: Icon(icon, size: isCompact ? 17 : 18),
+                    child: Icon(
+                      icon,
+                      size: isTight ? 16 : (isCompact ? 17 : 18),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: sectionSpacing),
               Text(
                 value,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: valueStyle,
               ),
-              const SizedBox(height: 30),
+              SizedBox(height: sectionSpacing),
               Text(
                 subtitle,
                 maxLines: isCompact ? 2 : 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.secondary,
-                  fontSize: isCompact ? 11 : 12,
-                  height: 1.25,
+                  fontSize: isTight ? 10 : (isCompact ? 11 : 12),
+                  height: isCompact ? 1.15 : 1.25,
                 ),
               ),
             ],

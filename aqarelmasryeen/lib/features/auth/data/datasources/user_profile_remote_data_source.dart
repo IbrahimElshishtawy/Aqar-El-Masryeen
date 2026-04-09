@@ -13,6 +13,8 @@ class UserProfileRemoteDataSource {
 
   CollectionReference<Map<String, dynamic>> get _users =>
       _firestore.collection(FirestorePaths.users);
+  CollectionReference<Map<String, dynamic>> get _userEmailLookup =>
+      _firestore.collection(FirestorePaths.userEmailLookup);
 
   Stream<AppUser?> watchProfile(String uid) {
     return _users.doc(uid).snapshots().map((snapshot) {
@@ -27,21 +29,19 @@ class UserProfileRemoteDataSource {
     return AppUser.fromMap(uid, snapshot.data());
   }
 
-  Future<AppUser?> fetchProfileByEmail(String email) async {
+  Future<String?> fetchUserIdByEmail(String email) async {
     final normalizedEmail = email.trim().toLowerCase();
     if (normalizedEmail.isEmpty) {
       return null;
     }
 
-    final snapshot = await _users
-        .where('email', isEqualTo: normalizedEmail)
-        .limit(1)
-        .get();
-    if (snapshot.docs.isEmpty) {
+    final snapshot = await _userEmailLookup.doc(normalizedEmail).get();
+    if (!snapshot.exists) {
       return null;
     }
-    final doc = snapshot.docs.first;
-    return AppUser.fromMap(doc.id, doc.data());
+    final data = snapshot.data();
+    final uid = data?['uid'] as String? ?? '';
+    return uid.isEmpty ? null : uid;
   }
 
   Future<void> createOrMergeProfile({
@@ -55,25 +55,29 @@ class UserProfileRemoteDataSource {
     bool isActive = true,
     String role = 'partner',
   }) async {
-    final existing = await fetchProfile(uid);
-    await _users.doc(uid).set({
-      'uid': uid,
-      'phone': '',
-      'fullName': fullName,
-      'name': fullName,
-      'email': email,
-      'role': role,
-      'isActive': isActive,
-      'trustedDeviceEnabled': trustedDeviceEnabled,
-      'biometricEnabled': biometricEnabled,
-      'appLockEnabled': appLockEnabled,
-      'inactivityTimeoutSeconds': AppConfig.defaultInactivityTimeoutSeconds,
-      'createdAt': existing?.createdAt ?? FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-      'lastLoginAt': FieldValue.serverTimestamp(),
-      'deviceInfo': deviceInfo.toMap(),
-      'securitySetupCompletedAt': existing?.securitySetupCompletedAt,
-    }, SetOptions(merge: true));
+    final existing = await _tryFetchProfile(uid);
+    await _writeProfile(
+      uid: uid,
+      previousEmail: existing?.email,
+      data: {
+        'uid': uid,
+        'phone': '',
+        'fullName': fullName,
+        'name': fullName,
+        'email': email,
+        'role': role,
+        'isActive': isActive,
+        'trustedDeviceEnabled': trustedDeviceEnabled,
+        'biometricEnabled': biometricEnabled,
+        'appLockEnabled': appLockEnabled,
+        'inactivityTimeoutSeconds': AppConfig.defaultInactivityTimeoutSeconds,
+        'createdAt': existing?.createdAt ?? FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'lastLoginAt': FieldValue.serverTimestamp(),
+        'deviceInfo': deviceInfo.toMap(),
+        'securitySetupCompletedAt': existing?.securitySetupCompletedAt,
+      },
+    );
   }
 
   Future<void> completeProfile({
@@ -96,27 +100,31 @@ class UserProfileRemoteDataSource {
     required String email,
     required AuthDeviceInfo deviceInfo,
   }) async {
-    final existing = await fetchProfile(user.uid);
-    return _users.doc(user.uid).set({
-      'uid': user.uid,
-      'phone': user.phoneNumber ?? '',
-      'fullName': fullName,
-      'name': fullName,
-      'email': email,
-      'role': UserRole.partner.name,
-      'createdAt': existing?.createdAt ?? FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-      'lastLoginAt': FieldValue.serverTimestamp(),
-      'deviceInfo': deviceInfo.toMap(),
-      'isActive': existing?.isActive ?? true,
-      'trustedDeviceEnabled': existing?.trustedDeviceEnabled ?? false,
-      'biometricEnabled': existing?.biometricEnabled ?? false,
-      'appLockEnabled': existing?.appLockEnabled ?? true,
-      'inactivityTimeoutSeconds':
-          existing?.inactivityTimeoutSeconds ??
-          AppConfig.defaultInactivityTimeoutSeconds,
-      'securitySetupCompletedAt': existing?.securitySetupCompletedAt,
-    }, SetOptions(merge: true));
+    final existing = await _tryFetchProfile(user.uid);
+    return _writeProfile(
+      uid: user.uid,
+      previousEmail: existing?.email,
+      data: {
+        'uid': user.uid,
+        'phone': user.phoneNumber ?? '',
+        'fullName': fullName,
+        'name': fullName,
+        'email': email,
+        'role': UserRole.partner.name,
+        'createdAt': existing?.createdAt ?? FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+        'lastLoginAt': FieldValue.serverTimestamp(),
+        'deviceInfo': deviceInfo.toMap(),
+        'isActive': existing?.isActive ?? true,
+        'trustedDeviceEnabled': existing?.trustedDeviceEnabled ?? false,
+        'biometricEnabled': existing?.biometricEnabled ?? false,
+        'appLockEnabled': existing?.appLockEnabled ?? true,
+        'inactivityTimeoutSeconds':
+            existing?.inactivityTimeoutSeconds ??
+            AppConfig.defaultInactivityTimeoutSeconds,
+        'securitySetupCompletedAt': existing?.securitySetupCompletedAt,
+      },
+    );
   }
 
   Future<void> updateSecurityPreferences({
@@ -157,5 +165,45 @@ class UserProfileRemoteDataSource {
       'biometricEnabled': biometricEnabled,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
+  }
+
+  Future<AppUser?> _tryFetchProfile(String uid) async {
+    try {
+      return await fetchProfile(uid);
+    } on FirebaseException catch (error) {
+      if (error.code == 'permission-denied') {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _writeProfile({
+    required String uid,
+    required Map<String, dynamic> data,
+    String? previousEmail,
+  }) async {
+    final normalizedEmail = (data['email'] as String? ?? '')
+        .trim()
+        .toLowerCase();
+    final normalizedPreviousEmail = (previousEmail ?? '').trim().toLowerCase();
+    final batch = _firestore.batch();
+
+    batch.set(_users.doc(uid), data, SetOptions(merge: true));
+
+    if (normalizedPreviousEmail.isNotEmpty &&
+        normalizedPreviousEmail != normalizedEmail) {
+      batch.delete(_userEmailLookup.doc(normalizedPreviousEmail));
+    }
+
+    if (normalizedEmail.isNotEmpty) {
+      batch.set(_userEmailLookup.doc(normalizedEmail), {
+        'uid': uid,
+        'email': normalizedEmail,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+
+    await batch.commit();
   }
 }

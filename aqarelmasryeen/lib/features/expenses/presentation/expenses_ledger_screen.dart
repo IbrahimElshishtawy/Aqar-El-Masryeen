@@ -1,3 +1,5 @@
+// ignore_for_file: dead_code
+
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
@@ -108,7 +110,11 @@ class ExpensesLedgerScreen extends ConsumerWidget {
       currentIndex: 1,
       automaticallyImplyLeading: false,
       titleActions: [
-        _ExpensesTopBarActions(properties: properties, partners: partners),
+        _ExpensesTopBarActions(
+          properties: properties,
+          partners: partners,
+          showingHistory: showingHistory,
+        ),
       ],
       child: ListView(
         padding: const EdgeInsets.fromLTRB(6, 8, 6, 24),
@@ -154,36 +160,53 @@ class _ExpensesTopBarActions extends StatelessWidget {
   const _ExpensesTopBarActions({
     required this.properties,
     required this.partners,
+    required this.showingHistory,
   });
 
   final List<PropertyProject> properties;
   final List<Partner> partners;
+  final bool showingHistory;
 
   @override
   Widget build(BuildContext context) {
+    final canGoBack = showingHistory || context.canPop();
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         _TopBarIconButton(
           icon: Icons.add_rounded,
-          tooltip: 'إضافة مصروف',
+          tooltip: 'Ø¥Ø¶Ø§ÙØ© Ù…ØµØ±ÙˆÙ',
           onPressed: () => _showExpenseSheet(
             context,
             properties: properties,
             partners: partners,
           ),
         ),
-        _TopBarIconButton(
-          icon: Icons.arrow_forward_rounded,
-          tooltip: 'رجوع',
-          onPressed: () {
-            if (context.canPop()) {
-              context.pop();
-              return;
-            }
-            context.go(AppRoutes.properties);
-          },
-        ),
+        if (false)
+          _TopBarIconButton(
+            icon: Icons.add_rounded,
+            tooltip: 'إضافة مصروف',
+            onPressed: () => _showExpenseSheet(
+              context,
+              properties: properties,
+              partners: partners,
+            ),
+          ),
+        if (canGoBack)
+          _TopBarIconButton(
+            icon: Icons.arrow_forward_rounded,
+            tooltip: 'رجوع',
+            onPressed: () {
+              if (showingHistory) {
+                context.go(AppRoutes.expenses);
+                return;
+              }
+              if (context.canPop()) {
+                context.pop();
+              }
+            },
+          ),
       ],
     );
   }

@@ -36,7 +36,7 @@ class PartnerConnectionSection extends StatelessWidget {
           ? 'الحساب الحالي مربوط بالفعل، وتقدر تعدل بياناته أو تغيّر الربط من شاشة الشركاء.'
           : 'فعّل الربط من بيانات أي شريك علشان تظهر حصتك وتفاصيلك مباشرة في الرئيسية.',
       trailing: FilledButton.tonalIcon(
-        onPressed: () => context.push(AppRoutes.partners),
+        onPressed: () => context.go(AppRoutes.partners),
         icon: Icon(isLinked ? Icons.edit_outlined : Icons.link_rounded),
         label: Text(isLinked ? 'إدارة الربط' : 'ربط الآن'),
       ),

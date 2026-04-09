@@ -152,16 +152,6 @@ class FirebaseAuthRepository implements AuthRepository {
     final normalizedName = fullName.trim();
 
     try {
-      final existingProfile = await _profileDataSource.fetchProfileByEmail(
-        normalizedEmail,
-      );
-      if (existingProfile != null) {
-        throw const AppException(
-          'يوجد حساب مسجل بالفعل بهذا البريد الإلكتروني.',
-          code: 'email_already_exists',
-        );
-      }
-
       final createdUid = await _authDataSource.createUserWithEmailOnIsolatedApp(
         email: normalizedEmail,
         password: password,

@@ -38,6 +38,14 @@
 - `isPhysicalDevice`
 - `lastSeenAt`
 
+### `user_email_lookup`
+
+| Field | Type | Required | Notes |
+| --- | --- | --- | --- |
+| `uid` | `string` | yes | مرجع إلى `users/{uid}` |
+| `email` | `string` | yes | يساوي `docId` وبصيغة lowercase |
+| `updatedAt` | `timestamp` | yes | وقت آخر مزامنة |
+
 ### `partners`
 
 | Field | Type | Required | Notes |

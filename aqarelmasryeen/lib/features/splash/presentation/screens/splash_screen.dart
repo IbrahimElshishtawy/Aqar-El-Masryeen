@@ -1,4 +1,3 @@
-import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/widgets/app_loading_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/controllers/auth_bootstrap_controller.dart';
@@ -14,36 +13,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
-  bool _notificationReady = false;
   String? _pendingRoute;
-
-  @override
-  void initState() {
-    super.initState();
-    _initializeNotifications();
-  }
-
-  Future<void> _initializeNotifications() async {
-    if (_notificationReady) {
-      return;
-    }
-
-    _notificationReady = true;
-    try {
-      await ref
-          .read(notificationServiceProvider)
-          .initialize(
-            onNotificationTap: (payload) {
-              if (mounted) {
-                context.go(payload.route);
-              }
-            },
-          );
-    } catch (error, stackTrace) {
-      debugPrint('Notification initialization failed on splash: $error');
-      debugPrintStack(stackTrace: stackTrace, maxFrames: 6);
-    }
-  }
 
   void _scheduleNavigation(String route) {
     if (_pendingRoute == route) {

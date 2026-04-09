@@ -59,7 +59,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     return AuthScaffold(
-      maxWidth: 430,
+      maxWidth: 600,
       title: 'تسجيل الدخول',
       subtitle:
           'ادخل إلى مساحة العمل المحاسبية باستخدام البريد الإلكتروني وكلمة المرور.',
@@ -85,7 +85,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           borderRadius: BorderRadius.circular(18),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
           child: Row(
             children: [
               Icon(
@@ -114,7 +114,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primary.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(999),
@@ -134,11 +134,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(26),
               border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.65),
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(10),
               child: Form(
                 key: _formKey,
                 child: Column(

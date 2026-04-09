@@ -5,7 +5,7 @@ class AppLoadingView extends StatelessWidget {
     super.key,
     this.label,
     this.message,
-    this.padding = const EdgeInsets.all(24),
+    this.padding = const EdgeInsets.all(14),
   });
 
   final String? label;
