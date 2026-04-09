@@ -77,7 +77,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     if (paidByPartnerId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('لا يوجد شريك مرتبط بهذا الحساب.'),
+          content: Text('لا يوجد شريك مربوط بالحساب الحالي لإضافة المصروف.'),
         ),
       );
       return;
