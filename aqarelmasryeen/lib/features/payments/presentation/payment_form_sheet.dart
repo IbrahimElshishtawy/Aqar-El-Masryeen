@@ -63,7 +63,9 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
     _selectedInstallmentId = initialInstallmentId;
     _paymentType = payment?.paymentSource.trim().isNotEmpty == true
         ? payment!.paymentSource.trim()
-        : (initialInstallmentId.isNotEmpty ? _installmentPaymentType : _defaultPaymentType);
+        : (initialInstallmentId.isNotEmpty
+              ? _installmentPaymentType
+              : _initialPaymentType);
   }
 
   @override
@@ -371,6 +373,14 @@ class _PaymentInfoBanner extends StatelessWidget {
               color: Theme.of(context).colorScheme.secondary,
             ),
           ),
+          const SizedBox(height: 6),
+          Text(
+            'يتم تسجيل كل مبلغ يدويًا، ولن يتم احتساب أي قسط أو دفعة تلقائيًا بدون إدخال صريح منك.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: const Color(0xFF55655F),
+              height: 1.35,
+            ),
+          ),
         ],
       ),
     );
@@ -420,6 +430,7 @@ class _SelectedInstallmentCard extends StatelessWidget {
 const String _defaultPaymentType = 'مقدم';
 const String _installmentPaymentType = 'دفعة قسط';
 const String _noInstallmentValue = '__none__';
+const String _initialPaymentType = 'دفعة إضافية';
 
 const List<String> _paymentTypes = <String>[
   _defaultPaymentType,

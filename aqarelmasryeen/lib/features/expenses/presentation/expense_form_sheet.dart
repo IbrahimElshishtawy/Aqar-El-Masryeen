@@ -228,6 +228,8 @@ class _ExpenseOwnerBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final partnerName = currentPartner?.name;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -237,9 +239,9 @@ class _ExpenseOwnerBanner extends StatelessWidget {
         border: Border.all(color: const Color(0xFFD8D8D2)),
       ),
       child: Text(
-        currentPartner == null
+        partnerName == null
             ? 'سيتم تسجيل المصروف باسم المستخدم الحالي مباشرة. إذا لم يوجد شريك مرتبط بهذا الحساب فستظهر بيانات المستخدم فقط.'
-            : 'سيتم تسجيل المصروف باسم المستخدم الحالي، والحساب مرتبط بالشريك ${currentPartner.name}.',
+            : 'سيتم تسجيل المصروف باسم المستخدم الحالي، والحساب مرتبط بالشريك $partnerName.',
         style: Theme.of(context).textTheme.bodyMedium,
       ),
     );

@@ -8,6 +8,7 @@ import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
 
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
+import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
@@ -115,6 +116,10 @@ class PaymentRepository {
     if (nextInstallmentId != null && nextInstallmentId.isNotEmpty) {
       await _recalculateInstallment(nextInstallmentId);
     }
+    final unitId = payment.unitId.trim();
+    if (unitId.isNotEmpty) {
+      await _syncUnitFinancialSnapshot(unitId);
+    }
 
     return id;
   }
@@ -130,6 +135,10 @@ class PaymentRepository {
     final installmentId = payment?.installmentId?.trim();
     if (installmentId != null && installmentId.isNotEmpty) {
       await _recalculateInstallment(installmentId);
+    }
+    final unitId = payment?.unitId.trim();
+    if (unitId != null && unitId.isNotEmpty) {
+      await _syncUnitFinancialSnapshot(unitId);
     }
   }
 
@@ -171,6 +180,84 @@ class PaymentRepository {
       'status': status.name,
       'updatedAt': DateTime.now(),
     });
+  }
+
+  Future<void> _syncUnitFinancialSnapshot(String unitId) async {
+    final unitRef = _firestore.collection(FirestorePaths.units).doc(unitId);
+    final unitSnapshot = await unitRef.get();
+    if (!unitSnapshot.exists) {
+      return;
+    }
+
+    final unit = UnitSale.fromMap(unitSnapshot.id, unitSnapshot.data());
+    final paymentsSnapshot = await _firestore
+        .collection(FirestorePaths.payments)
+        .where('unitId', isEqualTo: unitId)
+        .get();
+    final installmentsSnapshot = await _firestore
+        .collection(FirestorePaths.installments)
+        .where('unitId', isEqualTo: unitId)
+        .get();
+
+    final payments = paymentsSnapshot.docs
+        .map((doc) => PaymentRecord.fromMap(doc.id, doc.data()))
+        .toList(growable: false);
+    final installments = installmentsSnapshot.docs
+        .map((doc) => Installment.fromMap(doc.id, doc.data()))
+        .toList()
+      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+
+    final trackedPaymentsTotal = payments
+        .where((payment) => !payment.isDownPayment)
+        .fold<double>(0, (sum, payment) => sum + payment.amount);
+    final totalPaidSoFar = unit.downPayment + trackedPaymentsTotal;
+    final remainingAmount = (unit.contractAmount - totalPaidSoFar)
+        .clamp(0, unit.contractAmount)
+        .toDouble();
+
+    await unitRef.update({
+      'remainingAmount': remainingAmount,
+      'projectedCompletionDate': _resolveProjectedCompletionDate(
+        installments: installments,
+        payments: payments,
+        fallback: unit.projectedCompletionDate,
+      ),
+      'updatedAt': DateTime.now(),
+    });
+  }
+
+  DateTime? _resolveProjectedCompletionDate({
+    required List<Installment> installments,
+    required List<PaymentRecord> payments,
+    required DateTime? fallback,
+  }) {
+    if (installments.isEmpty) {
+      return fallback;
+    }
+
+    final paidAmountsByInstallmentId = <String, double>{};
+    for (final payment in payments) {
+      final installmentId = payment.installmentId?.trim();
+      if (installmentId == null || installmentId.isEmpty) {
+        continue;
+      }
+      paidAmountsByInstallmentId.update(
+        installmentId,
+        (value) => value + payment.amount,
+        ifAbsent: () => payment.amount,
+      );
+    }
+
+    final unpaidInstallments = installments.where((installment) {
+      final paidAmount =
+          paidAmountsByInstallmentId[installment.id] ?? installment.paidAmount;
+      return paidAmount + 0.01 < installment.amount;
+    }).toList(growable: false);
+
+    if (unpaidInstallments.isEmpty) {
+      return installments.last.dueDate;
+    }
+    return unpaidInstallments.last.dueDate;
   }
 }
 

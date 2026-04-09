@@ -3,6 +3,7 @@ import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
+import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:flutter/material.dart';
 
@@ -184,7 +185,6 @@ class PropertyExpensesWorkspace extends StatelessWidget {
         group: group,
         currentLabel: data.currentColumnLabel,
         counterpartLabel: data.counterpartColumnLabel,
-        currentDisplayName: data.currentUserDisplayName,
         hasLinkedPartner: data.hasLinkedPartner,
         initialCurrentSide: currentSide,
         onEditExpense: onEditExpense,
@@ -794,5 +794,435 @@ class _ExpenseTotalsRow extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _ExpenseDayDetailsSheet extends StatelessWidget {
+  const _ExpenseDayDetailsSheet({
+    required this.group,
+    required this.currentLabel,
+    required this.counterpartLabel,
+    required this.hasLinkedPartner,
+    required this.initialCurrentSide,
+    required this.onEditExpense,
+    required this.onDeleteExpense,
+  });
+
+  final _ExpenseDayGroup group;
+  final String currentLabel;
+  final String counterpartLabel;
+  final bool hasLinkedPartner;
+  final bool initialCurrentSide;
+  final ValueChanged<ExpenseRecord> onEditExpense;
+  final ValueChanged<ExpenseRecord> onDeleteExpense;
+
+  @override
+  Widget build(BuildContext context) {
+    final sections = <Widget>[
+      _ExpenseDetailsSection(
+        title: currentLabel,
+        subtitle: 'مصروفات المستخدم الحالي في هذا اليوم',
+        entries: group.currentEntries,
+        emptyMessage: 'لم يتم تسجيل أي مصروفات للمستخدم في هذا اليوم.',
+        tint: const Color(0xFFEAF4EF),
+        onEditExpense: onEditExpense,
+        onDeleteExpense: onDeleteExpense,
+      ),
+      if (hasLinkedPartner)
+        _ExpenseDetailsSection(
+          title: counterpartLabel,
+          subtitle: 'مصروفات الشريك المرتبط في نفس اليوم',
+          entries: group.counterpartEntries,
+          emptyMessage: 'لم يتم تسجيل أي مصروفات للشريك في هذا اليوم.',
+          tint: const Color(0xFFF6F4EF),
+          onEditExpense: onEditExpense,
+          onDeleteExpense: onDeleteExpense,
+        )
+      else
+        _ExpenseDetailsSection(
+          title: counterpartLabel,
+          subtitle: 'بيانات الشريك',
+          entries: const [],
+          emptyMessage: 'لا يوجد شريك مرتبط بهذا الحساب.',
+          tint: const Color(0xFFF6F4EF),
+          onEditExpense: onEditExpense,
+          onDeleteExpense: onDeleteExpense,
+        ),
+    ];
+    final orderedSections = initialCurrentSide
+        ? sections
+        : sections.reversed.toList(growable: false);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'تفصيل مصروفات ${group.day.formatShort()}',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'الإجمالي ${group.total.egp} • ${group.totalEntriesCount} حركة مسجلة',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.separated(
+                itemCount: orderedSections.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 14),
+                itemBuilder: (context, index) => orderedSections[index],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpenseDetailsSection extends StatelessWidget {
+  const _ExpenseDetailsSection({
+    required this.title,
+    required this.subtitle,
+    required this.entries,
+    required this.emptyMessage,
+    required this.tint,
+    required this.onEditExpense,
+    required this.onDeleteExpense,
+  });
+
+  final String title;
+  final String subtitle;
+  final List<_ExpenseDisplayEntry> entries;
+  final String emptyMessage;
+  final Color tint;
+  final ValueChanged<ExpenseRecord> onEditExpense;
+  final ValueChanged<ExpenseRecord> onDeleteExpense;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = entries.fold<double>(
+      0,
+      (sum, entry) => sum + entry.row.expense.amount,
+    );
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: tint,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF17352F),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (entries.isNotEmpty)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      total.egp,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF17352F),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${entries.length} حركة',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (entries.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.65),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Text(
+                emptyMessage,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+            )
+          else
+            Column(
+              children: [
+                for (var index = 0; index < entries.length; index++) ...[
+                  _ExpenseDetailCard(
+                    entry: entries[index],
+                    onEdit: () => onEditExpense(entries[index].row.expense),
+                    onDelete: () => onDeleteExpense(entries[index].row.expense),
+                  ),
+                  if (index != entries.length - 1)
+                    const SizedBox(height: 10),
+                ],
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpenseDetailCard extends StatelessWidget {
+  const _ExpenseDetailCard({
+    required this.entry,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final _ExpenseDisplayEntry entry;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final expense = entry.row.expense;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      entry.expenseLabel,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF17352F),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      expense.category.label,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.secondary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                expense.amount.egp,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF17352F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              _ExpenseMetaChip(
+                label: 'الوقت',
+                value: expense.createdAt.formatWithTime(),
+              ),
+              _ExpenseMetaChip(label: 'المستخدم', value: entry.ownerLabel),
+              _ExpenseMetaChip(label: 'أضافها', value: entry.addedByLabel),
+            ],
+          ),
+          if (expense.notes.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              expense.notes.trim(),
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFF40564F),
+                height: 1.35,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              OutlinedButton.icon(
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('تعديل'),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline, size: 18),
+                label: const Text('حذف'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpenseMetaChip extends StatelessWidget {
+  const _ExpenseMetaChip({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F7F4),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$label: $value',
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF465145),
+        ),
+      ),
+    );
+  }
+}
+
+class _TotalsCell extends StatelessWidget {
+  const _TotalsCell({
+    required this.width,
+    required this.label,
+    required this.total,
+  });
+
+  final double width;
+  final String label;
+  final double total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(14),
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: Color(0xFFD9DED6))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            total.egp,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF17352F),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExpenseDayGroup {
+  const _ExpenseDayGroup({
+    required this.day,
+    required this.currentEntries,
+    required this.counterpartEntries,
+  });
+
+  final DateTime day;
+  final List<_ExpenseDisplayEntry> currentEntries;
+  final List<_ExpenseDisplayEntry> counterpartEntries;
+
+  double get currentTotal => currentEntries.fold<double>(
+    0,
+    (sum, entry) => sum + entry.row.expense.amount,
+  );
+
+  double get counterpartTotal => counterpartEntries.fold<double>(
+    0,
+    (sum, entry) => sum + entry.row.expense.amount,
+  );
+
+  double get total => currentTotal + counterpartTotal;
+
+  int get totalEntriesCount => currentEntries.length + counterpartEntries.length;
+}
+
+class _ExpenseDisplayEntry {
+  const _ExpenseDisplayEntry({
+    required this.row,
+    required this.isCurrentSide,
+    required this.ownerLabel,
+    required this.addedByLabel,
+  });
+
+  final PropertyExpenseLedgerRow row;
+  final bool isCurrentSide;
+  final String ownerLabel;
+  final String addedByLabel;
+
+  ExpenseRecord get expense => row.expense;
+
+  String get expenseLabel {
+    final description = expense.description.trim();
+    return description.isEmpty ? expense.category.label : description;
   }
 }

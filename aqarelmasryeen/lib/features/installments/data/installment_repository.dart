@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_types_as_parameter_names
+
 import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
 import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
@@ -212,34 +214,35 @@ class InstallmentRepository {
           }
           return a.id.compareTo(b.id);
         });
-    final paymentDocsByInstallmentId = <String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>{};
+    final paymentDocsByInstallmentId =
+        <String, List<QueryDocumentSnapshot<Map<String, dynamic>>>>{};
     for (final paymentDoc in paymentsSnapshot.docs) {
       final installmentId = (paymentDoc.data()['installmentId'] as String?)
           ?.trim();
       if (installmentId == null || installmentId.isEmpty) {
         continue;
       }
-      paymentDocsByInstallmentId.putIfAbsent(installmentId, () => []).add(
-        paymentDoc,
-      );
+      paymentDocsByInstallmentId
+          .putIfAbsent(installmentId, () => [])
+          .add(paymentDoc);
     }
 
     final existingPlanDoc = plansSnapshot.docs.firstOrNull;
     final existingPlan = existingPlanDoc == null
         ? null
         : InstallmentPlan.fromMap(existingPlanDoc.id, existingPlanDoc.data());
-    final planId =
-        preferredPlanId?.trim().isNotEmpty == true
+    final planId = preferredPlanId?.trim().isNotEmpty == true
         ? preferredPlanId!.trim()
         : existingPlan?.id.isNotEmpty == true
         ? existingPlan!.id
         : 'auto_${unit.id}';
 
-    final startDate = existingPlan?.startDate ??
+    final startDate =
+        existingPlan?.startDate ??
         existingInstallments.firstOrNull?.dueDate ??
         unit.createdAt;
-    final intervalDays = existingPlan?.intervalDays ??
-        _inferIntervalDays(existingInstallments);
+    final intervalDays =
+        existingPlan?.intervalDays ?? _inferIntervalDays(existingInstallments);
     final financedAmount = (unit.contractAmount - unit.downPayment)
         .clamp(0, unit.contractAmount)
         .toDouble();
@@ -272,7 +275,9 @@ class InstallmentRepository {
 
     for (var sequence = 1; sequence <= scheduleCount; sequence++) {
       final bucket = installmentsBySequence.remove(sequence) ?? const [];
-      final dueDate = startDate.add(Duration(days: intervalDays * (sequence - 1)));
+      final dueDate = startDate.add(
+        Duration(days: intervalDays * (sequence - 1)),
+      );
 
       if (bucket.isEmpty) {
         final installmentId = _uuid.v4();
@@ -310,10 +315,12 @@ class InstallmentRepository {
             docs.fold<double>(
               0,
               (paymentSum, doc) =>
-                  paymentSum + ((doc.data()['amount'] as num?)?.toDouble() ?? 0),
+                  paymentSum +
+                  ((doc.data()['amount'] as num?)?.toDouble() ?? 0),
             );
       });
-      final resolvedDueDate = primary.dueDate == DateTime.fromMillisecondsSinceEpoch(0)
+      final resolvedDueDate =
+          primary.dueDate == DateTime.fromMillisecondsSinceEpoch(0)
           ? dueDate
           : primary.dueDate;
       final updatedPrimary = primary.copyWith(
@@ -339,7 +346,8 @@ class InstallmentRepository {
       );
 
       for (final duplicate in bucket.skip(1)) {
-        final linkedPayments = paymentDocsByInstallmentId[duplicate.id] ?? const [];
+        final linkedPayments =
+            paymentDocsByInstallmentId[duplicate.id] ?? const [];
         for (final paymentDoc in linkedPayments) {
           batch.update(paymentDoc.reference, {
             'installmentId': primary.id,
@@ -360,7 +368,9 @@ class InstallmentRepository {
           continue;
         }
         batch.delete(
-          _firestore.collection(FirestorePaths.installments).doc(installment.id),
+          _firestore
+              .collection(FirestorePaths.installments)
+              .doc(installment.id),
         );
       }
     }
@@ -394,7 +404,9 @@ class InstallmentRepository {
         .where('installmentId', isEqualTo: installmentId)
         .get();
     final batch = _firestore.batch();
-    batch.delete(_firestore.collection(FirestorePaths.installments).doc(installmentId));
+    batch.delete(
+      _firestore.collection(FirestorePaths.installments).doc(installmentId),
+    );
     for (final paymentDoc in paymentsSnapshot.docs) {
       batch.delete(paymentDoc.reference);
     }

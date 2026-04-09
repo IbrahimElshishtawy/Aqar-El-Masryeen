@@ -15,6 +15,7 @@ import 'package:aqarelmasryeen/features/payments/presentation/payment_form_sheet
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_expenses_workspace.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_sales_workspace.dart';
+import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_unit_detail_view.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
 import 'package:aqarelmasryeen/features/sales/presentation/unit_form_sheet.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';

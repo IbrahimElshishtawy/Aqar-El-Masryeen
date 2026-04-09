@@ -132,7 +132,7 @@ class UnitSalesCalculator {
           : installmentsBySequence.length;
       final displaySequences = installmentsBySequence.keys
           .where((sequence) => visibleSequenceLimit == 0 || sequence <= visibleSequenceLimit)
-          .sorted();
+          .sorted((a, b) => a.compareTo(b));
 
       final rows = displaySequences.map((sequence) {
         final groupedInstallments =
