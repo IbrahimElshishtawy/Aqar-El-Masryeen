@@ -43,6 +43,22 @@ class PartnerAccountProvisionRemoteDataSource {
       throw _mapFunctionsException(error);
     }
   }
+
+  Future<Map<String, int>> backfillAuthProfiles({String? workspaceId}) async {
+    try {
+      final result = await _functions
+          .httpsCallable('backfillAuthProfiles')
+          .call(<String, dynamic>{'workspaceId': workspaceId});
+      final payload = Map<String, dynamic>.from(result.data as Map);
+      return <String, int>{
+        'createdCount': (payload['createdCount'] as num?)?.toInt() ?? 0,
+        'updatedLookupCount':
+            (payload['updatedLookupCount'] as num?)?.toInt() ?? 0,
+      };
+    } on FirebaseFunctionsException catch (error) {
+      throw _mapFunctionsException(error);
+    }
+  }
 }
 
 AppException _mapFunctionsException(FirebaseFunctionsException error) {

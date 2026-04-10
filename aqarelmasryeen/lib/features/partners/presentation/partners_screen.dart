@@ -32,9 +32,23 @@ final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>(
 
 final partnerAccountsStreamProvider = StreamProvider.autoDispose<List<AppUser>>(
   (ref) {
-    return ref
-        .watch(userProfileRemoteDataSourceProvider)
-        .watchAllProfiles();
+    final session = ref.watch(authSessionProvider).valueOrNull;
+    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+    final currentUid = session?.userId ?? '';
+    return ref.watch(userProfileRemoteDataSourceProvider).watchAllProfiles().map((
+      users,
+    ) {
+      return users.where((user) {
+        if (user.uid == currentUid) {
+          return true;
+        }
+        final userWorkspaceId = user.workspaceId.trim();
+        if (workspaceId.isNotEmpty && userWorkspaceId == workspaceId) {
+          return true;
+        }
+        return userWorkspaceId.isEmpty && user.createdBy == currentUid;
+      }).toList(growable: false);
+    });
   },
 );
 
@@ -283,11 +297,25 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
   ) {
     return pendingRequests.when(
       data: (items) {
+        final actions = <Widget>[
+          Padding(
+            padding: const EdgeInsetsDirectional.only(
+              end: 4,
+              top: 8,
+              bottom: 8,
+            ),
+            child: IconButton(
+              tooltip: 'مزامنة الحسابات',
+              onPressed: _backfillMissingProfiles,
+              icon: const Icon(Icons.sync_rounded),
+            ),
+          ),
+        ];
         if (items.isEmpty) {
-          return null;
+          return actions;
         }
 
-        return [
+        actions.add(
           Padding(
             padding: const EdgeInsetsDirectional.only(
               end: 4,
@@ -300,7 +328,8 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
               label: Text(items.length == 1 ? 'طلب ربط' : 'طلبات الربط'),
             ),
           ),
-        ];
+        );
+        return actions;
       },
       error: (_, _) => null,
       loading: () => null,
@@ -546,20 +575,14 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
           .clearPartnerLink(partner.userId, expectedPartnerId: partner.id);
     }
 
-    await ref.read(partnerRepositoryProvider).upsert(
-      partner.copyWith(
-        userId: user.uid,
-        linkedEmail: user.email.trim().toLowerCase(),
-        workspaceId: workspaceId,
-        updatedAt: DateTime.now(),
-      ),
-    );
-    await ref.read(userProfileRemoteDataSourceProvider).setPartnerLink(
-      uid: user.uid,
-      partnerId: partner.id,
-      partnerName: partner.name,
+    await ref.read(partnerRepositoryProvider).linkPartnerToUser(
+      partner: partner,
+      user: user,
       workspaceId: workspaceId,
     );
+    ref.invalidate(partnersStreamProvider);
+    ref.invalidate(partnerAccountsStreamProvider);
+    ref.invalidate(partnerAccountsProvider);
     _showInfoSnackBar('تم تحديث بيانات الربط بنجاح');
   }
 
@@ -598,6 +621,8 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
             linkedPartnerName: partnerName.isEmpty ? null : partnerName,
             createdBy: session?.userId,
           );
+      ref.invalidate(partnerAccountsStreamProvider);
+      ref.invalidate(partnerAccountsProvider);
       _showInfoSnackBar('تم ربط هذا المستخدم بالحساب الحالي');
     } catch (_) {
       _showInfoSnackBar('فشل الربط');
@@ -732,6 +757,9 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
           .clearPartnerLink(partner.userId, expectedPartnerId: partner.id);
     }
     await ref.read(partnerRepositoryProvider).delete(partner.id);
+    ref.invalidate(partnersStreamProvider);
+    ref.invalidate(partnerAccountsStreamProvider);
+    ref.invalidate(partnerAccountsProvider);
     _showInfoSnackBar('تم حذف الشريك بنجاح.');
   }
 
@@ -748,6 +776,9 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
           .read(userProfileRemoteDataSourceProvider)
           .clearPartnerLink(partner.userId, expectedPartnerId: partner.id);
     }
+    ref.invalidate(partnersStreamProvider);
+    ref.invalidate(partnerAccountsStreamProvider);
+    ref.invalidate(partnerAccountsProvider);
     _showInfoSnackBar('تم فك ربط الحساب من الشريك.');
   }
 
@@ -756,6 +787,23 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _backfillMissingProfiles() async {
+    final session = ref.read(authSessionProvider).valueOrNull;
+    final workspaceId = session?.profile?.workspaceId.trim();
+    try {
+      final result = await ref
+          .read(authRepositoryProvider)
+          .backfillAuthProfiles(workspaceId: workspaceId);
+      ref.invalidate(partnerAccountsStreamProvider);
+      ref.invalidate(partnerAccountsProvider);
+      _showInfoSnackBar(
+        'تمت المزامنة: ${result['createdCount'] ?? 0} حساب جديد، وتحديث ${result['updatedLookupCount'] ?? 0} بريد.',
+      );
+    } catch (_) {
+      _showInfoSnackBar('فشل مزامنة الحسابات. حاول مرة أخرى.');
+    }
   }
 }
 
@@ -1283,7 +1331,7 @@ class _PartnerAccountCardState extends State<_PartnerAccountCard> {
                     ? 'مربوط بالحساب الحالي'
                     : _linking
                     ? 'جارٍ تنفيذ الربط...'
-                    : 'ربط بالحساب الحالي',
+                    : 'ربط بهذا الحساب',
               ),
             ),
           ),

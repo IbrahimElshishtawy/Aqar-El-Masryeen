@@ -3,6 +3,7 @@ import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
 import 'package:aqarelmasryeen/core/storage/cache_keys.dart';
 import 'package:aqarelmasryeen/core/storage/cache_policy.dart';
 import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
+import 'package:aqarelmasryeen/shared/models/app_user.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -52,6 +53,40 @@ class PartnerRepository {
           SetOptions(merge: true),
         );
     return id;
+  }
+
+  Future<void> linkPartnerToUser({
+    required Partner partner,
+    required AppUser user,
+    required String workspaceId,
+  }) async {
+    final partnerRef = _firestore.collection(FirestorePaths.partners).doc(partner.id);
+    final userRef = _firestore.collection(FirestorePaths.users).doc(user.uid);
+    final lookupRef = _firestore
+        .collection(FirestorePaths.userEmailLookup)
+        .doc(user.email.trim().toLowerCase());
+    final batch = _firestore.batch();
+    batch.set(partnerRef, {
+      ...partner.toMap(),
+      'userId': user.uid,
+      'linkedEmail': user.email.trim().toLowerCase(),
+      'workspaceId': workspaceId.trim(),
+      'updatedAt': DateTime.now(),
+    }, SetOptions(merge: true));
+    batch.set(userRef, {
+      'workspaceId': workspaceId.trim(),
+      'linkedPartnerId': partner.id,
+      'linkedPartnerName': partner.name,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    if (user.email.trim().isNotEmpty) {
+      batch.set(lookupRef, {
+        'uid': user.uid,
+        'email': user.email.trim().toLowerCase(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+    await batch.commit();
   }
 }
 

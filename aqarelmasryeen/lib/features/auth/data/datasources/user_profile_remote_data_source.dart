@@ -25,7 +25,6 @@ class UserProfileRemoteDataSource {
 
   Stream<List<AppUser>> watchAllProfiles() {
     return _users
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs

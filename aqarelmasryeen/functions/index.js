@@ -11,7 +11,7 @@ const messaging = admin.messaging();
 
 const DEFAULT_ROUTE = '/notifications';
 const DEFAULT_CHANNEL_ID = 'finance_alerts';
-const DEFAULT_WORKSPACE_ID = 'workspace_main';
+const DEFAULT_WORKSPACE_ID = '';
 const REMINDER_LEAD_DAYS = [7, 3, 1];
 const MAX_TOKENS_PER_BATCH = 500;
 const INVALID_TOKEN_CODES = new Set([
@@ -158,8 +158,7 @@ exports.provisionPartnerAccount = onCall(async (request) => {
   const createdBy = asNonEmptyString(request.data?.createdBy) || request.auth.uid;
   const createdByName =
     asNonEmptyString(request.data?.createdByName) || fullName;
-  const workspaceId =
-    asNonEmptyString(request.data?.workspaceId) || DEFAULT_WORKSPACE_ID;
+  const workspaceId = asNonEmptyString(request.data?.workspaceId);
 
   if (!fullName || !email || !password) {
     throw new HttpsError(
@@ -283,6 +282,98 @@ exports.provisionPartnerAccount = onCall(async (request) => {
         : 'تعذر إنشاء حساب الشريك في الوقت الحالي.',
     );
   }
+});
+
+exports.backfillAuthProfiles = onCall(async (request) => {
+  if (!request.auth?.uid) {
+    throw new HttpsError('unauthenticated', 'يجب تسجيل الدخول أولاً.');
+  }
+
+  const callerDoc = await db.collection('users').doc(request.auth.uid).get();
+  if (!callerDoc.exists || callerDoc.get('isActive') !== true) {
+    throw new HttpsError(
+      'permission-denied',
+      'هذا الحساب غير مصرح له بتنفيذ مزامنة الحسابات.',
+    );
+  }
+
+  const defaultWorkspaceId = asNonEmptyString(request.data?.workspaceId);
+  let nextPageToken;
+  let createdCount = 0;
+  let updatedLookupCount = 0;
+
+  do {
+    const page = await admin.auth().listUsers(1000, nextPageToken);
+    const batch = db.batch();
+    let pageWrites = 0;
+    for (const authUser of page.users) {
+      const userRef = db.collection('users').doc(authUser.uid);
+      const userSnapshot = await userRef.get();
+      const normalizedEmail = asNonEmptyString(authUser.email).toLowerCase();
+      const fullName =
+        asNonEmptyString(authUser.displayName) ||
+        (normalizedEmail ? normalizedEmail.split('@')[0] : 'مستخدم');
+      const now = admin.firestore.FieldValue.serverTimestamp();
+
+      if (!userSnapshot.exists) {
+        batch.set(
+          userRef,
+          {
+            uid: authUser.uid,
+            phone: asNonEmptyString(authUser.phoneNumber),
+            fullName,
+            name: fullName,
+            email: normalizedEmail,
+            role: 'partner',
+            trustedDeviceEnabled: false,
+            biometricEnabled: false,
+            appLockEnabled: true,
+            inactivityTimeoutSeconds: 90,
+            isActive: authUser.disabled !== true,
+            createdAt: now,
+            updatedAt: now,
+            createdBy: request.auth.uid,
+            createdByName:
+              asNonEmptyString(callerDoc.get('fullName')) ||
+              asNonEmptyString(callerDoc.get('name')) ||
+              'System',
+            workspaceId: defaultWorkspaceId,
+            linkedPartnerId: '',
+            linkedPartnerName: '',
+            fcmTokens: [],
+          },
+          { merge: true },
+        );
+        createdCount += 1;
+        pageWrites += 1;
+      }
+
+      if (normalizedEmail) {
+        batch.set(
+          db.collection('user_email_lookup').doc(normalizedEmail),
+          {
+            uid: authUser.uid,
+            email: normalizedEmail,
+            updatedAt: now,
+          },
+          { merge: true },
+        );
+        updatedLookupCount += 1;
+        pageWrites += 1;
+      }
+    }
+
+    if (pageWrites > 0) {
+      await batch.commit();
+    }
+    nextPageToken = page.pageToken;
+  } while (nextPageToken);
+
+  return {
+    success: true,
+    createdCount,
+    updatedLookupCount,
+  };
 });
 
 exports.syncFinancialNotifications = onSchedule(
@@ -493,6 +584,9 @@ async function loadActiveUsers() {
 
 function resolveWorkspaceUserIds(activeUsers, workspaceId) {
   const resolvedWorkspaceId = resolveWorkspaceId(workspaceId);
+  if (!resolvedWorkspaceId) {
+    return [];
+  }
   return activeUsers
     .filter((user) => resolveWorkspaceId(user.workspaceId) === resolvedWorkspaceId)
     .map((user) => user.id)

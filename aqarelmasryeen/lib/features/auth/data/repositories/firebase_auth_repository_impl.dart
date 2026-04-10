@@ -217,6 +217,18 @@ class FirebaseAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<Map<String, int>> backfillAuthProfiles({String? workspaceId}) async {
+    try {
+      return await _partnerAccountProvisionDataSource.backfillAuthProfiles(
+        workspaceId: workspaceId,
+      );
+    } catch (error, stackTrace) {
+      _recordError(error, stackTrace);
+      rethrow;
+    }
+  }
+
+  @override
   Future<void> signInWithEmail({
     required String email,
     required String password,
