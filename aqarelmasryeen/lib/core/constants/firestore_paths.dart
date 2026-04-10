@@ -11,6 +11,7 @@ class FirestorePaths {
   static const installments = 'installments';
   static const payments = 'payments';
   static const materialExpenses = 'material_expenses';
+  static const supplierPayments = 'supplier_payments';
   static const partnerLedgers = 'partner_ledgers';
   static const notifications = 'notifications';
   static const activityLogs = 'activity_logs';

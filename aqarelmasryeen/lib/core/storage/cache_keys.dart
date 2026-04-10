@@ -13,6 +13,9 @@ class CacheKeys {
   static const materialExpenses = 'cache.material_expenses.all';
   static String materialExpensesByProperty(String propertyId) =>
       'cache.material_expenses.$propertyId';
+  static const supplierPayments = 'cache.supplier_payments.all';
+  static String supplierPaymentsByProperty(String propertyId) =>
+      'cache.supplier_payments.$propertyId';
 
   static const partners = 'cache.partners.all';
   static const partnerLedger = 'cache.partner_ledger.all';

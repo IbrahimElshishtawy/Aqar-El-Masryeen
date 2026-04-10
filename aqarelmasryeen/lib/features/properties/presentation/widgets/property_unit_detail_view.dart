@@ -71,7 +71,8 @@ class PropertyUnitDetailView extends StatelessWidget {
         const SizedBox(height: 18),
         const _SectionHeading(
           title: 'الملخص المالي',
-          subtitle: 'بطاقات مختصرة توضح التعاقد والمدفوع والمتبقي وحالة السداد.',
+          subtitle:
+              'بطاقات شبكية صغيرة توضح التعاقد والمدفوع والمتبقي بوضوح على كل الشاشات.',
         ),
         const SizedBox(height: 10),
         _ResponsiveMetricGrid(
@@ -79,14 +80,14 @@ class PropertyUnitDetailView extends StatelessWidget {
             _FinancialMiniCard(
               label: 'قيمة التعاقد النهائية',
               value: summary.totalContractAmount.egp,
-              subtitle: 'إجمالي عقد الوحدة',
+              subtitle: 'سعر الشقة المعتمد',
               icon: Icons.description_outlined,
               highlight: true,
             ),
             _FinancialMiniCard(
               label: 'المقدم',
               value: summary.unit.downPayment.egp,
-              subtitle: 'المسجل على بيانات الوحدة',
+              subtitle: 'المسجل على الوحدة',
               icon: Icons.account_balance_wallet_outlined,
             ),
             _FinancialMiniCard(
@@ -98,18 +99,25 @@ class PropertyUnitDetailView extends StatelessWidget {
             _FinancialMiniCard(
               label: 'المتبقي',
               value: summary.totalRemaining.egp,
-              subtitle: '${summary.unpaidInstallmentsCount} أقساط غير مسددة',
+              subtitle: '${summary.unpaidInstallmentsCount} قسطًا غير مسدد',
               icon: Icons.schedule_outlined,
             ),
-            _FinancialMiniCard(
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            _SupplementaryInfoCard(
               label: 'إنهاء الأقساط',
               value: projectedCompletion,
               subtitle: summary.remainingDuration.inDays <= 0
                   ? 'مستحق الآن أو مكتمل'
-                  : '${summary.remainingDuration.inDays} يوم متبقٍ',
+                  : '${summary.remainingDuration.inDays} يومًا متبقيًا',
               icon: Icons.event_available_outlined,
             ),
-            _FinancialMiniCard(
+            _SupplementaryInfoCard(
               label: 'حالة الوحدة',
               value: unitAlertLabelForSummary(summary),
               subtitle:
@@ -125,12 +133,19 @@ class PropertyUnitDetailView extends StatelessWidget {
                 'المقدم مسجل على الوحدة، لكن لم يتم تسجيل أي دفعات إضافية أو أقساط حتى الآن.',
           ),
         ],
+        if (summary.missingInstallmentsCount > 0) ...[
+          const SizedBox(height: 12),
+          _InlineNoticeCard(
+            message:
+                'متبقي تسجيل ${summary.missingInstallmentsCount} أقساط يدويًا مع تاريخ الاستحقاق لكل قسط.',
+          ),
+        ],
         if (summary.hasInstallmentScheduleIssues) ...[
           const SizedBox(height: 12),
           _InlineNoticeCard(
             tone: _NoticeTone.warning,
             message:
-                'يتم الآن تجهيز شيت الأقساط ليطابق العدد الحقيقي (${summary.installmentScheduleCount}) مع إزالة التكرار وربط الدفعات على الصفوف الصحيحة.',
+                'تم اكتشاف تكرار أو صفوف أقساط إضافية داخل الشيت الحالي. راجع الصفوف الحالية وتأكد من بقاء كل قسط مرة واحدة فقط.',
           ),
         ],
         const SizedBox(height: 18),
@@ -206,9 +221,8 @@ class PropertyUnitDetailView extends StatelessWidget {
             ),
             LedgerColumn(
               label: 'ملاحظات',
-              valueBuilder: (row) => Text(
-                row.notes.trim().isEmpty ? '-' : row.notes.trim(),
-              ),
+              valueBuilder: (row) =>
+                  Text(row.notes.trim().isEmpty ? '-' : row.notes.trim()),
               minWidth: 180,
             ),
           ],
@@ -216,18 +230,19 @@ class PropertyUnitDetailView extends StatelessWidget {
         const SizedBox(height: 18),
         const _SectionHeading(
           title: 'شيت الأقساط',
-          subtitle: 'يعتمد مباشرة على عدد الأقساط الحقيقي ويرتبط بالدفعات المسجلة.',
+          subtitle:
+              'كل قسط يضاف بتاريخ استحقاق يدوي يحدده المستخدم ويرتبط بالدفعات المسجلة.',
         ),
         const SizedBox(height: 10),
         FinancialLedgerTable<InstallmentComputedRow>(
           title: 'شيت أقساط الوحدة',
           subtitle:
-              '${summary.installmentRows.length} صف ظاهر من ${summary.installmentScheduleCount} - متبقي ${summary.totalRemainingInstallmentsAmount.egp}',
+              '${summary.installmentRows.length} صف مسجل من ${summary.installmentScheduleCount} - المتبقي الكلي ${summary.totalRemaining.egp}',
           rows: summary.installmentRows,
           forceTableLayout: true,
           emptyTitle: 'لا توجد أقساط جاهزة بعد',
           emptyMessage: summary.installmentScheduleCount > 0
-              ? 'سيتم إنشاء صفوف الأقساط تلقائيًا حسب العدد المحدد على الوحدة.'
+              ? 'أضف الأقساط يدويًا وحدد تاريخ كل قسط من زر "إضافة قسط".'
               : 'أدخل عدد الأقساط أولًا أو أضف قسطًا يدويًا إذا كانت الوحدة تعمل بنظام مخصص.',
           onAdd: onAddInstallment,
           addLabel: 'إضافة قسط',
@@ -251,7 +266,8 @@ class PropertyUnitDetailView extends StatelessWidget {
             ),
             LedgerColumn(
               label: 'تاريخ الاستحقاق',
-              valueBuilder: (row) => Text(row.installment.dueDate.formatShort()),
+              valueBuilder: (row) =>
+                  Text(row.installment.dueDate.formatShort()),
               minWidth: 122,
             ),
             LedgerColumn(
@@ -290,16 +306,16 @@ class PropertyUnitDetailView extends StatelessWidget {
           totalsFooter: LedgerTotalsFooter(
             children: [
               LedgerFooterValue(
-                label: 'عدد الأقساط',
+                label: 'الأقساط المخططة',
                 value: '${summary.installmentScheduleCount}',
+              ),
+              LedgerFooterValue(
+                label: 'الأقساط المسجلة',
+                value: '${summary.installmentRows.length}',
               ),
               LedgerFooterValue(
                 label: 'مدفوع بالكامل',
                 value: '${summary.paidInstallmentsCount}',
-              ),
-              LedgerFooterValue(
-                label: 'مدفوع جزئيًا',
-                value: '${summary.partiallyPaidInstallmentsCount}',
               ),
               LedgerFooterValue(
                 label: 'متأخر',
@@ -411,57 +427,157 @@ class _FinancialMiniCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: highlight ? const Color(0xFFEFF6EE) : const Color(0xFFFDFDF9),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: highlight ? const Color(0xFFCFE2CD) : const Color(0xFFD8D8D2),
-        ),
-      ),
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 170;
+        final isTight = constraints.maxWidth < 145;
+        final padding = isCompact ? 12.0 : 14.0;
+        final iconPadding = isTight ? 6.0 : 7.0;
+        final labelStyle = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.secondary,
+          fontWeight: FontWeight.w700,
+          height: 1.2,
+          fontSize: isTight ? 11 : null,
+        );
+        final valueStyle =
+            (isCompact
+                    ? Theme.of(context).textTheme.titleSmall
+                    : Theme.of(context).textTheme.titleMedium)
+                ?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF17352F),
+                  height: 1.05,
+                );
+
+        return Container(
+          decoration: BoxDecoration(
+            color: highlight
+                ? const Color(0xFFEFF6EE)
+                : const Color(0xFFFDFDF9),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: highlight
+                  ? const Color(0xFFCFE2CD)
+                  : const Color(0xFFD8D8D2),
+            ),
+          ),
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(iconPadding),
                 decoration: BoxDecoration(
                   color: const Color(0xFFE7EFE3),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, size: 18, color: const Color(0xFF2E6B3F)),
+                child: Icon(
+                  icon,
+                  size: isTight ? 16 : 17,
+                  color: const Color(0xFF2E6B3F),
+                ),
+              ),
+              SizedBox(height: isCompact ? 10 : 12),
+              Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: labelStyle,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: valueStyle,
               ),
               const Spacer(),
+              const SizedBox(height: 6),
+              Text(
+                subtitle,
+                maxLines: isCompact ? 3 : 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFF55655F),
+                  height: 1.2,
+                  fontSize: isTight ? 11 : null,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.secondary,
-              fontWeight: FontWeight.w700,
+        );
+      },
+    );
+  }
+}
+
+class _SupplementaryInfoCard extends StatelessWidget {
+  const _SupplementaryInfoCard({
+    required this.label,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final String subtitle;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 190, maxWidth: 360),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FAF6),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE7EFE3),
+              borderRadius: BorderRadius.circular(12),
             ),
+            child: Icon(icon, size: 18, color: const Color(0xFF2E6B3F)),
           ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w900,
-              color: const Color(0xFF17352F),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: const Color(0xFF55655F),
-              height: 1.3,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.secondary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w900,
+                    color: const Color(0xFF17352F),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF55655F),
+                    height: 1.25,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -480,15 +596,21 @@ class _ResponsiveMetricGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final count = constraints.maxWidth >= 980
-            ? 3
-            : constraints.maxWidth >= 560
+            ? 4
+            : constraints.maxWidth >= 620
+            ? 2
+            : constraints.maxWidth >= 300
             ? 2
             : 1;
         final ratio = count == 1
-            ? 2.5
+            ? 1.2
+            : constraints.maxWidth < 360
+            ? 0.72
+            : constraints.maxWidth < 420
+            ? 0.82
             : constraints.maxWidth < 760
-            ? 1.42
-            : 1.58;
+            ? 0.94
+            : 1.08;
         return GridView.count(
           crossAxisCount: count,
           childAspectRatio: ratio,
@@ -567,10 +689,7 @@ class _PaymentCompactCard extends StatelessWidget {
             label: 'ملاحظات',
             value: row.notes.trim().isEmpty ? 'بدون ملاحظات' : row.notes.trim(),
           ),
-          if (actions != null) ...[
-            const SizedBox(height: 8),
-            actions!,
-          ],
+          if (actions != null) ...[const SizedBox(height: 8), actions!],
         ],
       ),
     );
@@ -636,16 +755,16 @@ class _InstallmentCompactCard extends StatelessWidget {
             spacing: 12,
             runSpacing: 8,
             children: [
-              _MiniStat(label: 'الاستحقاق', value: row.installment.dueDate.formatShort()),
+              _MiniStat(
+                label: 'الاستحقاق',
+                value: row.installment.dueDate.formatShort(),
+              ),
               _MiniStat(label: 'قيمة القسط', value: row.installment.amount.egp),
               _MiniStat(label: 'المدفوع', value: row.amountPaid.egp),
               _MiniStat(label: 'المتبقي', value: row.remainingAmount.egp),
             ],
           ),
-          if (actions != null) ...[
-            const SizedBox(height: 8),
-            actions!,
-          ],
+          if (actions != null) ...[const SizedBox(height: 8), actions!],
         ],
       ),
     );
@@ -685,7 +804,7 @@ class _MiniStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 132,
+      width: 136,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -699,6 +818,8 @@ class _MiniStat extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: const Color(0xFF17352F),
@@ -722,9 +843,9 @@ class _InfoLine extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: RichText(
         text: TextSpan(
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: const Color(0xFF40564F),
-          ),
+          style: Theme.of(
+            context,
+          ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF40564F)),
           children: [
             TextSpan(
               text: '$label: ',
@@ -824,7 +945,10 @@ class _UnitHeroCard extends StatelessWidget {
           const SizedBox(height: 18),
           _UnitInfoTable(
             rows: [
-              MapEntry('الهاتف', unit.customerPhone.trim().isEmpty ? '-' : unit.customerPhone),
+              MapEntry(
+                'الهاتف',
+                unit.customerPhone.trim().isEmpty ? '-' : unit.customerPhone,
+              ),
               MapEntry('النوع', unit.unitType.label),
               MapEntry('الدور', '${unit.floor}'),
               MapEntry('المساحة', '${formatUnitArea(unit.area)} م²'),
@@ -885,7 +1009,10 @@ class _UnitInfoTable extends StatelessWidget {
               ),
               children: [
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   child: Text(
                     rows[index].key,
                     style: theme.textTheme.bodyMedium?.copyWith(
@@ -895,7 +1022,10 @@ class _UnitInfoTable extends StatelessWidget {
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
                   child: Text(
                     rows[index].value,
                     textAlign: TextAlign.end,

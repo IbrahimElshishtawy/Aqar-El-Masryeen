@@ -1,6 +1,7 @@
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
+import 'package:aqarelmasryeen/features/expenses/data/supplier_payment_repository.dart';
 import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_ledger_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
@@ -49,6 +50,13 @@ final _allMaterialsProvider =
     StreamProvider.autoDispose<List<MaterialExpenseEntry>>(
       (ref) => _fallbackToEmpty(
         ref.watch(materialExpenseRepositoryProvider).watchAll(),
+      ),
+    );
+
+final _allSupplierPaymentsProvider =
+    StreamProvider.autoDispose<List<SupplierPaymentRecord>>(
+      (ref) => _fallbackToEmpty(
+        ref.watch(supplierPaymentRepositoryProvider).watchAll(),
       ),
     );
 
@@ -118,6 +126,16 @@ final propertyMaterialsProvider = Provider.autoDispose
       );
     });
 
+final propertySupplierPaymentsProvider = Provider.autoDispose
+    .family<AsyncValue<List<SupplierPaymentRecord>>, String>((ref, propertyId) {
+      final supplierPayments = ref.watch(_allSupplierPaymentsProvider);
+      return _filterByProperty(
+        supplierPayments,
+        propertyId,
+        (payment) => payment.propertyId,
+      );
+    });
+
 final propertyPartnersProvider = StreamProvider.autoDispose<List<Partner>>(
   (ref) =>
       _fallbackToEmpty(ref.watch(partnerRepositoryProvider).watchPartners()),
@@ -139,6 +157,7 @@ final propertyProjectViewDataProvider = Provider.autoDispose
         ref.watch(propertyPaymentsProvider(propertyId)),
         ref.watch(propertyExpensesProvider(propertyId)),
         ref.watch(propertyMaterialsProvider(propertyId)),
+        ref.watch(propertySupplierPaymentsProvider(propertyId)),
         ref.watch(propertyPartnersProvider),
         ref.watch(propertyPartnerLedgerProvider),
       ];
@@ -180,6 +199,11 @@ final propertyProjectViewDataProvider = Provider.autoDispose
               const [],
           materials:
               ref.watch(propertyMaterialsProvider(propertyId)).valueOrNull ??
+              const [],
+          supplierPayments:
+              ref
+                  .watch(propertySupplierPaymentsProvider(propertyId))
+                  .valueOrNull ??
               const [],
           partners: ref.watch(propertyPartnersProvider).valueOrNull ?? const [],
           partnerLedgers:

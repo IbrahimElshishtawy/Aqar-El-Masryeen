@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:collection/collection.dart';
@@ -51,45 +53,63 @@ class MaterialsLedgerSnapshot {
 class MaterialsLedgerCalculator {
   const MaterialsLedgerCalculator();
 
-  MaterialsLedgerSnapshot build(List<MaterialExpenseEntry> entries) {
+  MaterialsLedgerSnapshot build(
+    List<MaterialExpenseEntry> entries, {
+    List<SupplierPaymentRecord> supplierPayments = const [],
+  }) {
     final activeEntries = entries.where((entry) => !entry.archived).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
-    final overallTotal = activeEntries.fold<double>(
-      0,
-      (sum, entry) => sum + entry.totalPrice,
+    final activeSupplierPayments = supplierPayments
+        .where((payment) => !payment.archived)
+        .toList(growable: false);
+    final entriesBySupplierKey = activeEntries.groupListsBy(
+      (entry) => _supplierLedgerKey(
+        propertyId: entry.propertyId,
+        supplierName: entry.supplierName,
+      ),
     );
-    final overallPaid = activeEntries.fold<double>(
-      0,
-      (sum, entry) => sum + entry.amountPaid,
+    final paymentsBySupplierKey = activeSupplierPayments.groupListsBy(
+      (payment) => _supplierLedgerKey(
+        propertyId: payment.propertyId,
+        supplierName: payment.supplierName,
+      ),
     );
-    final overallRemaining = activeEntries.fold<double>(
+    final supplierKeys = {
+      ...entriesBySupplierKey.keys,
+      ...paymentsBySupplierKey.keys,
+    };
+    final supplierSummaries = supplierKeys
+        .map(
+          (supplierKey) => _buildSupplierSummary(
+            entries: entriesBySupplierKey[supplierKey] ?? const [],
+            supplierPayments: paymentsBySupplierKey[supplierKey] ?? const [],
+          ),
+        )
+        .where(
+          (summary) =>
+              summary.totalPurchased > 0 ||
+              summary.totalPaid > 0 ||
+              summary.invoiceCount > 0,
+        )
+        .sorted((a, b) {
+          final remainingCompare = b.totalRemaining.compareTo(a.totalRemaining);
+          if (remainingCompare != 0) {
+            return remainingCompare;
+          }
+          return b.totalPurchased.compareTo(a.totalPurchased);
+        });
+    final overallTotal = supplierSummaries.fold<double>(
       0,
-      (sum, entry) => sum + entry.amountRemaining,
+      (sum, summary) => sum + summary.totalPurchased,
     );
-
-    final supplierSummaries = activeEntries
-        .groupListsBy((entry) => entry.supplierName.trim())
-        .entries
-        .map((entry) {
-          final supplierEntries = entry.value;
-          return SupplierLedgerSummary(
-            supplierName: entry.key.isEmpty ? 'مورد غير محدد' : entry.key,
-            totalPurchased: supplierEntries.fold<double>(
-              0,
-              (sum, item) => sum + item.totalPrice,
-            ),
-            totalPaid: supplierEntries.fold<double>(
-              0,
-              (sum, item) => sum + item.amountPaid,
-            ),
-            totalRemaining: supplierEntries.fold<double>(
-              0,
-              (sum, item) => sum + item.amountRemaining,
-            ),
-            invoiceCount: supplierEntries.length,
-          );
-        })
-        .sorted((a, b) => b.totalRemaining.compareTo(a.totalRemaining));
+    final overallPaid = supplierSummaries.fold<double>(
+      0,
+      (sum, summary) => sum + summary.totalPaid,
+    );
+    final overallRemaining = supplierSummaries.fold<double>(
+      0,
+      (sum, summary) => sum + summary.totalRemaining,
+    );
 
     final categoryTotals = activeEntries
         .groupListsBy((entry) => entry.materialCategory.label)
@@ -119,4 +139,58 @@ class MaterialsLedgerCalculator {
       overallRemaining: overallRemaining,
     );
   }
+
+  SupplierLedgerSummary _buildSupplierSummary({
+    required List<MaterialExpenseEntry> entries,
+    required List<SupplierPaymentRecord> supplierPayments,
+  }) {
+    final normalizedSupplierName = entries.isNotEmpty
+        ? _normalizeSupplierName(entries.first.supplierName)
+        : supplierPayments.isNotEmpty
+        ? _normalizeSupplierName(supplierPayments.first.supplierName)
+        : 'مورد غير محدد';
+    final totalPurchased = entries.fold<double>(
+      0,
+      (sum, item) => sum + item.totalPrice,
+    );
+    final recordedPaidFromInvoices = entries.fold<double>(
+      0,
+      (sum, item) => sum + item.amountPaid,
+    );
+    final initialPaidAmount = entries.fold<double>(
+      0,
+      (sum, item) => sum + item.initialPaidAmount,
+    );
+    final recordedSupplierPayments = supplierPayments.fold<double>(
+      0,
+      (sum, item) => sum + item.amount,
+    );
+    final resolvedPaid = math.max(
+      recordedPaidFromInvoices,
+      initialPaidAmount + recordedSupplierPayments,
+    );
+    final resolvedRemaining = totalPurchased <= 0
+        ? 0.0
+        : (totalPurchased - resolvedPaid).clamp(0, totalPurchased).toDouble();
+
+    return SupplierLedgerSummary(
+      supplierName: normalizedSupplierName,
+      totalPurchased: totalPurchased,
+      totalPaid: resolvedPaid,
+      totalRemaining: resolvedRemaining,
+      invoiceCount: entries.length,
+    );
+  }
+}
+
+String _supplierLedgerKey({
+  required String propertyId,
+  required String supplierName,
+}) {
+  return '${propertyId.trim()}::${_normalizeSupplierName(supplierName)}';
+}
+
+String _normalizeSupplierName(String supplierName) {
+  final normalized = supplierName.trim();
+  return normalized.isEmpty ? 'مورد غير محدد' : normalized;
 }

@@ -130,6 +130,9 @@ class MaterialExpenseEntry {
     required this.unitPrice,
     required this.totalPrice,
     required this.supplierName,
+    required this.initialPaidAmount,
+    required this.initialPaidByPartnerId,
+    required this.initialPaidByLabel,
     required this.amountPaid,
     required this.amountRemaining,
     required this.notes,
@@ -150,6 +153,9 @@ class MaterialExpenseEntry {
   final double unitPrice;
   final double totalPrice;
   final String supplierName;
+  final double initialPaidAmount;
+  final String initialPaidByPartnerId;
+  final String initialPaidByLabel;
   final double amountPaid;
   final double amountRemaining;
   final String notes;
@@ -186,6 +192,9 @@ class MaterialExpenseEntry {
       'unitPrice': unitPrice,
       'totalPrice': totalPrice,
       'supplierName': supplierName,
+      'initialPaidAmount': initialPaidAmount,
+      'initialPaidByPartnerId': initialPaidByPartnerId,
+      'initialPaidByLabel': initialPaidByLabel,
       'amountPaid': amountPaid,
       'amountRemaining': amountRemaining,
       'dueDate': dueDate,
@@ -202,6 +211,10 @@ class MaterialExpenseEntry {
     final data = map ?? <String, dynamic>{};
     final totalPrice = parseDouble(data['totalPrice']);
     final amountPaid = parseDouble(data['amountPaid']);
+    final initialPaidAmount = parseDouble(
+      data['initialPaidAmount'],
+      fallback: amountPaid.clamp(0, totalPrice).toDouble(),
+    );
     return MaterialExpenseEntry(
       id: id,
       propertyId: data['propertyId'] as String? ?? '',
@@ -215,6 +228,9 @@ class MaterialExpenseEntry {
       unitPrice: parseDouble(data['unitPrice']),
       totalPrice: totalPrice,
       supplierName: data['supplierName'] as String? ?? '',
+      initialPaidAmount: initialPaidAmount,
+      initialPaidByPartnerId: data['initialPaidByPartnerId'] as String? ?? '',
+      initialPaidByLabel: data['initialPaidByLabel'] as String? ?? '',
       amountPaid: amountPaid,
       amountRemaining: parseDouble(
         data['amountRemaining'],
@@ -240,6 +256,9 @@ class MaterialExpenseEntry {
     double? unitPrice,
     double? totalPrice,
     String? supplierName,
+    double? initialPaidAmount,
+    String? initialPaidByPartnerId,
+    String? initialPaidByLabel,
     double? amountPaid,
     double? amountRemaining,
     DateTime? dueDate,
@@ -260,9 +279,113 @@ class MaterialExpenseEntry {
       unitPrice: unitPrice ?? this.unitPrice,
       totalPrice: totalPrice ?? this.totalPrice,
       supplierName: supplierName ?? this.supplierName,
+      initialPaidAmount: initialPaidAmount ?? this.initialPaidAmount,
+      initialPaidByPartnerId:
+          initialPaidByPartnerId ?? this.initialPaidByPartnerId,
+      initialPaidByLabel: initialPaidByLabel ?? this.initialPaidByLabel,
       amountPaid: amountPaid ?? this.amountPaid,
       amountRemaining: amountRemaining ?? this.amountRemaining,
       dueDate: dueDate ?? this.dueDate,
+      notes: notes ?? this.notes,
+      createdBy: createdBy ?? this.createdBy,
+      updatedBy: updatedBy ?? this.updatedBy,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      archived: archived ?? this.archived,
+    );
+  }
+}
+
+class SupplierPaymentRecord {
+  const SupplierPaymentRecord({
+    required this.id,
+    required this.propertyId,
+    required this.supplierName,
+    required this.amount,
+    required this.paidAt,
+    required this.paidByPartnerId,
+    required this.paidByLabel,
+    required this.notes,
+    required this.createdBy,
+    required this.updatedBy,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.archived,
+  });
+
+  final String id;
+  final String propertyId;
+  final String supplierName;
+  final double amount;
+  final DateTime paidAt;
+  final String paidByPartnerId;
+  final String paidByLabel;
+  final String notes;
+  final String createdBy;
+  final String updatedBy;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final bool archived;
+
+  Map<String, dynamic> toMap() {
+    return {
+      'propertyId': propertyId,
+      'supplierName': supplierName,
+      'amount': amount,
+      'paidAt': paidAt,
+      'paidByPartnerId': paidByPartnerId,
+      'paidByLabel': paidByLabel,
+      'notes': notes,
+      'createdBy': createdBy,
+      'updatedBy': updatedBy,
+      'createdAt': createdAt,
+      'updatedAt': updatedAt,
+      'archived': archived,
+    };
+  }
+
+  factory SupplierPaymentRecord.fromMap(String id, Map<String, dynamic>? map) {
+    final data = map ?? <String, dynamic>{};
+    return SupplierPaymentRecord(
+      id: id,
+      propertyId: data['propertyId'] as String? ?? '',
+      supplierName: data['supplierName'] as String? ?? '',
+      amount: parseDouble(data['amount']),
+      paidAt: parseDate(data['paidAt']),
+      paidByPartnerId: data['paidByPartnerId'] as String? ?? '',
+      paidByLabel: data['paidByLabel'] as String? ?? '',
+      notes: data['notes'] as String? ?? '',
+      createdBy: data['createdBy'] as String? ?? '',
+      updatedBy: data['updatedBy'] as String? ?? '',
+      createdAt: parseDate(data['createdAt']),
+      updatedAt: parseDate(data['updatedAt']),
+      archived: data['archived'] as bool? ?? false,
+    );
+  }
+
+  SupplierPaymentRecord copyWith({
+    String? id,
+    String? propertyId,
+    String? supplierName,
+    double? amount,
+    DateTime? paidAt,
+    String? paidByPartnerId,
+    String? paidByLabel,
+    String? notes,
+    String? createdBy,
+    String? updatedBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    bool? archived,
+  }) {
+    return SupplierPaymentRecord(
+      id: id ?? this.id,
+      propertyId: propertyId ?? this.propertyId,
+      supplierName: supplierName ?? this.supplierName,
+      amount: amount ?? this.amount,
+      paidAt: paidAt ?? this.paidAt,
+      paidByPartnerId: paidByPartnerId ?? this.paidByPartnerId,
+      paidByLabel: paidByLabel ?? this.paidByLabel,
       notes: notes ?? this.notes,
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,

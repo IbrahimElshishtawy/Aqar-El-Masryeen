@@ -22,25 +22,25 @@ class DashboardOverviewSection extends StatelessWidget {
               DashboardStatCard(
                 label: 'قيمة المبيعات',
                 value: snapshot.totalSalesValue.egp,
-                subtitle: 'إجمالي العقود المباعة',
+                subtitle: 'إجمالي المبيعات على مستوى كل المشاريع والوحدات',
                 icon: Icons.sell_outlined,
               ),
               DashboardStatCard(
                 label: 'قيمة المصروفات',
                 value: snapshot.totalExpenses.egp,
-                subtitle: 'مواد البناء وفواتير الموردين',
+                subtitle: 'مصروفات الطرفين مع مدفوعات الموردين الفعلية',
                 icon: Icons.receipt_long_outlined,
               ),
               DashboardStatCard(
                 label: 'الأقساط المحصلة',
                 value: snapshot.totalPaidInstallments.egp,
-                subtitle: 'التحصيلات المستلمة',
+                subtitle: 'المقدمات وكل الدفعات المحصلة من العملاء',
                 icon: Icons.payments_outlined,
               ),
               DashboardStatCard(
                 label: 'الأقساط المتبقية',
                 value: snapshot.totalRemainingInstallments.egp,
-                subtitle: 'أرصدة العملاء المتبقية',
+                subtitle: 'المتبقي على العملاء على مستوى النظام بالكامل',
                 icon: Icons.schedule_outlined,
               ),
             ],
@@ -134,14 +134,16 @@ class DashboardStatsGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final count = constraints.maxWidth >= 520
-            ? 3
+        final count = constraints.maxWidth >= 920
+            ? 4
+            : constraints.maxWidth >= 520
+            ? 2
             : constraints.maxWidth >= 285
             ? 2
             : 1;
         final ratio = switch (count) {
-          3 => 1.16,
-          2 => constraints.maxWidth < 340 ? 0.94 : 1.0,
+          4 => 1.02,
+          2 => constraints.maxWidth < 340 ? 0.88 : 0.96,
           _ => 2.15,
         };
         return GridView.builder(

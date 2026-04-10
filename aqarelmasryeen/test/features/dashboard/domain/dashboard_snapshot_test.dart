@@ -41,9 +41,7 @@ void main() {
           area: 120,
           customerName: 'Ahmed',
           customerPhone: '0100',
-          saleAmount: 1000000,
-          totalPrice: 1000000,
-          contractAmount: 1000000,
+          apartmentPrice: 1000000,
           downPayment: 100000,
           remainingAmount: 900000,
           installmentScheduleCount: 2,
@@ -153,8 +151,28 @@ void main() {
           unitPrice: 1000,
           totalPrice: 10000,
           supplierName: 'Supplier',
+          initialPaidAmount: 4000,
+          initialPaidByPartnerId: 'partner-1',
+          initialPaidByLabel: 'Partner',
           amountPaid: 4000,
           amountRemaining: 6000,
+          notes: '',
+          createdBy: 'user-1',
+          updatedBy: 'user-1',
+          createdAt: now,
+          updatedAt: now,
+          archived: false,
+        ),
+      ],
+      supplierPayments: [
+        SupplierPaymentRecord(
+          id: 'supplier-payment-1',
+          propertyId: 'property-1',
+          supplierName: 'Supplier',
+          amount: 3000,
+          paidAt: now,
+          paidByPartnerId: 'partner-1',
+          paidByLabel: 'Partner',
           notes: '',
           createdBy: 'user-1',
           updatedBy: 'user-1',
@@ -167,10 +185,10 @@ void main() {
     );
 
     expect(snapshot.totalSalesValue, 1000000);
-    expect(snapshot.totalExpenses, 22000);
-    expect(snapshot.totalPaidInstallments, 75000);
+    expect(snapshot.totalExpenses, 19000);
+    expect(snapshot.totalPaidInstallments, 175000);
     expect(snapshot.totalRemainingInstallments, 825000);
-    expect(snapshot.chart.last.expenses, 22000);
+    expect(snapshot.chart.last.expenses, 19000);
     expect(snapshot.chart.last.payments, 75000);
   });
 }

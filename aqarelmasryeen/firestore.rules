@@ -92,6 +92,7 @@ service cloud.firestore {
           'properties',
           'expenses',
           'material_expenses',
+          'supplier_payments',
           'units',
           'installment_plans',
           'installments',

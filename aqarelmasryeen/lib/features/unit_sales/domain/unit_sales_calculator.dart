@@ -77,9 +77,7 @@ class UnitSaleComputedSummary {
   bool get isFullyPaid => totalRemaining <= 0;
 
   bool get hasInstallmentScheduleIssues =>
-      missingInstallmentsCount > 0 ||
-      duplicateInstallmentsCount > 0 ||
-      extraInstallmentsCount > 0;
+      duplicateInstallmentsCount > 0 || extraInstallmentsCount > 0;
 }
 
 class UnitSalesCalculator {
@@ -180,12 +178,6 @@ class UnitSalesCalculator {
       final missingInstallmentsCount = configuredScheduleCount > rows.length
           ? configuredScheduleCount - rows.length
           : 0;
-      final financedAmount = (unit.contractAmount - unit.downPayment)
-          .clamp(0, unit.contractAmount)
-          .toDouble();
-      final estimatedInstallmentAmount = configuredScheduleCount <= 0
-          ? 0.0
-          : financedAmount / configuredScheduleCount;
 
       final paidInstallmentsCount = rows
           .where((row) => row.status == InstallmentStatus.paid)
@@ -207,8 +199,7 @@ class UnitSalesCalculator {
       final totalRemainingInstallmentsAmount = rows.fold<double>(
         0,
         (sum, row) => sum + row.remainingAmount,
-      ) +
-      (missingInstallmentsCount * estimatedInstallmentAmount);
+      );
       final trackedUnitPayments = unitPayments.where((payment) {
         return !payment.isDownPayment;
       }).fold<double>(

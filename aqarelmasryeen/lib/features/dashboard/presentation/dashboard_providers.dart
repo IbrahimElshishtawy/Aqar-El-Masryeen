@@ -2,6 +2,7 @@ import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/dashboard/domain/dashboard_snapshot.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
+import 'package:aqarelmasryeen/features/expenses/data/supplier_payment_repository.dart';
 import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_ledger_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
@@ -36,6 +37,10 @@ final dashboardMaterialsProvider = StreamProvider.autoDispose(
   (ref) =>
       _fallbackToEmpty(ref.watch(materialExpenseRepositoryProvider).watchAll()),
 );
+final dashboardSupplierPaymentsProvider = StreamProvider.autoDispose(
+  (ref) =>
+      _fallbackToEmpty(ref.watch(supplierPaymentRepositoryProvider).watchAll()),
+);
 final dashboardPartnersProvider = StreamProvider.autoDispose(
   (ref) =>
       _fallbackToEmpty(ref.watch(partnerRepositoryProvider).watchPartners()),
@@ -54,6 +59,7 @@ final dashboardViewDataProvider =
         ref.watch(dashboardInstallmentsProvider),
         ref.watch(dashboardExpensesProvider),
         ref.watch(dashboardMaterialsProvider),
+        ref.watch(dashboardSupplierPaymentsProvider),
         ref.watch(dashboardPartnersProvider),
         ref.watch(dashboardPartnerLedgerProvider),
       ];
@@ -80,6 +86,8 @@ final dashboardViewDataProvider =
           ref.watch(dashboardExpensesProvider).valueOrNull ?? const [];
       final materials =
           ref.watch(dashboardMaterialsProvider).valueOrNull ?? const [];
+      final supplierPayments =
+          ref.watch(dashboardSupplierPaymentsProvider).valueOrNull ?? const [];
       final partnerLedgerEntries =
           ref.watch(dashboardPartnerLedgerProvider).valueOrNull ?? const [];
       final session = ref.watch(authSessionProvider).valueOrNull;
@@ -96,6 +104,7 @@ final dashboardViewDataProvider =
         partners: partners,
         expenses: expenses,
         materialExpenses: materials,
+        supplierPayments: supplierPayments,
         ledgerEntries: partnerLedgerEntries,
       );
 
@@ -113,6 +122,7 @@ final dashboardViewDataProvider =
             expenses:
                 ref.watch(dashboardExpensesProvider).valueOrNull ?? const [],
             materials: materials,
+            supplierPayments: supplierPayments,
             partners: partners,
           ),
           partners: partners,
@@ -132,11 +142,12 @@ DashboardViewData _buildEmptyDashboardViewData(Ref ref) {
       properties: const [],
       units: const [],
       installments: const [],
-      payments: const [],
-      expenses: const [],
-      materials: const [],
-      partners: const [],
-    ),
+    payments: const [],
+    expenses: const [],
+    materials: const [],
+    supplierPayments: const [],
+    partners: const [],
+  ),
     partners: const [],
     currentPartner: null,
     currentUserId: session?.userId ?? '',

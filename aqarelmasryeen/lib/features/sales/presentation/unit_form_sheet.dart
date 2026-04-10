@@ -1,6 +1,5 @@
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
-import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
@@ -25,8 +24,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
   late final TextEditingController _areaController;
   late final TextEditingController _customerNameController;
   late final TextEditingController _customerPhoneController;
-  late final TextEditingController _saleAmountController;
-  late final TextEditingController _contractAmountController;
+  late final TextEditingController _apartmentPriceController;
   late final TextEditingController _downPaymentController;
   late final TextEditingController _installmentScheduleCountController;
   late final TextEditingController _notesController;
@@ -52,11 +50,8 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     _customerPhoneController = TextEditingController(
       text: unit?.customerPhone ?? '',
     );
-    _saleAmountController = TextEditingController(
-      text: unit == null ? '' : unit.saleAmount.toStringAsFixed(0),
-    );
-    _contractAmountController = TextEditingController(
-      text: unit == null ? '' : unit.contractAmount.toStringAsFixed(0),
+    _apartmentPriceController = TextEditingController(
+      text: unit == null ? '' : unit.apartmentPrice.toStringAsFixed(0),
     );
     _downPaymentController = TextEditingController(
       text: unit == null ? '' : unit.downPayment.toStringAsFixed(0),
@@ -77,8 +72,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     _areaController.dispose();
     _customerNameController.dispose();
     _customerPhoneController.dispose();
-    _saleAmountController.dispose();
-    _contractAmountController.dispose();
+    _apartmentPriceController.dispose();
     _downPaymentController.dispose();
     _installmentScheduleCountController.dispose();
     _notesController.dispose();
@@ -86,15 +80,19 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     final session = ref.read(authSessionProvider).valueOrNull;
-    if (session == null) return;
+    if (session == null) {
+      return;
+    }
 
     setState(() => _saving = true);
     final now = DateTime.now();
-    final saleAmount = double.tryParse(_saleAmountController.text.trim()) ?? 0;
-    final contractAmount =
-        double.tryParse(_contractAmountController.text.trim()) ?? saleAmount;
+    final apartmentPrice =
+        double.tryParse(_apartmentPriceController.text.trim()) ?? 0;
     final downPayment =
         double.tryParse(_downPaymentController.text.trim()) ?? 0;
 
@@ -107,12 +105,10 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
       area: double.tryParse(_areaController.text.trim()) ?? 0,
       customerName: _customerNameController.text.trim(),
       customerPhone: _customerPhoneController.text.trim(),
-      saleAmount: saleAmount,
-      totalPrice: contractAmount,
-      contractAmount: contractAmount,
+      apartmentPrice: apartmentPrice,
       downPayment: downPayment,
-      remainingAmount: (contractAmount - downPayment)
-          .clamp(0, contractAmount)
+      remainingAmount: (apartmentPrice - downPayment)
+          .clamp(0, apartmentPrice)
           .toDouble(),
       installmentScheduleCount:
           int.tryParse(_installmentScheduleCountController.text.trim()) ?? 0,
@@ -128,12 +124,6 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
 
     final unitId = await ref.read(salesRepositoryProvider).save(unit);
     final savedUnit = unit.copyWith(id: unitId);
-    if (savedUnit.installmentScheduleCount > 0 &&
-        savedUnit.paymentPlanType != PaymentPlanType.cash) {
-      await ref
-          .read(installmentRepositoryProvider)
-          .syncUnitInstallments(unit: savedUnit, actorId: session.userId);
-    }
     await ref
         .read(activityRepositoryProvider)
         .log(
@@ -144,12 +134,14 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
           entityId: unitId,
           metadata: {
             'propertyId': widget.propertyId,
-            'contractAmount': savedUnit.contractAmount,
+            'apartmentPrice': savedUnit.apartmentPrice,
             'status': savedUnit.status.name,
           },
         );
 
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
@@ -183,9 +175,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(
-                      labelText: 'المساحة بالمتر',
-                    ),
+                    decoration: const InputDecoration(labelText: 'المساحة بالمتر'),
                   ),
                 ),
               ],
@@ -215,40 +205,18 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
               decoration: const InputDecoration(labelText: 'رقم هاتف العميل'),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _saleAmountController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(labelText: 'قيمة البيع'),
-                    validator: (value) {
-                      if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'أدخل قيمة البيع.';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _contractAmountController,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(labelText: 'الإجمالي'),
-                    validator: (value) {
-                      if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'أدخل إجمالي العقد.';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
+            TextFormField(
+              controller: _apartmentPriceController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: const InputDecoration(labelText: 'سعر الشقة'),
+              validator: (value) {
+                if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
+                  return 'أدخل سعر الشقة.';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 12),
             Row(
@@ -269,6 +237,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       labelText: 'عدد الأقساط المخطط',
+                      helperText: 'تسجيل التواريخ يتم يدويًا من شيت الأقساط.',
                     ),
                   ),
                 ),
@@ -283,8 +252,9 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                         DropdownMenuItem(value: item, child: Text(item.label)),
                   )
                   .toList(),
-              onChanged: (value) =>
-                  setState(() => _paymentPlanType = value ?? _paymentPlanType),
+              onChanged: (value) => setState(
+                () => _paymentPlanType = value ?? _paymentPlanType,
+              ),
               decoration: const InputDecoration(labelText: 'نظام السداد'),
             ),
             const SizedBox(height: 12),

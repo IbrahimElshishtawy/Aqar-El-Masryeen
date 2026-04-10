@@ -1,11 +1,12 @@
+import 'dart:math' as math;
+
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
-import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
-import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
+import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,11 +14,15 @@ class MaterialExpenseFormSheet extends ConsumerStatefulWidget {
   const MaterialExpenseFormSheet({
     super.key,
     required this.propertyId,
+    required this.partners,
     this.entry,
+    this.initialSupplierName,
   });
 
   final String propertyId;
+  final List<Partner> partners;
   final MaterialExpenseEntry? entry;
+  final String? initialSupplierName;
 
   @override
   ConsumerState<MaterialExpenseFormSheet> createState() =>
@@ -27,201 +32,199 @@ class MaterialExpenseFormSheet extends ConsumerStatefulWidget {
 class _MaterialExpenseFormSheetState
     extends ConsumerState<MaterialExpenseFormSheet> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _itemController;
-  late final TextEditingController _quantityController;
-  late final TextEditingController _unitPriceController;
-  late final TextEditingController _totalPriceController;
   late final TextEditingController _supplierController;
-  late final TextEditingController _amountPaidController;
+  late final TextEditingController _itemNameController;
+  late final TextEditingController _quantityController;
+  late final TextEditingController _totalInvoiceController;
+  late final TextEditingController _paidController;
   late final TextEditingController _notesController;
-  late MaterialCategory _category;
-  late DateTime _date;
-  late DateTime _dueDate;
+  late DateTime _selectedDate;
+  DateTime? _dueDate;
+  late String _paidByPartnerId;
   bool _saving = false;
-  bool _syncingTotalPrice = false;
 
   @override
   void initState() {
     super.initState();
     final entry = widget.entry;
-    _itemController = TextEditingController(text: entry?.itemName ?? '');
+    _supplierController = TextEditingController(
+      text: entry?.supplierName ?? widget.initialSupplierName ?? '',
+    );
+    _itemNameController = TextEditingController(text: entry?.itemName ?? '');
     _quantityController = TextEditingController(
       text: entry == null ? '' : entry.quantity.toStringAsFixed(0),
     );
-    _unitPriceController = TextEditingController(
-      text: entry == null ? '' : entry.unitPrice.toStringAsFixed(0),
-    );
-    _totalPriceController = TextEditingController(
+    _totalInvoiceController = TextEditingController(
       text: entry == null ? '' : entry.totalPrice.toStringAsFixed(0),
     );
-    _supplierController = TextEditingController(
-      text: entry?.supplierName ?? '',
-    );
-    _amountPaidController = TextEditingController(
-      text: entry == null ? '' : entry.amountPaid.toStringAsFixed(0),
+    _paidController = TextEditingController(
+      text: entry == null ? '' : entry.initialPaidAmount.toStringAsFixed(0),
     );
     _notesController = TextEditingController(text: entry?.notes ?? '');
-    _category = entry?.materialCategory ?? MaterialCategory.brick;
-    _date = entry?.date ?? DateTime.now();
-    _dueDate = entry?.dueDate ?? DateTime.now();
-    _quantityController.addListener(_syncTotalPrice);
-    _unitPriceController.addListener(_syncTotalPrice);
-    _syncTotalPrice();
+    _selectedDate = entry?.date ?? DateTime.now();
+    _dueDate = entry?.dueDate;
+    _paidByPartnerId = _resolveInitialPaidByPartnerId();
   }
 
   @override
   void dispose() {
-    _itemController.dispose();
-    _quantityController.dispose();
-    _unitPriceController.dispose();
-    _totalPriceController.dispose();
     _supplierController.dispose();
-    _amountPaidController.dispose();
+    _itemNameController.dispose();
+    _quantityController.dispose();
+    _totalInvoiceController.dispose();
+    _paidController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDate({required bool due}) async {
-    final current = due ? _dueDate : _date;
+  Future<void> _pickInvoiceDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: current,
+      initialDate: _selectedDate,
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
     if (picked != null) {
-      setState(() {
-        if (due) {
-          _dueDate = picked;
-        } else {
-          _date = picked;
-        }
-      });
+      setState(() => _selectedDate = picked);
     }
   }
 
-  void _syncTotalPrice() {
-    if (_syncingTotalPrice) {
-      return;
+  Future<void> _pickDueDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _dueDate ?? _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() => _dueDate = picked);
+    }
+  }
+
+  String _resolveInitialPaidByPartnerId() {
+    if (widget.entry?.initialPaidByPartnerId.isNotEmpty == true) {
+      return widget.entry!.initialPaidByPartnerId;
     }
 
-    final quantity = double.tryParse(_quantityController.text.trim());
-    final unitPrice = double.tryParse(_unitPriceController.text.trim());
-    if (quantity == null ||
-        unitPrice == null ||
-        quantity <= 0 ||
-        unitPrice <= 0) {
-      if (widget.entry == null &&
-          _totalPriceController.text.trim().isNotEmpty) {
-        _syncingTotalPrice = true;
-        _totalPriceController.clear();
-        _syncingTotalPrice = false;
+    final currentUserId = ref.read(authSessionProvider).valueOrNull?.userId;
+    if (currentUserId == null) {
+      return widget.partners.isEmpty ? '' : widget.partners.first.id;
+    }
+
+    for (final partner in widget.partners) {
+      if (partner.userId == currentUserId) {
+        return partner.id;
       }
-      return;
     }
+    return widget.partners.isEmpty ? '' : widget.partners.first.id;
+  }
 
-    final computedTotal = (quantity * unitPrice).toStringAsFixed(0);
-    if (_totalPriceController.text.trim() == computedTotal) {
-      return;
+  String _partnerLabel(String partnerId) {
+    for (final partner in widget.partners) {
+      if (partner.id == partnerId) {
+        final name = partner.name.trim();
+        return name.isEmpty ? 'شريك' : name;
+      }
     }
-
-    _syncingTotalPrice = true;
-    _totalPriceController.text = computedTotal;
-    _syncingTotalPrice = false;
+    return 'شريك';
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     final session = ref.read(authSessionProvider).valueOrNull;
-    if (session == null) return;
-    setState(() => _saving = true);
+    if (session == null) {
+      return;
+    }
 
-    final totalPrice = double.parse(_totalPriceController.text.trim());
-    final amountPaid = double.tryParse(_amountPaidController.text.trim()) ?? 0;
-    final entry = MaterialExpenseEntry(
-      id: widget.entry?.id ?? '',
-      propertyId: widget.propertyId,
-      date: _date,
-      materialCategory: _category,
-      itemName: _itemController.text.trim(),
-      quantity: double.parse(_quantityController.text.trim()),
-      unitPrice: double.parse(_unitPriceController.text.trim()),
-      totalPrice: totalPrice,
-      supplierName: _supplierController.text.trim(),
-      amountPaid: amountPaid,
-      amountRemaining: (totalPrice - amountPaid)
-          .clamp(0, totalPrice)
-          .toDouble(),
-      dueDate: _dueDate,
-      notes: _notesController.text.trim(),
-      createdBy: widget.entry?.createdBy ?? session.userId,
-      updatedBy: session.userId,
-      createdAt:
-          widget.entry?.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
-      updatedAt: DateTime.now(),
-      archived: false,
+    final quantity = double.parse(_quantityController.text.trim());
+    final totalPrice = double.parse(_totalInvoiceController.text.trim());
+    final initialPaidAmount = double.parse(_paidController.text.trim());
+    final previousExtraPaid = math.max(
+      0,
+      (widget.entry?.amountPaid ?? 0) - (widget.entry?.initialPaidAmount ?? 0),
     );
+    final totalPaid = initialPaidAmount + previousExtraPaid;
+    final remainingAmount = (totalPrice - totalPaid).clamp(0, totalPrice).toDouble();
+    final unitPrice = quantity <= 0 ? 0.0 : totalPrice / quantity;
+    final now = DateTime.now();
 
-    final savedId = await ref
+    setState(() => _saving = true);
+    await ref
         .read(materialExpenseRepositoryProvider)
-        .save(entry);
-    await ref
-        .read(activityRepositoryProvider)
-        .log(
-          actorId: session.userId,
-          actorName: session.profile?.name ?? 'شريك',
-          action: widget.entry == null
-              ? 'material_expense_created'
-              : 'material_expense_updated',
-          entityType: 'material_expense',
-          entityId: savedId,
-          metadata: {
-            'propertyId': widget.propertyId,
-            'amount': entry.totalPrice,
-          },
-        );
-    await ref
-        .read(notificationRepositoryProvider)
-        .create(
-          userId: session.userId,
-          title: entry.totalPrice >= 100000
-              ? 'تم تسجيل مصروف مواد كبير'
-              : 'تم تحديث مصروف المواد',
-          body: '${entry.itemName} - ${entry.supplierName}',
-          type: entry.totalPrice >= 100000
-              ? NotificationType.largeExpenseRecorded
-              : NotificationType.expenseAdded,
-          route: '/properties/${widget.propertyId}',
+        .save(
+          MaterialExpenseEntry(
+            id: widget.entry?.id ?? '',
+            propertyId: widget.propertyId,
+            date: _selectedDate,
+            materialCategory: widget.entry?.materialCategory ?? MaterialCategory.other,
+            itemName: _itemNameController.text.trim(),
+            quantity: quantity,
+            unitPrice: unitPrice,
+            totalPrice: totalPrice,
+            supplierName: _supplierController.text.trim(),
+            initialPaidAmount: initialPaidAmount,
+            initialPaidByPartnerId: initialPaidAmount > 0 ? _paidByPartnerId : '',
+            initialPaidByLabel: initialPaidAmount > 0 ? _partnerLabel(_paidByPartnerId) : '',
+            amountPaid: totalPaid,
+            amountRemaining: remainingAmount,
+            notes: _notesController.text.trim(),
+            createdBy: widget.entry?.createdBy ?? session.userId,
+            updatedBy: session.userId,
+            createdAt:
+                widget.entry?.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+            updatedAt: now,
+            archived: false,
+            dueDate: _dueDate,
+          ),
         );
 
-    if (mounted) Navigator.of(context).pop();
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final payerOptions = widget.partners
+        .where((partner) => partner.id.trim().isNotEmpty)
+        .toList(growable: false);
+    final hasSelectedPayer = payerOptions.any(
+      (partner) => partner.id == _paidByPartnerId,
+    );
+
     return AppFormSheet(
-      title: widget.entry == null
-          ? 'إضافة فاتورة مواد بناء'
-          : 'تعديل فاتورة مواد البناء',
+      title: widget.entry == null ? 'إضافة فاتورة مواد بناء' : 'تعديل فاتورة مواد بناء',
       child: Form(
         key: _formKey,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DropdownButtonFormField<MaterialCategory>(
-              initialValue: _category,
-              items: MaterialCategory.values
-                  .map(
-                    (item) =>
-                        DropdownMenuItem(value: item, child: Text(item.label)),
-                  )
-                  .toList(),
-              onChanged: (value) =>
-                  setState(() => _category = value ?? _category),
-              decoration: const InputDecoration(labelText: 'نوع المادة'),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F8F4),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFD8D8D2)),
+              ),
+              child: Text(
+                'الفاتورة تحفظ باسم الصنف والمورد وإجمالي الفاتورة فقط. لا يتم عرض نوع المادة أو سعر الوحدة داخل النموذج.',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _itemController,
+              controller: _supplierController,
+              decoration: const InputDecoration(labelText: 'اسم التاجر / المورد'),
+              validator: (value) =>
+                  (value ?? '').trim().isEmpty ? 'أدخل اسم المورد.' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _itemNameController,
               decoration: const InputDecoration(labelText: 'اسم الصنف'),
               validator: (value) =>
                   (value ?? '').trim().isEmpty ? 'أدخل اسم الصنف.' : null,
@@ -237,8 +240,9 @@ class _MaterialExpenseFormSheetState
                     ),
                     decoration: const InputDecoration(labelText: 'الكمية'),
                     validator: (value) {
-                      if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'أدخل الكمية.';
+                      final quantity = double.tryParse((value ?? '').trim()) ?? 0;
+                      if (quantity <= 0) {
+                        return 'أدخل كمية صحيحة.';
                       }
                       return null;
                     },
@@ -247,14 +251,15 @@ class _MaterialExpenseFormSheetState
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextFormField(
-                    controller: _unitPriceController,
+                    controller: _totalInvoiceController,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'سعر الوحدة'),
+                    decoration: const InputDecoration(labelText: 'إجمالي الفاتورة'),
                     validator: (value) {
-                      if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'أدخل سعر الوحدة.';
+                      final total = double.tryParse((value ?? '').trim()) ?? 0;
+                      if (total <= 0) {
+                        return 'أدخل إجمالي الفاتورة.';
                       }
                       return null;
                     },
@@ -264,65 +269,74 @@ class _MaterialExpenseFormSheetState
             ),
             const SizedBox(height: 12),
             TextFormField(
-              controller: _totalPriceController,
-              readOnly: true,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(
-                labelText: 'إجمالي الفاتورة',
-                helperText: 'يتم حسابه تلقائيًا من الكمية وسعر الوحدة',
-              ),
+              controller: _paidController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(labelText: 'المدفوع'),
               validator: (value) {
-                if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                  return 'أدخل إجمالي الفاتورة.';
+                final paid = double.tryParse((value ?? '').trim()) ?? 0;
+                final total = double.tryParse(_totalInvoiceController.text.trim()) ?? 0;
+                if (paid < 0) {
+                  return 'أدخل مبلغًا صحيحًا.';
+                }
+                if (paid > total) {
+                  return 'المدفوع لا يمكن أن يكون أكبر من إجمالي الفاتورة.';
                 }
                 return null;
               },
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _supplierController,
-              decoration: const InputDecoration(
-                labelText: 'اسم التاجر / المورد',
-              ),
-              validator: (value) => (value ?? '').trim().isEmpty
-                  ? 'أدخل اسم التاجر أو المورد.'
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _amountPaidController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(labelText: 'المدفوع'),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _pickDate(due: false),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(labelText: 'التاريخ'),
-                      child: Text(_date.formatShort()),
+            if (payerOptions.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: hasSelectedPayer ? _paidByPartnerId : null,
+                items: [
+                  for (final partner in payerOptions)
+                    DropdownMenuItem(
+                      value: partner.id,
+                      child: Text(partner.name.trim().isEmpty ? 'شريك' : partner.name),
                     ),
-                  ),
+                ],
+                onChanged: (value) {
+                  setState(() => _paidByPartnerId = value ?? _paidByPartnerId);
+                },
+                decoration: const InputDecoration(labelText: 'من الذي دفع'),
+              ),
+            ],
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: _pickInvoiceDate,
+              child: InputDecorator(
+                decoration: const InputDecoration(labelText: 'التاريخ'),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(_selectedDate.formatShort())),
+                    const Icon(Icons.calendar_today_outlined, size: 18),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: InkWell(
-                    onTap: () => _pickDate(due: true),
-                    child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'تاريخ الاستحقاق',
+              ),
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: _pickDueDate,
+              child: InputDecorator(
+                decoration: const InputDecoration(labelText: 'تاريخ الاستحقاق'),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _dueDate == null ? 'غير محدد' : _dueDate!.formatShort(),
                       ),
-                      child: Text(_dueDate.formatShort()),
                     ),
-                  ),
+                    if (_dueDate != null)
+                      IconButton(
+                        onPressed: () => setState(() => _dueDate = null),
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'إزالة التاريخ',
+                      ),
+                    const Icon(Icons.calendar_today_outlined, size: 18),
+                  ],
                 ),
-              ],
+              ),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -336,9 +350,7 @@ class _MaterialExpenseFormSheetState
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(
-                  _saving ? 'جاري الحفظ...' : 'حفظ فاتورة مواد البناء',
-                ),
+                child: Text(_saving ? 'جاري الحفظ...' : 'حفظ الفاتورة'),
               ),
             ),
           ],

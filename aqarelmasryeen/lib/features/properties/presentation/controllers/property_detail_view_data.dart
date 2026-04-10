@@ -13,15 +13,14 @@ class PropertyProjectViewData {
     required this.currentUserId,
     required this.currentUserDisplayName,
     required this.currentPartner,
-    required this.normalizedCurrentShare,
     required this.partners,
     required this.unitSummaries,
     required this.installments,
     required this.payments,
     required this.directExpenses,
     required this.expenseLedgerRows,
-    required this.dailyExpenseRows,
     required this.materials,
+    required this.supplierPayments,
     required this.materialsSnapshot,
     required this.featuredMaterialCategories,
     required this.featuredMaterialTotals,
@@ -35,26 +34,20 @@ class PropertyProjectViewData {
     required this.overdueInstallments,
     required this.totalDirectExpenses,
     required this.totalProjectExpenses,
-    required this.todayDirectExpenses,
-    required this.myTodayExpenseShare,
-    required this.counterpartTodayExpenseShare,
-    required this.myTotalExpenseShare,
-    required this.counterpartTotalExpenseShare,
   });
 
   final PropertyProject property;
   final String? currentUserId;
   final String currentUserDisplayName;
   final Partner? currentPartner;
-  final double normalizedCurrentShare;
   final List<Partner> partners;
   final List<UnitSaleComputedSummary> unitSummaries;
   final List<Installment> installments;
   final List<PaymentRecord> payments;
   final List<ExpenseRecord> directExpenses;
   final List<PropertyExpenseLedgerRow> expenseLedgerRows;
-  final List<PropertyExpenseDayRow> dailyExpenseRows;
   final List<MaterialExpenseEntry> materials;
+  final List<SupplierPaymentRecord> supplierPayments;
   final MaterialsLedgerSnapshot materialsSnapshot;
   final List<MaterialCategory> featuredMaterialCategories;
   final List<MaterialCategoryTotal> featuredMaterialTotals;
@@ -69,18 +62,13 @@ class PropertyProjectViewData {
   final int overdueInstallments;
   final double totalDirectExpenses;
   final double totalProjectExpenses;
-  final double todayDirectExpenses;
-  final double myTodayExpenseShare;
-  final double counterpartTodayExpenseShare;
-  final double myTotalExpenseShare;
-  final double counterpartTotalExpenseShare;
 
-  int get totalUnitsCount =>
-      property.apartmentCount > 0 ? property.apartmentCount : unitSummaries.length;
+  int get totalUnitsCount => property.apartmentCount > 0
+      ? property.apartmentCount
+      : unitSummaries.length;
 
-  int get soldUnitsCount => unitSummaries.length;
-
-  String get myLabel => currentColumnLabel;
+  int get soldUnitsCount =>
+      unitSummaries.where((summary) => summary.unit.hasRecordedSale).length;
 
   String get currentColumnLabel => 'المستخدم';
 
@@ -97,9 +85,9 @@ class PropertyProjectViewData {
 
   String get counterpartColumnLabel {
     if (counterpartPartners.isEmpty) {
-      return 'الشريك المرتبط';
+      return 'الشريك';
     }
-    return 'الشريك المرتبط (${summarizePartnerNames(counterpartPartners)})';
+    return counterpartPartners.length > 1 ? 'الشركاء' : 'الشريك';
   }
 
   bool get hasLinkedPartner => counterpartPartners.isNotEmpty;
@@ -137,31 +125,8 @@ class PropertyUnitViewData {
 }
 
 class PropertyExpenseLedgerRow {
-  const PropertyExpenseLedgerRow({
-    required this.expense,
-    required this.payer,
-    required this.myShare,
-    required this.counterpartShare,
-  });
+  const PropertyExpenseLedgerRow({required this.expense, required this.payer});
 
   final ExpenseRecord expense;
   final Partner? payer;
-  final double myShare;
-  final double counterpartShare;
-}
-
-class PropertyExpenseDayRow {
-  const PropertyExpenseDayRow({
-    required this.day,
-    required this.entriesCount,
-    required this.total,
-    required this.myShare,
-    required this.counterpartShare,
-  });
-
-  final DateTime day;
-  final int entriesCount;
-  final double total;
-  final double myShare;
-  final double counterpartShare;
 }

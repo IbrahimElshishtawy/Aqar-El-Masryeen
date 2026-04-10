@@ -8,6 +8,7 @@ import 'package:aqarelmasryeen/features/expenses/domain/materials_ledger_calcula
 import 'package:aqarelmasryeen/features/expenses/presentation/material_expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
+import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,13 +25,21 @@ class PropertyMaterialsScreen extends ConsumerStatefulWidget {
 
 class _PropertyMaterialsScreenState
     extends ConsumerState<PropertyMaterialsScreen> {
-  Future<void> _showMaterialSheet({MaterialExpenseEntry? entry}) {
+  Future<void> _showMaterialSheet({
+    required List<Partner> partners,
+    MaterialExpenseEntry? entry,
+    String? initialSupplierName,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) =>
-          MaterialExpenseFormSheet(propertyId: widget.propertyId, entry: entry),
+      builder: (_) => MaterialExpenseFormSheet(
+        propertyId: widget.propertyId,
+        partners: partners,
+        entry: entry,
+        initialSupplierName: initialSupplierName,
+      ),
     );
   }
 
@@ -74,7 +83,9 @@ class _PropertyMaterialsScreenState
           subtitle: data.property.name,
           currentIndex: 1,
           actions: [
-            _MaterialsTopBarAction(onPressed: () => _showMaterialSheet()),
+            _MaterialsTopBarAction(
+              onPressed: () => _showMaterialSheet(partners: data.partners),
+            ),
           ],
           child: ListView(
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 24),
@@ -115,7 +126,7 @@ class _MaterialsTopBarAction extends StatelessWidget {
         child: FilledButton.tonalIcon(
           onPressed: onPressed,
           icon: const Icon(Icons.add_rounded, size: 18),
-          label: const Text('إضافة مورد'),
+          label: const Text('إضافة فاتورة'),
           style: FilledButton.styleFrom(
             visualDensity: VisualDensity.compact,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -247,6 +258,10 @@ class _SupplierSummaryCard extends StatelessWidget {
               spacing: 10,
               runSpacing: 10,
               children: [
+                _SupplierMetricPill(
+                  label: 'المطلوب',
+                  value: summary.totalPurchased.egp,
+                ),
                 _SupplierMetricPill(
                   label: 'المدفوع',
                   value: summary.totalPaid.egp,

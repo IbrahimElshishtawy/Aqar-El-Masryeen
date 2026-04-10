@@ -11,9 +11,7 @@ class UnitSale {
     required this.area,
     required this.customerName,
     required this.customerPhone,
-    required this.saleAmount,
-    required this.totalPrice,
-    required this.contractAmount,
+    required this.apartmentPrice,
     required this.downPayment,
     required this.remainingAmount,
     required this.installmentScheduleCount,
@@ -35,9 +33,7 @@ class UnitSale {
   final double area;
   final String customerName;
   final String customerPhone;
-  final double saleAmount;
-  final double totalPrice;
-  final double contractAmount;
+  final double apartmentPrice;
   final double downPayment;
   final double remainingAmount;
   final int installmentScheduleCount;
@@ -50,6 +46,21 @@ class UnitSale {
   final String notes;
   final DateTime? projectedCompletionDate;
 
+  double get saleAmount => apartmentPrice;
+
+  double get totalPrice => apartmentPrice;
+
+  double get contractAmount => apartmentPrice;
+
+  bool get hasRecordedSale {
+    final hasCustomer = customerName.trim().isNotEmpty;
+    final hasFinancialActivity =
+        downPayment > 0 || installmentScheduleCount > 0 || remainingAmount < apartmentPrice;
+    return apartmentPrice > 0 &&
+        status != UnitStatus.cancelled &&
+        (status == UnitStatus.sold || hasCustomer || hasFinancialActivity);
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'propertyId': propertyId,
@@ -59,9 +70,10 @@ class UnitSale {
       'area': area,
       'customerName': customerName,
       'customerPhone': customerPhone,
-      'saleAmount': saleAmount,
-      'totalPrice': totalPrice,
-      'contractAmount': contractAmount,
+      'apartmentPrice': apartmentPrice,
+      'saleAmount': apartmentPrice,
+      'totalPrice': apartmentPrice,
+      'contractAmount': apartmentPrice,
       'downPayment': downPayment,
       'remainingAmount': remainingAmount,
       'installmentScheduleCount': installmentScheduleCount,
@@ -78,17 +90,17 @@ class UnitSale {
 
   factory UnitSale.fromMap(String id, Map<String, dynamic>? map) {
     final data = map ?? <String, dynamic>{};
-    final fallbackSaleAmount = parseDouble(
-      data['saleAmount'] ?? data['totalPrice'],
-    );
-    final contractAmount = parseDouble(
-      data['contractAmount'] ?? data['totalPrice'] ?? data['saleAmount'],
+    final apartmentPrice = parseDouble(
+      data['apartmentPrice'] ??
+          data['contractAmount'] ??
+          data['totalPrice'] ??
+          data['saleAmount'],
     );
     final downPayment = parseDouble(data['downPayment']);
     final remainingAmount = parseDouble(
       data['remainingAmount'],
-      fallback: (contractAmount - downPayment)
-          .clamp(0, contractAmount)
+      fallback: (apartmentPrice - downPayment)
+          .clamp(0, apartmentPrice)
           .toDouble(),
     );
 
@@ -104,9 +116,7 @@ class UnitSale {
       area: parseDouble(data['area']),
       customerName: data['customerName'] as String? ?? '',
       customerPhone: data['customerPhone'] as String? ?? '',
-      saleAmount: fallbackSaleAmount,
-      totalPrice: parseDouble(data['totalPrice'], fallback: contractAmount),
-      contractAmount: contractAmount,
+      apartmentPrice: apartmentPrice,
       downPayment: downPayment,
       remainingAmount: remainingAmount,
       installmentScheduleCount: parseInt(data['installmentScheduleCount']),
@@ -138,9 +148,7 @@ class UnitSale {
     double? area,
     String? customerName,
     String? customerPhone,
-    double? saleAmount,
-    double? totalPrice,
-    double? contractAmount,
+    double? apartmentPrice,
     double? downPayment,
     double? remainingAmount,
     int? installmentScheduleCount,
@@ -162,9 +170,7 @@ class UnitSale {
       area: area ?? this.area,
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
-      saleAmount: saleAmount ?? this.saleAmount,
-      totalPrice: totalPrice ?? this.totalPrice,
-      contractAmount: contractAmount ?? this.contractAmount,
+      apartmentPrice: apartmentPrice ?? this.apartmentPrice,
       downPayment: downPayment ?? this.downPayment,
       remainingAmount: remainingAmount ?? this.remainingAmount,
       installmentScheduleCount:

@@ -28,6 +28,7 @@ class PartnerLedgerCalculator {
     required List<Partner> partners,
     required List<ExpenseRecord> expenses,
     required List<MaterialExpenseEntry> materialExpenses,
+    required List<SupplierPaymentRecord> supplierPayments,
     required List<PartnerLedgerEntry> ledgerEntries,
   }) {
     final totalExpenseExposure =
@@ -53,7 +54,17 @@ class PartnerLedgerCalculator {
       final directExpensePaid = expenses
           .where((expense) => expense.paidByPartnerId == partner.id)
           .fold<double>(0, (sum, expense) => sum + expense.amount);
-      final totalPaid = authorizedPaid + directExpensePaid;
+      final initialMaterialPaid = materialExpenses
+          .where((expense) => expense.initialPaidByPartnerId == partner.id)
+          .fold<double>(0, (sum, expense) => sum + expense.initialPaidAmount);
+      final supplierPaymentsPaid = supplierPayments
+          .where((payment) => payment.paidByPartnerId == partner.id)
+          .fold<double>(0, (sum, payment) => sum + payment.amount);
+      final totalPaid =
+          authorizedPaid +
+          directExpensePaid +
+          initialMaterialPaid +
+          supplierPaymentsPaid;
       final safeShareRatio =
           partner.shareRatio.isFinite && partner.shareRatio > 0
           ? partner.shareRatio

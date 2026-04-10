@@ -9,13 +9,13 @@ import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
+import 'package:aqarelmasryeen/features/expenses/data/supplier_payment_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/material_expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
-import 'package:aqarelmasryeen/features/properties/presentation/property_detail_presenters.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/financial_ledger_table.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
-import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
+import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -36,20 +36,30 @@ class PropertyMaterialSupplierScreen extends ConsumerStatefulWidget {
 
 class _PropertyMaterialSupplierScreenState
     extends ConsumerState<PropertyMaterialSupplierScreen> {
-  Future<void> _showMaterialSheet({MaterialExpenseEntry? entry}) {
+  Future<void> _showMaterialSheet({
+    required List<Partner> partners,
+    MaterialExpenseEntry? entry,
+    String? initialSupplierName,
+  }) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) =>
-          MaterialExpenseFormSheet(propertyId: widget.propertyId, entry: entry),
+      builder: (_) => MaterialExpenseFormSheet(
+        propertyId: widget.propertyId,
+        partners: partners,
+        entry: entry,
+        initialSupplierName: initialSupplierName,
+      ),
     );
   }
 
   Future<void> _showSupplierPaymentSheet({
     required String supplierName,
-    required List<MaterialExpenseEntry> rows,
+    required List<MaterialExpenseEntry> invoiceRows,
+    required List<Partner> partners,
     required double totalRemaining,
+    required String? currentPartnerId,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -57,14 +67,19 @@ class _PropertyMaterialSupplierScreenState
       useSafeArea: true,
       builder: (_) => _SupplierPaymentSheet(
         supplierName: supplierName,
+        partners: partners,
+        currentPartnerId: currentPartnerId,
         totalRemaining: totalRemaining,
-        onSubmit: (amount, paidAt, notes) => _applySupplierPayment(
-          supplierName: supplierName,
-          rows: rows,
-          amount: amount,
-          paidAt: paidAt,
-          notes: notes,
-        ),
+        onSubmit: (amount, paidAt, notes, paidByPartnerId) =>
+            _applySupplierPayment(
+              supplierName: supplierName,
+              rows: invoiceRows,
+              partners: partners,
+              amount: amount,
+              paidAt: paidAt,
+              notes: notes,
+              paidByPartnerId: paidByPartnerId,
+            ),
       ),
     );
   }
@@ -72,9 +87,11 @@ class _PropertyMaterialSupplierScreenState
   Future<void> _applySupplierPayment({
     required String supplierName,
     required List<MaterialExpenseEntry> rows,
+    required List<Partner> partners,
     required double amount,
     required DateTime paidAt,
     required String notes,
+    required String paidByPartnerId,
   }) async {
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) {
@@ -96,7 +113,7 @@ class _PropertyMaterialSupplierScreenState
     var remainingPayment = amount;
     var touchedInvoices = 0;
     final now = DateTime.now();
-    final repository = ref.read(materialExpenseRepositoryProvider);
+    final materialsRepository = ref.read(materialExpenseRepositoryProvider);
 
     for (final entry in openRows) {
       if (remainingPayment <= 0) {
@@ -108,7 +125,7 @@ class _PropertyMaterialSupplierScreenState
         continue;
       }
 
-      await repository.save(
+      await materialsRepository.save(
         entry.copyWith(
           amountPaid: entry.amountPaid + appliedAmount,
           amountRemaining: (entry.amountRemaining - appliedAmount)
@@ -116,13 +133,45 @@ class _PropertyMaterialSupplierScreenState
               .toDouble(),
           updatedBy: session.userId,
           updatedAt: now,
-          dueDate: entry.dueDate,
-          notes: entry.notes,
         ),
       );
       remainingPayment -= appliedAmount;
       touchedInvoices += 1;
     }
+
+    if (touchedInvoices <= 0) {
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('لا توجد فواتير مفتوحة لتسجيل دفعة عليها.'),
+        ),
+      );
+      return;
+    }
+
+    final paidByLabel = _partnerLabel(partners, paidByPartnerId);
+    await ref
+        .read(supplierPaymentRepositoryProvider)
+        .save(
+          SupplierPaymentRecord(
+            id: '',
+            propertyId: widget.propertyId,
+            supplierName: supplierName,
+            amount: amount - remainingPayment,
+            paidAt: paidAt,
+            paidByPartnerId: paidByPartnerId,
+            paidByLabel: paidByLabel,
+            notes: notes,
+            createdBy: session.userId,
+            updatedBy: session.userId,
+            createdAt: now,
+            updatedAt: now,
+            archived: false,
+          ),
+        );
 
     await ref
         .read(activityRepositoryProvider)
@@ -135,8 +184,9 @@ class _PropertyMaterialSupplierScreenState
           metadata: {
             'propertyId': widget.propertyId,
             'supplierName': supplierName,
-            'amount': amount,
+            'amount': amount - remainingPayment,
             'paidAt': paidAt.toIso8601String(),
+            'paidByPartnerId': paidByPartnerId,
             'notes': notes,
             'affectedInvoices': touchedInvoices,
           },
@@ -150,9 +200,7 @@ class _PropertyMaterialSupplierScreenState
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          touchedInvoices <= 0
-              ? 'لا توجد فواتير مفتوحة لتسجيل دفعة عليها.'
-              : 'تم تسجيل دفعة ${amount.egp} على $touchedInvoices فاتورة.',
+          'تم تسجيل دفعة ${(amount - remainingPayment).egp} على $touchedInvoices فاتورة.',
         ),
       ),
     );
@@ -226,7 +274,7 @@ class _PropertyMaterialSupplierScreenState
         }
 
         final supplierName = _normalizeSupplierName(widget.supplierName);
-        final rows =
+        final invoiceRows =
             data.materials
                 .where(
                   (entry) =>
@@ -234,43 +282,80 @@ class _PropertyMaterialSupplierScreenState
                       supplierName,
                 )
                 .toList()
-              ..sort((a, b) => b.date.compareTo(a.date));
-        final totalPurchased = rows.fold<double>(
-          0,
-          (sum, item) => sum + item.totalPrice,
-        );
-        final totalPaid = rows.fold<double>(
-          0,
-          (sum, item) => sum + item.amountPaid,
-        );
-        final totalRemaining = rows.fold<double>(
-          0,
-          (sum, item) => sum + item.amountRemaining,
-        );
-        final dueDates =
-            rows
+              ..sort((a, b) {
+                final dateCompare = a.date.compareTo(b.date);
+                if (dateCompare != 0) {
+                  return dateCompare;
+                }
+                return a.createdAt.compareTo(b.createdAt);
+              });
+        final paymentRows =
+            data.supplierPayments
                 .where(
-                  (item) => item.dueDate != null && item.amountRemaining > 0,
+                  (payment) =>
+                      _normalizeSupplierName(payment.supplierName) ==
+                      supplierName,
                 )
-                .map((item) => item.dueDate!)
                 .toList()
-              ..sort();
-        final nextDueDate = dueDates.isEmpty ? null : dueDates.first;
-        final canAddPayment = rows.isNotEmpty && totalRemaining > 0;
+              ..sort((a, b) {
+                final dateCompare = a.paidAt.compareTo(b.paidAt);
+                if (dateCompare != 0) {
+                  return dateCompare;
+                }
+                return a.createdAt.compareTo(b.createdAt);
+              });
+
+        final accountSummary = _buildSupplierAccountSummary(
+          invoiceRows: invoiceRows,
+          paymentRows: paymentRows,
+        );
+        final nextDueDate = accountSummary.totalRemaining <= 0
+            ? null
+            : invoiceRows
+                  .where(
+                    (item) =>
+                        item.dueDate != null &&
+                        (item.amountRemaining > 0 ||
+                            item.totalPrice > item.amountPaid),
+                  )
+                  .map((item) => item.dueDate!)
+                  .fold<DateTime?>(null, (current, date) {
+                    if (current == null || date.isBefore(current)) {
+                      return date;
+                    }
+                    return current;
+                  });
+        final ledgerRows = _buildLedgerRows(
+          invoiceRows: invoiceRows,
+          paymentRows: paymentRows,
+        );
+        final currentPartnerId = data.currentPartner?.id;
+        final canAddPayment =
+            accountSummary.totalRemaining > 0 && invoiceRows.isNotEmpty;
 
         return AppShellScaffold(
           title: supplierName,
           subtitle: data.property.name,
           currentIndex: 1,
           actions: [
+            _SupplierTopBarAction(
+              label: 'إضافة كمية',
+              icon: Icons.add_box_outlined,
+              onPressed: () => _showMaterialSheet(
+                partners: data.partners,
+                initialSupplierName: supplierName,
+              ),
+            ),
             if (canAddPayment)
               _SupplierTopBarAction(
                 label: 'إضافة دفعة',
                 icon: Icons.add_card_rounded,
                 onPressed: () => _showSupplierPaymentSheet(
                   supplierName: supplierName,
-                  rows: rows,
-                  totalRemaining: totalRemaining,
+                  invoiceRows: invoiceRows,
+                  partners: data.partners,
+                  totalRemaining: accountSummary.totalRemaining,
+                  currentPartnerId: currentPartnerId,
                 ),
               ),
           ],
@@ -279,129 +364,163 @@ class _PropertyMaterialSupplierScreenState
             children: [
               _SupplierHeaderPanel(
                 supplierName: supplierName,
-                invoicesCount: rows.length,
-                totalPurchased: totalPurchased,
-                totalPaid: totalPaid,
-                totalRemaining: totalRemaining,
+                invoiceCount: invoiceRows.length,
+                paymentCount: paymentRows.length,
+                totalRequired: accountSummary.totalRequired,
+                totalPaid: accountSummary.totalPaid,
+                totalRemaining: accountSummary.totalRemaining,
                 nextDueDate: nextDueDate,
-                canShowPaymentButton: rows.isNotEmpty,
-                isPaymentEnabled: canAddPayment,
-                onAddPayment: () => _showSupplierPaymentSheet(
-                  supplierName: supplierName,
-                  rows: rows,
-                  totalRemaining: totalRemaining,
+                onAddQuantity: () => _showMaterialSheet(
+                  partners: data.partners,
+                  initialSupplierName: supplierName,
                 ),
+                onAddPayment: canAddPayment
+                    ? () => _showSupplierPaymentSheet(
+                        supplierName: supplierName,
+                        invoiceRows: invoiceRows,
+                        partners: data.partners,
+                        totalRemaining: accountSummary.totalRemaining,
+                        currentPartnerId: currentPartnerId,
+                      )
+                    : null,
               ),
               const SizedBox(height: 16),
-              if (rows.isEmpty)
+              if (ledgerRows.isEmpty)
                 const EmptyStateView(
-                  title: 'لا توجد فواتير لهذا المورد',
-                  message: 'بمجرد إضافة فاتورة بهذا الاسم ستظهر هنا.',
+                  title: 'لا توجد حركات لهذا المورد',
+                  message:
+                      'بمجرد إضافة كمية جديدة أو دفعة سيظهر كشف المورد هنا.',
                 )
               else
-                FinancialLedgerTable<MaterialExpenseEntry>(
+                FinancialLedgerTable<_SupplierLedgerRow>(
                   title: 'كشف حساب المورد',
                   subtitle:
-                      'يعرض ما تم استلامه من المورد، والمدفوع، والمتبقي، وميعاد الدفع.',
-                  rows: rows,
+                      'يعرض كل عمليات إضافة الكميات والدفعات للمورد نفسه في جدول واحد واضح.',
+                  rows: ledgerRows,
                   forceTableLayout: true,
-                  onEdit: (entry) => _showMaterialSheet(entry: entry),
-                  onDelete: _deleteMaterial,
+                  showRowNumbers: false,
                   sheetLabel: 'كشف $supplierName',
+                  compactCardBuilder: (context, row, rowNumber, _) {
+                    return _SupplierLedgerCompactCard(
+                      row: row,
+                      rowNumber: rowNumber,
+                      onEditMaterial: row.materialEntry == null
+                          ? null
+                          : () => _showMaterialSheet(
+                              partners: data.partners,
+                              entry: row.materialEntry,
+                            ),
+                      onDeleteMaterial: row.materialEntry == null
+                          ? null
+                          : () => _deleteMaterial(row.materialEntry!),
+                    );
+                  },
                   columns: [
                     LedgerColumn(
-                      label: 'تاريخ الفاتورة',
-                      valueBuilder: (row) => Text(row.date.formatShort()),
-                      minWidth: 120,
-                    ),
-                    LedgerColumn(
-                      label: 'المستلم',
-                      valueBuilder: (row) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            row.itemName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            row.materialCategory.label,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                      minWidth: 180,
-                    ),
-                    LedgerColumn(
-                      label: 'الكمية',
-                      valueBuilder: (row) =>
-                          Text(row.quantity.toStringAsFixed(0)),
-                      minWidth: 92,
+                      label: '#',
+                      valueBuilder: (row) => Text('${row.sequence}'),
+                      minWidth: 52,
                       numeric: true,
                     ),
                     LedgerColumn(
-                      label: 'الإجمالي',
-                      valueBuilder: (row) => Text(row.totalPrice.egp),
-                      minWidth: 124,
+                      label: 'التاريخ',
+                      valueBuilder: (row) =>
+                          Text(row.displayDate.formatShort()),
+                      minWidth: 118,
+                    ),
+                    LedgerColumn(
+                      label: 'نوع الحركة',
+                      valueBuilder: (row) => FinancialStatusChip(
+                        label: row.typeLabel,
+                        color: row.isPayment
+                            ? const Color(0xFF9A4F42)
+                            : const Color(0xFF2E6B3F),
+                      ),
+                      minWidth: 128,
+                    ),
+                    LedgerColumn(
+                      label: 'البيان',
+                      valueBuilder: (row) => Text(
+                        row.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      minWidth: 220,
+                    ),
+                    LedgerColumn(
+                      label: 'الكمية',
+                      valueBuilder: (row) => Text(row.quantityLabel),
+                      minWidth: 84,
+                      numeric: true,
+                    ),
+                    LedgerColumn(
+                      label: 'القيمة المضافة',
+                      valueBuilder: (row) => Text(row.addedValue.egp),
+                      minWidth: 126,
                       numeric: true,
                     ),
                     LedgerColumn(
                       label: 'المدفوع',
-                      valueBuilder: (row) => Text(row.amountPaid.egp),
-                      minWidth: 116,
+                      valueBuilder: (row) => Text(row.paidValue.egp),
+                      minWidth: 118,
                       numeric: true,
                     ),
                     LedgerColumn(
                       label: 'المتبقي',
-                      valueBuilder: (row) => Text(row.amountRemaining.egp),
-                      minWidth: 116,
+                      valueBuilder: (row) => Text(row.remainingAfter.egp),
+                      minWidth: 118,
                       numeric: true,
                     ),
                     LedgerColumn(
-                      label: 'ميعاد الدفع',
-                      valueBuilder: (row) => Text(
-                        row.dueDate == null
-                            ? 'غير محدد'
-                            : row.dueDate!.formatShort(),
-                      ),
-                      minWidth: 124,
+                      label: 'من الذي دفع',
+                      valueBuilder: (row) => Text(row.paidByLabel),
+                      minWidth: 140,
                     ),
                     LedgerColumn(
-                      label: 'الحالة',
-                      valueBuilder: (row) => FinancialStatusChip(
-                        label: row.status.label,
-                        color: supplierInvoiceStatusColor(row.status),
-                      ),
-                      minWidth: 126,
-                    ),
-                    LedgerColumn(
-                      label: 'ملاحظات',
-                      valueBuilder: (row) => Text(
-                        row.notes.trim().isEmpty ? 'لا يوجد' : row.notes.trim(),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      minWidth: 180,
+                      label: 'الإجراء',
+                      valueBuilder: (row) => row.materialEntry == null
+                          ? const Text('-')
+                          : Wrap(
+                              spacing: 2,
+                              children: [
+                                IconButton(
+                                  onPressed: () => _showMaterialSheet(
+                                    partners: data.partners,
+                                    entry: row.materialEntry,
+                                  ),
+                                  icon: const Icon(Icons.edit_outlined),
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: 'تعديل',
+                                ),
+                                IconButton(
+                                  onPressed: () =>
+                                      _deleteMaterial(row.materialEntry!),
+                                  icon: const Icon(Icons.delete_outline),
+                                  visualDensity: VisualDensity.compact,
+                                  tooltip: 'حذف',
+                                ),
+                              ],
+                            ),
+                      minWidth: 120,
                     ),
                   ],
                   totalsFooter: LedgerTotalsFooter(
                     children: [
                       LedgerFooterValue(
-                        label: 'إجمالي المشتريات',
-                        value: totalPurchased.egp,
+                        label: 'إجمالي المطلوب',
+                        value: accountSummary.totalRequired.egp,
                       ),
                       LedgerFooterValue(
                         label: 'إجمالي المدفوع',
-                        value: totalPaid.egp,
+                        value: accountSummary.totalPaid.egp,
                       ),
                       LedgerFooterValue(
                         label: 'إجمالي المتبقي',
-                        value: totalRemaining.egp,
+                        value: accountSummary.totalRemaining.egp,
                       ),
                       LedgerFooterValue(
-                        label: 'عدد الفواتير',
-                        value: '${rows.length}',
+                        label: 'عدد الحركات',
+                        value: '${ledgerRows.length}',
                       ),
                     ],
                   ),
@@ -447,33 +566,33 @@ class _SupplierTopBarAction extends StatelessWidget {
 class _SupplierHeaderPanel extends StatelessWidget {
   const _SupplierHeaderPanel({
     required this.supplierName,
-    required this.invoicesCount,
-    required this.totalPurchased,
+    required this.invoiceCount,
+    required this.paymentCount,
+    required this.totalRequired,
     required this.totalPaid,
     required this.totalRemaining,
     required this.nextDueDate,
-    required this.canShowPaymentButton,
-    required this.isPaymentEnabled,
-    required this.onAddPayment,
+    required this.onAddQuantity,
+    this.onAddPayment,
   });
 
   final String supplierName;
-  final int invoicesCount;
-  final double totalPurchased;
+  final int invoiceCount;
+  final int paymentCount;
+  final double totalRequired;
   final double totalPaid;
   final double totalRemaining;
   final DateTime? nextDueDate;
-  final bool canShowPaymentButton;
-  final bool isPaymentEnabled;
-  final VoidCallback onAddPayment;
+  final VoidCallback onAddQuantity;
+  final VoidCallback? onAddPayment;
 
   @override
   Widget build(BuildContext context) {
     return AppPanel(
       title: supplierName,
       subtitle: nextDueDate == null
-          ? 'كل فواتير المورد المعروضة في كشف واحد.'
-          : 'أقرب ميعاد دفع: ${nextDueDate!.formatShort()}',
+          ? 'كشف موحد يوضح الإضافات والدفعات وحالة المتبقي على المورد.'
+          : 'أقرب تاريخ استحقاق مفتوح: ${nextDueDate!.formatShort()}',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -482,8 +601,8 @@ class _SupplierHeaderPanel extends StatelessWidget {
             runSpacing: 10,
             children: [
               _SupplierMetricCard(
-                label: 'إجمالي المشتريات',
-                value: totalPurchased.egp,
+                label: 'إجمالي المطلوب',
+                value: totalRequired.egp,
               ),
               _SupplierMetricCard(
                 label: 'إجمالي المدفوع',
@@ -494,31 +613,29 @@ class _SupplierHeaderPanel extends StatelessWidget {
                 value: totalRemaining.egp,
               ),
               _SupplierMetricCard(
-                label: 'عدد الفواتير',
-                value: '$invoicesCount',
+                label: 'عدد الإضافات',
+                value: '$invoiceCount',
+              ),
+              _SupplierMetricCard(label: 'عدد الدفعات', value: '$paymentCount'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              FilledButton.tonalIcon(
+                onPressed: onAddQuantity,
+                icon: const Icon(Icons.add_box_outlined),
+                label: const Text('إضافة كمية'),
+              ),
+              FilledButton.icon(
+                onPressed: onAddPayment,
+                icon: const Icon(Icons.add_card_rounded),
+                label: const Text('إضافة دفعة'),
               ),
             ],
           ),
-          if (canShowPaymentButton) ...[
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: isPaymentEnabled ? onAddPayment : null,
-                icon: const Icon(Icons.add_card_rounded),
-                label: const Text('إضافة دفعة حساب'),
-              ),
-            ),
-            if (!isPaymentEnabled) ...[
-              const SizedBox(height: 8),
-              Text(
-                'لا يوجد متبقي حاليا على حساب المورد.',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.secondary,
-                ),
-              ),
-            ],
-          ],
         ],
       ),
     );
@@ -562,16 +679,201 @@ class _SupplierMetricCard extends StatelessWidget {
   }
 }
 
+class _SupplierLedgerCompactCard extends StatelessWidget {
+  const _SupplierLedgerCompactCard({
+    required this.row,
+    required this.rowNumber,
+    this.onEditMaterial,
+    this.onDeleteMaterial,
+  });
+
+  final _SupplierLedgerRow row;
+  final int? rowNumber;
+  final VoidCallback? onEditMaterial;
+  final VoidCallback? onDeleteMaterial;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFFFDFDF9),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFD8D8D2)),
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      rowNumber == null
+                          ? row.typeLabel
+                          : '${row.typeLabel} #$rowNumber',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF2E6B3F),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      row.description,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF17352F),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                row.remainingAfter.egp,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF17352F),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _LedgerChip(label: row.displayDate.formatShort()),
+              _LedgerChip(label: 'الكمية: ${row.quantityLabel}'),
+              _LedgerChip(label: 'دفع: ${row.paidByLabel}'),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              _LedgerValue(label: 'القيمة المضافة', value: row.addedValue.egp),
+              _LedgerValue(label: 'المدفوع', value: row.paidValue.egp),
+              _LedgerValue(label: 'المتبقي', value: row.remainingAfter.egp),
+            ],
+          ),
+          if (row.notes.trim().isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              row.notes.trim(),
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF40564F)),
+            ),
+          ],
+          if (onEditMaterial != null || onDeleteMaterial != null) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              children: [
+                if (onEditMaterial != null)
+                  OutlinedButton.icon(
+                    onPressed: onEditMaterial,
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('تعديل'),
+                  ),
+                if (onDeleteMaterial != null)
+                  OutlinedButton.icon(
+                    onPressed: onDeleteMaterial,
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('حذف'),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _LedgerChip extends StatelessWidget {
+  const _LedgerChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F5F0),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: const Color(0xFF465145),
+        ),
+      ),
+    );
+  }
+}
+
+class _LedgerValue extends StatelessWidget {
+  const _LedgerValue({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 130,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.secondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF17352F),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SupplierPaymentSheet extends StatefulWidget {
   const _SupplierPaymentSheet({
     required this.supplierName,
+    required this.partners,
+    required this.currentPartnerId,
     required this.totalRemaining,
     required this.onSubmit,
   });
 
   final String supplierName;
+  final List<Partner> partners;
+  final String? currentPartnerId;
   final double totalRemaining;
-  final Future<void> Function(double amount, DateTime paidAt, String notes)
+  final Future<void> Function(
+    double amount,
+    DateTime paidAt,
+    String notes,
+    String paidByPartnerId,
+  )
   onSubmit;
 
   @override
@@ -583,6 +885,7 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
   late final TextEditingController _amountController;
   late final TextEditingController _notesController;
   late DateTime _paidAt;
+  late String _paidByPartnerId;
   bool _saving = false;
 
   @override
@@ -591,6 +894,9 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
     _amountController = TextEditingController();
     _notesController = TextEditingController();
     _paidAt = DateTime.now();
+    _paidByPartnerId =
+        widget.currentPartnerId ??
+        (widget.partners.isEmpty ? '' : widget.partners.first.id);
   }
 
   @override
@@ -617,10 +923,14 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
       return;
     }
 
-    final amount = double.parse(_amountController.text.trim());
     setState(() => _saving = true);
     try {
-      await widget.onSubmit(amount, _paidAt, _notesController.text.trim());
+      await widget.onSubmit(
+        double.parse(_amountController.text.trim()),
+        _paidAt,
+        _notesController.text.trim(),
+        _paidByPartnerId,
+      );
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -630,6 +940,10 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final hasSelectedPayer = widget.partners.any(
+      (partner) => partner.id == _paidByPartnerId,
+    );
+
     return AppFormSheet(
       title: 'إضافة دفعة حساب',
       child: Form(
@@ -645,7 +959,7 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
             ),
             const SizedBox(height: 6),
             Text(
-              'المتبقي الحالي ${widget.totalRemaining.egp}. سيتم توزيع الدفعة على الفواتير المفتوحة من الأقدم للأحدث.',
+              'المتبقي الحالي ${widget.totalRemaining.egp}. سيتم توزيع الدفعة على الفواتير المفتوحة من الأقدم إلى الأحدث.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.secondary,
               ),
@@ -671,6 +985,28 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
                 return null;
               },
             ),
+            if (widget.partners.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: hasSelectedPayer ? _paidByPartnerId : null,
+                items: [
+                  for (final partner in widget.partners)
+                    DropdownMenuItem(
+                      value: partner.id,
+                      child: Text(
+                        partner.name.trim().isEmpty ? 'شريك' : partner.name,
+                      ),
+                    ),
+                ],
+                onChanged: (value) {
+                  setState(() => _paidByPartnerId = value ?? _paidByPartnerId);
+                },
+                decoration: const InputDecoration(labelText: 'من الذي دفع'),
+                validator: (value) => (value ?? '').trim().isEmpty
+                    ? 'اختر من الذي دفع هذه الدفعة.'
+                    : null,
+              ),
+            ],
             const SizedBox(height: 12),
             InkWell(
               onTap: _pickDate,
@@ -704,7 +1040,225 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
   }
 }
 
+List<_SupplierLedgerRow> _buildLedgerRows({
+  required List<MaterialExpenseEntry> invoiceRows,
+  required List<SupplierPaymentRecord> paymentRows,
+}) {
+  final events =
+      <_SupplierLedgerEvent>[
+        for (final row in invoiceRows) _SupplierLedgerEvent.invoice(row),
+        for (final row in paymentRows) _SupplierLedgerEvent.payment(row),
+      ]..sort((a, b) {
+        final dateCompare = a.date.compareTo(b.date);
+        if (dateCompare != 0) {
+          return dateCompare;
+        }
+        final createdCompare = a.createdAt.compareTo(b.createdAt);
+        if (createdCompare != 0) {
+          return createdCompare;
+        }
+        if (a.type == b.type) {
+          return 0;
+        }
+        return a.type == _SupplierLedgerEventType.invoice ? -1 : 1;
+      });
+
+  var remaining = 0.0;
+  final rows = <_SupplierLedgerRow>[];
+
+  for (final event in events) {
+    if (event.type == _SupplierLedgerEventType.invoice) {
+      final invoice = event.material!;
+      remaining += invoice.totalPrice;
+      remaining = (remaining - invoice.initialPaidAmount).clamp(
+        0,
+        double.infinity,
+      );
+      rows.add(
+        _SupplierLedgerRow(
+          sequence: rows.length + 1,
+          displayDate: invoice.date,
+          isPayment: false,
+          description: invoice.itemName.trim().isEmpty
+              ? 'إضافة كمية'
+              : invoice.itemName.trim(),
+          quantity: invoice.quantity,
+          addedValue: invoice.totalPrice,
+          paidValue: invoice.initialPaidAmount,
+          remainingAfter: remaining,
+          paidByLabel: invoice.initialPaidAmount > 0
+              ? (invoice.initialPaidByLabel.trim().isEmpty
+                    ? 'غير محدد'
+                    : invoice.initialPaidByLabel.trim())
+              : '-',
+          notes: invoice.notes,
+          materialEntry: invoice,
+          paymentEntry: null,
+        ),
+      );
+      continue;
+    }
+
+    final payment = event.payment!;
+    remaining = (remaining - payment.amount).clamp(0, double.infinity);
+    rows.add(
+      _SupplierLedgerRow(
+        sequence: rows.length + 1,
+        displayDate: payment.paidAt,
+        isPayment: true,
+        description: payment.notes.trim().isEmpty
+            ? 'دفعة مورد'
+            : payment.notes.trim(),
+        quantity: null,
+        addedValue: 0,
+        paidValue: payment.amount,
+        remainingAfter: remaining,
+        paidByLabel: payment.paidByLabel.trim().isEmpty
+            ? 'غير محدد'
+            : payment.paidByLabel.trim(),
+        notes: payment.notes,
+        materialEntry: null,
+        paymentEntry: payment,
+      ),
+    );
+  }
+
+  return rows.reversed.toList(growable: false);
+}
+
+_SupplierAccountSummary _buildSupplierAccountSummary({
+  required List<MaterialExpenseEntry> invoiceRows,
+  required List<SupplierPaymentRecord> paymentRows,
+}) {
+  final totalRequired = invoiceRows.fold<double>(
+    0,
+    (sum, item) => sum + item.totalPrice,
+  );
+  final recordedPaidOnInvoices = invoiceRows.fold<double>(
+    0,
+    (sum, item) => sum + item.amountPaid,
+  );
+  final initialPaid = invoiceRows.fold<double>(
+    0,
+    (sum, item) => sum + item.initialPaidAmount,
+  );
+  final supplierPaymentsTotal = paymentRows.fold<double>(
+    0,
+    (sum, item) => sum + item.amount,
+  );
+  final totalPaid = math.max(
+    recordedPaidOnInvoices,
+    initialPaid + supplierPaymentsTotal,
+  );
+  final totalRemaining = totalRequired <= 0
+      ? 0.0
+      : (totalRequired - totalPaid).clamp(0, totalRequired).toDouble();
+
+  return _SupplierAccountSummary(
+    totalRequired: totalRequired,
+    totalPaid: totalPaid,
+    totalRemaining: totalRemaining,
+  );
+}
+
+String _partnerLabel(List<Partner> partners, String partnerId) {
+  for (final partner in partners) {
+    if (partner.id == partnerId) {
+      final name = partner.name.trim();
+      return name.isEmpty ? 'شريك' : name;
+    }
+  }
+  return 'شريك';
+}
+
 String _normalizeSupplierName(String supplierName) {
   final normalized = supplierName.trim();
   return normalized.isEmpty ? 'مورد غير محدد' : normalized;
+}
+
+class _SupplierAccountSummary {
+  const _SupplierAccountSummary({
+    required this.totalRequired,
+    required this.totalPaid,
+    required this.totalRemaining,
+  });
+
+  final double totalRequired;
+  final double totalPaid;
+  final double totalRemaining;
+}
+
+class _SupplierLedgerRow {
+  const _SupplierLedgerRow({
+    required this.sequence,
+    required this.displayDate,
+    required this.isPayment,
+    required this.description,
+    required this.quantity,
+    required this.addedValue,
+    required this.paidValue,
+    required this.remainingAfter,
+    required this.paidByLabel,
+    required this.notes,
+    required this.materialEntry,
+    required this.paymentEntry,
+  });
+
+  final int sequence;
+  final DateTime displayDate;
+  final bool isPayment;
+  final String description;
+  final double? quantity;
+  final double addedValue;
+  final double paidValue;
+  final double remainingAfter;
+  final String paidByLabel;
+  final String notes;
+  final MaterialExpenseEntry? materialEntry;
+  final SupplierPaymentRecord? paymentEntry;
+
+  String get typeLabel => isPayment ? 'دفعة' : 'إضافة كمية';
+
+  String get quantityLabel {
+    if (quantity == null || quantity == 0) {
+      return '-';
+    }
+    return quantity!.toStringAsFixed(quantity! % 1 == 0 ? 0 : 2);
+  }
+}
+
+enum _SupplierLedgerEventType { invoice, payment }
+
+class _SupplierLedgerEvent {
+  const _SupplierLedgerEvent._({
+    required this.type,
+    required this.date,
+    required this.createdAt,
+    this.material,
+    this.payment,
+  });
+
+  factory _SupplierLedgerEvent.invoice(MaterialExpenseEntry material) {
+    return _SupplierLedgerEvent._(
+      type: _SupplierLedgerEventType.invoice,
+      date: material.date,
+      createdAt: material.createdAt,
+      material: material,
+    );
+  }
+
+  factory _SupplierLedgerEvent.payment(SupplierPaymentRecord payment) {
+    return _SupplierLedgerEvent._(
+      type: _SupplierLedgerEventType.payment,
+      date: payment.paidAt,
+      createdAt: payment.createdAt,
+      payment: payment,
+    );
+  }
+
+  final _SupplierLedgerEventType type;
+  final DateTime date;
+  final DateTime createdAt;
+  final MaterialExpenseEntry? material;
+  final SupplierPaymentRecord? payment;
 }

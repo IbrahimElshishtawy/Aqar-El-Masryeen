@@ -65,13 +65,7 @@ class PropertySalesWorkspace extends StatelessWidget {
               numeric: true,
             ),
             LedgerColumn(
-              label: 'قيمة البيع',
-              valueBuilder: (row) => Text(row.unit.saleAmount.egp),
-              minWidth: 124,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'الإجمالي',
+              label: 'سعر الشقة',
               valueBuilder: (row) => Text(row.totalContractAmount.egp),
               minWidth: 124,
               numeric: true,
@@ -299,7 +293,7 @@ class _UnitOverviewCard extends StatelessWidget {
               runSpacing: 10,
               children: [
                 _MetricPill(
-                  label: 'الإجمالي',
+                  label: 'سعر الشقة',
                   value: summary.totalContractAmount.egp,
                 ),
                 _MetricPill(

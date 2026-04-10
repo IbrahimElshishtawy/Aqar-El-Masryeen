@@ -32,6 +32,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _notesController;
   late DateTime _selectedDate;
+  late String _paidByPartnerId;
   bool _saving = false;
 
   @override
@@ -46,6 +47,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     );
     _notesController = TextEditingController(text: expense?.notes ?? '');
     _selectedDate = expense?.date ?? DateTime.now();
+    _paidByPartnerId = _resolveInitialPaidByPartnerId();
   }
 
   @override
@@ -78,7 +80,6 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
       return;
     }
 
-    final paidByPartnerId = _resolvePaidByPartnerId(session.userId);
     setState(() => _saving = true);
     final savedId = await ref
         .read(expenseRepositoryProvider)
@@ -89,7 +90,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
             amount: double.parse(_amountController.text.trim()),
             category: widget.expense?.category ?? ExpenseCategory.construction,
             description: _descriptionController.text.trim(),
-            paidByPartnerId: paidByPartnerId,
+            paidByPartnerId: _paidByPartnerId,
             paymentMethod:
                 widget.expense?.paymentMethod ?? PaymentMethod.bankTransfer,
             date: _selectedDate,
@@ -110,7 +111,9 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
         .log(
           actorId: session.userId,
           actorName: session.profile?.name ?? 'شريك',
-          action: widget.expense == null ? 'expense_created' : 'expense_updated',
+          action: widget.expense == null
+              ? 'expense_created'
+              : 'expense_updated',
           entityType: 'expense',
           entityId: savedId,
           metadata: {'propertyId': widget.propertyId},
@@ -119,7 +122,9 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
         .read(notificationRepositoryProvider)
         .create(
           userId: session.userId,
-          title: widget.expense == null ? 'تمت إضافة مصروف' : 'تم تحديث المصروف',
+          title: widget.expense == null
+              ? 'تمت إضافة مصروف'
+              : 'تم تحديث المصروف',
           body: _descriptionController.text.trim(),
           type: NotificationType.expenseAdded,
           route: '/properties/${widget.propertyId}',
@@ -130,16 +135,20 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     }
   }
 
-  String _resolvePaidByPartnerId(String currentUserId) {
+  String _resolveInitialPaidByPartnerId() {
     if (widget.expense?.paidByPartnerId.isNotEmpty == true) {
       return widget.expense!.paidByPartnerId;
+    }
+    final currentUserId = ref.read(authSessionProvider).valueOrNull?.userId;
+    if (currentUserId == null) {
+      return widget.partners.isEmpty ? '' : widget.partners.first.id;
     }
     for (final partner in widget.partners) {
       if (partner.userId == currentUserId) {
         return partner.id;
       }
     }
-    return '';
+    return widget.partners.isEmpty ? '' : widget.partners.first.id;
   }
 
   Partner? _resolveCurrentPartner(String currentUserId) {
@@ -157,6 +166,12 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     final currentPartner = session == null
         ? null
         : _resolveCurrentPartner(session.userId);
+    final payerOptions = widget.partners
+        .where((partner) => partner.id.trim().isNotEmpty)
+        .toList(growable: false);
+    final hasSelectedPayer = payerOptions.any(
+      (partner) => partner.id == _paidByPartnerId,
+    );
 
     return AppFormSheet(
       title: widget.expense == null ? 'إضافة مصروف' : 'تعديل مصروف',
@@ -167,6 +182,28 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
           children: [
             _ExpenseOwnerBanner(currentPartner: currentPartner),
             const SizedBox(height: 12),
+            if (payerOptions.isNotEmpty) ...[
+              DropdownButtonFormField<String>(
+                initialValue: hasSelectedPayer ? _paidByPartnerId : null,
+                items: [
+                  for (final partner in payerOptions)
+                    DropdownMenuItem(
+                      value: partner.id,
+                      child: Text(
+                        partner.name.trim().isEmpty ? 'شريك' : partner.name,
+                      ),
+                    ),
+                ],
+                onChanged: (value) {
+                  setState(() => _paidByPartnerId = value ?? _paidByPartnerId);
+                },
+                decoration: const InputDecoration(labelText: 'من الذي دفع'),
+                validator: (value) => (value ?? '').trim().isEmpty
+                    ? 'اختر من الذي دفع هذا المصروف.'
+                    : null,
+              ),
+              const SizedBox(height: 12),
+            ],
             TextFormField(
               controller: _descriptionController,
               decoration: const InputDecoration(labelText: 'البيان / الوصف'),
@@ -176,7 +213,9 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(labelText: 'المبلغ'),
               validator: (value) {
                 final parsed = double.tryParse((value ?? '').trim());
@@ -240,8 +279,8 @@ class _ExpenseOwnerBanner extends StatelessWidget {
       ),
       child: Text(
         partnerName == null
-            ? 'سيتم تسجيل المصروف باسم المستخدم الحالي مباشرة. إذا لم يوجد شريك مرتبط بهذا الحساب فستظهر بيانات المستخدم فقط.'
-            : 'سيتم تسجيل المصروف باسم المستخدم الحالي، والحساب مرتبط بالشريك $partnerName.',
+            ? 'سجل المصروف وحدد من الذي دفعه ليظهر بشكل صحيح داخل Totals المستخدم والشريك.'
+            : 'اختر من الذي دفع هذا المصروف. البيانات ستظهر فورًا بشكل مشترك لك وللشريك $partnerName.',
         style: Theme.of(context).textTheme.bodyMedium,
       ),
     );

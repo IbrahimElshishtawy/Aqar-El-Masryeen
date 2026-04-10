@@ -19,7 +19,7 @@ class DashboardScreen extends ConsumerWidget {
 
     return AppShellScaffold(
       title: 'الرئيسية',
-      subtitle: 'ملخص المبيعات والتحصيلات والمصروفات',
+      subtitle: 'ملخص مالي مشترك لكل المشاريع والتحصيلات والمصروفات',
       currentIndex: 0,
       actions: _actions(context),
       child: AsyncValueView(

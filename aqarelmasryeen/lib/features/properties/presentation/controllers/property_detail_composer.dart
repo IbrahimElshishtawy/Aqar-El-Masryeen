@@ -20,6 +20,7 @@ class PropertyDetailComposer {
     required List<PaymentRecord> payments,
     required List<ExpenseRecord> expenses,
     required List<MaterialExpenseEntry> materials,
+    required List<SupplierPaymentRecord> supplierPayments,
     required List<Partner> partners,
     required List<PartnerLedgerEntry> partnerLedgers,
   }) {
@@ -28,6 +29,9 @@ class PropertyDetailComposer {
           ..sort((a, b) => b.date.compareTo(a.date));
     final activeMaterials = materials.where((entry) => !entry.archived).toList()
       ..sort((a, b) => b.date.compareTo(a.date));
+    final activeSupplierPayments =
+        supplierPayments.where((payment) => !payment.archived).toList()
+          ..sort((a, b) => b.paidAt.compareTo(a.paidAt));
     final propertyPartnerHistory = partnerLedgers
         .where((entry) => !entry.archived && entry.propertyId == property.id)
         .sorted((a, b) => b.updatedAt.compareTo(a.updatedAt));
@@ -38,57 +42,26 @@ class PropertyDetailComposer {
     );
     final materialsSnapshot = const MaterialsLedgerCalculator().build(
       activeMaterials,
+      supplierPayments: activeSupplierPayments,
     );
     final partnerSummaries = const PartnerLedgerCalculator().build(
       partners: partners,
       expenses: activeExpenses,
       materialExpenses: activeMaterials,
+      supplierPayments: activeSupplierPayments,
       ledgerEntries: propertyPartnerHistory,
     );
 
     final currentPartner = partners.firstWhereOrNull(
       (partner) => partner.userId == currentUserId,
     );
-    final normalizedCurrentShare = _normalizedShare(
-      partners: partners,
-      currentPartner: currentPartner,
-    );
 
     final expenseLedgerRows = activeExpenses.map((expense) {
       final payer = partners.firstWhereOrNull(
         (partner) => partner.id == expense.paidByPartnerId,
       );
-      final myShare = expense.amount * normalizedCurrentShare;
-      return PropertyExpenseLedgerRow(
-        expense: expense,
-        payer: payer,
-        myShare: myShare,
-        counterpartShare: expense.amount - myShare,
-      );
+      return PropertyExpenseLedgerRow(expense: expense, payer: payer);
     }).toList()..sort((a, b) => b.expense.date.compareTo(a.expense.date));
-
-    final dailyExpenseRows = expenseLedgerRows
-        .groupListsBy((row) => _dateOnly(row.expense.date))
-        .entries
-        .map((entry) {
-          final rows = entry.value;
-          return PropertyExpenseDayRow(
-            day: entry.key,
-            entriesCount: rows.length,
-            total: rows.fold<double>(0, (sum, row) => sum + row.expense.amount),
-            myShare: rows.fold<double>(0, (sum, row) => sum + row.myShare),
-            counterpartShare: rows.fold<double>(
-              0,
-              (sum, row) => sum + row.counterpartShare,
-            ),
-          );
-        })
-        .sorted((a, b) => b.day.compareTo(a.day));
-
-    final today = _dateOnly(DateTime.now());
-    final todayRows = expenseLedgerRows
-        .where((row) => _dateOnly(row.expense.date) == today)
-        .toList();
 
     final materialRowsByCategory =
         <MaterialCategory, List<MaterialExpenseEntry>>{
@@ -123,19 +96,23 @@ class PropertyDetailComposer {
             .toList(),
     };
 
-    final totalSalesValue = unitSummaries.fold<double>(
+    final trackedUnitSummaries = unitSummaries
+        .where((summary) => summary.unit.hasRecordedSale)
+        .toList(growable: false);
+
+    final totalSalesValue = trackedUnitSummaries.fold<double>(
       0,
       (sum, item) => sum + item.totalContractAmount,
     );
-    final totalPaidInstallments = unitSummaries.fold<double>(
+    final totalPaidInstallments = trackedUnitSummaries.fold<double>(
       0,
-      (sum, item) => sum + item.totalPaidInstallmentsAmount,
+      (sum, item) => sum + item.totalPaidSoFar,
     );
-    final totalRemainingInstallments = unitSummaries.fold<double>(
+    final totalRemainingInstallments = trackedUnitSummaries.fold<double>(
       0,
-      (sum, item) => sum + item.totalRemainingInstallmentsAmount,
+      (sum, item) => sum + item.totalRemaining,
     );
-    final overdueInstallments = unitSummaries.fold<int>(
+    final overdueInstallments = trackedUnitSummaries.fold<int>(
       0,
       (sum, item) => sum + item.overdueInstallmentsCount,
     );
@@ -149,15 +126,14 @@ class PropertyDetailComposer {
       currentUserId: currentUserId,
       currentUserDisplayName: currentUserDisplayName,
       currentPartner: currentPartner,
-      normalizedCurrentShare: normalizedCurrentShare,
       partners: partners,
       unitSummaries: unitSummaries,
       installments: installments,
       payments: payments,
       directExpenses: activeExpenses,
       expenseLedgerRows: expenseLedgerRows,
-      dailyExpenseRows: dailyExpenseRows,
       materials: activeMaterials,
+      supplierPayments: activeSupplierPayments,
       materialsSnapshot: materialsSnapshot,
       featuredMaterialCategories: featuredMaterialCategories,
       featuredMaterialTotals: featuredMaterialTotals,
@@ -172,26 +148,6 @@ class PropertyDetailComposer {
       totalDirectExpenses: totalDirectExpenses,
       totalProjectExpenses:
           totalDirectExpenses + materialsSnapshot.overallTotal,
-      todayDirectExpenses: todayRows.fold<double>(
-        0,
-        (sum, row) => sum + row.expense.amount,
-      ),
-      myTodayExpenseShare: todayRows.fold<double>(
-        0,
-        (sum, row) => sum + row.myShare,
-      ),
-      counterpartTodayExpenseShare: todayRows.fold<double>(
-        0,
-        (sum, row) => sum + row.counterpartShare,
-      ),
-      myTotalExpenseShare: expenseLedgerRows.fold<double>(
-        0,
-        (sum, row) => sum + row.myShare,
-      ),
-      counterpartTotalExpenseShare: expenseLedgerRows.fold<double>(
-        0,
-        (sum, row) => sum + row.counterpartShare,
-      ),
     );
   }
 
@@ -236,24 +192,4 @@ class PropertyDetailComposer {
       partners: partners,
     );
   }
-
-  double _normalizedShare({
-    required List<Partner> partners,
-    required Partner? currentPartner,
-  }) {
-    if (currentPartner == null) {
-      return partners.length == 1 ? 1 : 0;
-    }
-    final totalRatio = partners.fold<double>(
-      0,
-      (sum, partner) => sum + partner.shareRatio,
-    );
-    if (totalRatio <= 0) {
-      return 1 / partners.length.clamp(1, partners.length);
-    }
-    return currentPartner.shareRatio / totalRatio;
-  }
 }
-
-DateTime _dateOnly(DateTime value) =>
-    DateTime(value.year, value.month, value.day);

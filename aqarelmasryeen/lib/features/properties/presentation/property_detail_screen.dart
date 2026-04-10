@@ -46,9 +46,6 @@ class PropertyDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
-  String? _lastUnitInstallmentSyncSignature;
-  bool _syncingUnitInstallments = false;
-
   bool get _showExpensesOnly => widget.showExpensesOnly == true;
 
   Future<void> _showUnitSheet({UnitSale? unit}) {
@@ -114,44 +111,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         installmentId: payment?.installmentId ?? installmentId,
       ),
     );
-  }
-
-  Future<void> _syncUnitInstallmentsIfNeeded({
-    required PropertyUnitViewData data,
-    required String actorId,
-  }) async {
-    final summary = data.summary;
-    if (!summary.hasInstallmentScheduleIssues ||
-        summary.installmentScheduleCount <= 0 ||
-        _syncingUnitInstallments) {
-      return;
-    }
-
-    final signature = [
-      summary.unit.id,
-      summary.installmentScheduleCount,
-      summary.actualInstallmentsCount,
-      summary.missingInstallmentsCount,
-      summary.duplicateInstallmentsCount,
-      summary.extraInstallmentsCount,
-    ].join(':');
-    if (_lastUnitInstallmentSyncSignature == signature) {
-      return;
-    }
-
-    _lastUnitInstallmentSyncSignature = signature;
-    _syncingUnitInstallments = true;
-    try {
-      await ref
-          .read(installmentRepositoryProvider)
-          .syncUnitInstallments(
-            unit: summary.unit,
-            actorId: actorId,
-            preferredPlanId: data.planId,
-          );
-    } finally {
-      _syncingUnitInstallments = false;
-    }
   }
 
   Future<bool> _confirm(String title, String message) async {
@@ -346,13 +305,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           );
         }
 
-        final session = ref.watch(authSessionProvider).valueOrNull;
-        if (session != null && data.summary.hasInstallmentScheduleIssues) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _syncUnitInstallmentsIfNeeded(data: data, actorId: session.userId);
-          });
-        }
-
         return AppShellScaffold(
           title: 'الوحدة ${data.summary.unit.unitNumber}',
           subtitle: data.property.name,
@@ -476,12 +428,14 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   ? PropertyExpensesWorkspace(
                       key: const ValueKey('expenses'),
                       data: data,
+                      scope: ExpenseTableScope.all,
                       onOpenMaterials: () => context.push(
                         AppRoutes.propertyMaterials(widget.propertyId),
                       ),
                       onOpenDetailedExpenses: () => context.push(
                         AppRoutes.propertyExpenseDetails(widget.propertyId),
                       ),
+                      showDetailedButton: false,
                       onAddExpense: () =>
                           _showExpenseSheet(partners: data.partners),
                       onEditExpense: (expense) => _showExpenseSheet(
