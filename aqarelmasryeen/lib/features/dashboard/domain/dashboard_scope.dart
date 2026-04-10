@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable
+
 import 'package:aqarelmasryeen/shared/models/app_user.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
@@ -41,13 +43,15 @@ class DashboardScopeResolver {
     required List<SupplierPaymentRecord> supplierPayments,
   }) {
     final workspaceId = profile?.workspaceId.trim() ?? '';
-    final visiblePartners = partners.where((partner) {
-      final partnerWorkspace = partner.workspaceId.trim();
-      if (workspaceId.isEmpty || workspaceId == partnerWorkspace) {
-        return true;
-      }
-      return partner.userId.trim() == currentUserId;
-    }).toList(growable: false);
+    final visiblePartners = partners
+        .where((partner) {
+          final partnerWorkspace = partner.workspaceId.trim();
+          if (workspaceId.isEmpty || workspaceId == partnerWorkspace) {
+            return true;
+          }
+          return partner.userId.trim() == currentUserId;
+        })
+        .toList(growable: false);
 
     final linkedPartnerIds = visiblePartners
         .map((partner) => partner.id.trim())
@@ -60,10 +64,14 @@ class DashboardScopeResolver {
           .where((id) => id.isNotEmpty),
     }..removeWhere((id) => id.isEmpty);
 
-    final visibleProperties = properties.where((property) {
-      return accountUserIds.contains(property.createdBy.trim());
-    }).toList(growable: false);
-    final propertyIds = visibleProperties.map((property) => property.id).toSet();
+    final visibleProperties = properties
+        .where((property) {
+          return accountUserIds.contains(property.createdBy.trim());
+        })
+        .toList(growable: false);
+    final propertyIds = visibleProperties
+        .map((property) => property.id)
+        .toSet();
 
     final visibleUnits = units
         .where((unit) => propertyIds.contains(unit.propertyId))
@@ -112,7 +120,9 @@ class DashboardScopeResolver {
       final ownProperties = properties
           .where((property) => property.createdBy.trim() == currentUserId)
           .toList(growable: false);
-      final ownPropertyIds = ownProperties.map((property) => property.id).toSet();
+      final ownPropertyIds = ownProperties
+          .map((property) => property.id)
+          .toSet();
       final ownUnits = units
           .where((unit) => ownPropertyIds.contains(unit.propertyId))
           .toList(growable: false);
