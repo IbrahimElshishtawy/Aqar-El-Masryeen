@@ -1,9 +1,9 @@
-import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
+import 'package:aqarelmasryeen/core/widgets/load_failure_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/data/unit_expense_repository.dart';
@@ -318,9 +318,17 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         title: 'الوحدة',
         subtitle: 'تفاصيل البيع والتحصيل',
         currentIndex: 1,
-        child: EmptyStateView(
+        child: LoadFailureView(
           title: 'تعذر تحميل بيانات الوحدة',
-          message: mapException(error).message,
+          error: error,
+          onRetry: () => ref.invalidate(
+            propertyUnitViewDataProvider(
+              PropertyUnitRequest(
+                propertyId: widget.propertyId,
+                unitId: widget.unitId!,
+              ),
+            ),
+          ),
         ),
       ),
       data: (data) {
@@ -394,9 +402,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
         title: 'العقار',
         subtitle: 'المبيعات والمصاريف',
         currentIndex: 1,
-        child: EmptyStateView(
+        child: LoadFailureView(
           title: 'تعذر تحميل بيانات العقار',
-          message: mapException(error).message,
+          error: error,
+          onRetry: () => ref.invalidate(
+            propertyProjectViewDataProvider(widget.propertyId),
+          ),
         ),
       ),
       data: (data) {

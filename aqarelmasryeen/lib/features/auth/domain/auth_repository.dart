@@ -16,6 +16,9 @@ abstract class AuthRepository {
     required String fullName,
     required String email,
     required String password,
+    String? createdBy,
+    String? createdByName,
+    String? workspaceId,
   });
 
   Future<void> signInWithEmail({

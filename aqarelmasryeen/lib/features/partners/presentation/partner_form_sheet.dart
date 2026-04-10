@@ -66,6 +66,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
     if (session == null) return;
 
     final currentEmail = _resolveSessionEmail(session);
+    final workspaceId = _resolveWorkspaceId(session);
     final normalizedEmail = _linkToCurrentAccount
         ? currentEmail
         : _emailController.text.trim().toLowerCase();
@@ -90,6 +91,9 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
               fullName: _nameController.text.trim(),
               email: normalizedEmail,
               password: _passwordController.text,
+              createdBy: session.userId,
+              createdByName: session.profile?.name ?? 'شريك',
+              workspaceId: workspaceId,
             );
         linkedUserId = createdProfile.uid;
         accountCreated = true;
@@ -117,6 +121,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
       }
 
       final now = DateTime.now();
+      final previousLinkedUserId = widget.partner?.userId.trim() ?? '';
       final partner = Partner(
         id: widget.partner?.id ?? '',
         userId: linkedUserId,
@@ -126,6 +131,9 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
         contributionTotal: widget.partner?.contributionTotal ?? 0,
         createdAt: widget.partner?.createdAt ?? now,
         updatedAt: now,
+        createdBy: widget.partner?.createdBy ?? session.userId,
+        updatedBy: session.userId,
+        workspaceId: widget.partner?.workspaceId ?? workspaceId,
       );
 
       final partnerId = await ref
@@ -138,6 +146,24 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
           linkedUserId: linkedUserId,
           keepPartnerId: partnerId,
         );
+        await ref
+            .read(userProfileRemoteDataSourceProvider)
+            .setPartnerLink(
+              uid: linkedUserId,
+              partnerId: partnerId,
+              partnerName: partner.name,
+              workspaceId: workspaceId,
+            );
+      }
+
+      if (previousLinkedUserId.isNotEmpty &&
+          previousLinkedUserId != linkedUserId) {
+        await ref
+            .read(userProfileRemoteDataSourceProvider)
+            .clearPartnerLink(
+              previousLinkedUserId,
+              expectedPartnerId: widget.partner?.id,
+            );
       }
 
       if (requestSent && targetUserId.isNotEmpty) {
@@ -158,6 +184,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
                 'requesterName': session.profile?.name ?? 'شريك',
                 'requesterEmail': currentEmail,
               },
+              workspaceId: workspaceId,
             );
       }
 
@@ -180,6 +207,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
               'requestSent': requestSent,
               'accountCreated': accountCreated,
             },
+            workspaceId: workspaceId,
           );
 
       if (!mounted) return;
@@ -396,4 +424,12 @@ String _resolveSessionEmail(AppSession? session) {
     return profileEmail;
   }
   return session?.email?.trim().toLowerCase() ?? '';
+}
+
+String _resolveWorkspaceId(AppSession? session) {
+  final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+  if (workspaceId.isNotEmpty) {
+    return workspaceId;
+  }
+  return 'workspace_main';
 }

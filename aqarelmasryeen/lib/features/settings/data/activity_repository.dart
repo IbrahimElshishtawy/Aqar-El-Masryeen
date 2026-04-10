@@ -47,6 +47,7 @@ class ActivityRepository {
     required String entityType,
     required String entityId,
     Map<String, dynamic> metadata = const {},
+    String? workspaceId,
   }) {
     final id = _uuid.v4();
     return _firestore.collection(FirestorePaths.activityLogs).doc(id).set({
@@ -57,6 +58,7 @@ class ActivityRepository {
       'entityId': entityId,
       'createdAt': DateTime.now(),
       'metadata': metadata,
+      'workspaceId': workspaceId ?? '',
     });
   }
 }

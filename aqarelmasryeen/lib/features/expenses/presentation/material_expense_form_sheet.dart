@@ -119,13 +119,67 @@ class _MaterialExpenseFormSheetState
     return widget.partners.isEmpty ? '' : widget.partners.first.id;
   }
 
+  String _currentUserLabel() {
+    final session = ref.read(authSessionProvider).valueOrNull;
+    final profileName = session?.profile?.fullName.trim() ?? '';
+    if (profileName.isNotEmpty) {
+      return profileName;
+    }
+
+    final displayName = session?.displayName?.trim() ?? '';
+    if (displayName.isNotEmpty) {
+      return displayName;
+    }
+
+    return 'شريك';
+  }
+
   String _partnerLabel(String partnerId) {
+    final session = ref.read(authSessionProvider).valueOrNull;
+    final currentUserId = session?.userId;
+    final currentUserLabel = _currentUserLabel();
     for (final partner in widget.partners) {
       if (partner.id == partnerId) {
         final name = partner.name.trim();
-        return name.isEmpty ? 'شريك' : name;
+        if (name.isNotEmpty) {
+          return name;
+        }
+
+        if (currentUserId != null &&
+            partner.userId == currentUserId &&
+            currentUserLabel.trim().isNotEmpty) {
+          return currentUserLabel;
+        }
+
+        final linkedEmail = partner.linkedEmail.trim();
+        if (linkedEmail.isNotEmpty) {
+          return linkedEmail;
+        }
+
+        return currentUserLabel;
       }
     }
+    return currentUserLabel;
+  }
+
+  String _partnerOptionLabel(Partner partner) {
+    final name = partner.name.trim();
+    if (name.isNotEmpty) {
+      return name;
+    }
+
+    final session = ref.read(authSessionProvider).valueOrNull;
+    if (session != null &&
+        partner.userId == session.userId &&
+        _currentUserLabel().trim().isNotEmpty) {
+      return _currentUserLabel();
+    }
+
+    final linkedEmail = partner.linkedEmail.trim();
+    if (linkedEmail.isNotEmpty) {
+      return linkedEmail;
+    }
+
     return 'شريك';
   }
 
@@ -147,7 +201,9 @@ class _MaterialExpenseFormSheetState
       (widget.entry?.amountPaid ?? 0) - (widget.entry?.initialPaidAmount ?? 0),
     );
     final totalPaid = initialPaidAmount + previousExtraPaid;
-    final remainingAmount = (totalPrice - totalPaid).clamp(0, totalPrice).toDouble();
+    final remainingAmount = (totalPrice - totalPaid)
+        .clamp(0, totalPrice)
+        .toDouble();
     final unitPrice = quantity <= 0 ? 0.0 : totalPrice / quantity;
     final now = DateTime.now();
 
@@ -159,22 +215,28 @@ class _MaterialExpenseFormSheetState
             id: widget.entry?.id ?? '',
             propertyId: widget.propertyId,
             date: _selectedDate,
-            materialCategory: widget.entry?.materialCategory ?? MaterialCategory.other,
+            materialCategory:
+                widget.entry?.materialCategory ?? MaterialCategory.other,
             itemName: _itemNameController.text.trim(),
             quantity: quantity,
             unitPrice: unitPrice,
             totalPrice: totalPrice,
             supplierName: _supplierController.text.trim(),
             initialPaidAmount: initialPaidAmount,
-            initialPaidByPartnerId: initialPaidAmount > 0 ? _paidByPartnerId : '',
-            initialPaidByLabel: initialPaidAmount > 0 ? _partnerLabel(_paidByPartnerId) : '',
+            initialPaidByPartnerId: initialPaidAmount > 0
+                ? _paidByPartnerId
+                : '',
+            initialPaidByLabel: initialPaidAmount > 0
+                ? _partnerLabel(_paidByPartnerId)
+                : '',
             amountPaid: totalPaid,
             amountRemaining: remainingAmount,
             notes: _notesController.text.trim(),
             createdBy: widget.entry?.createdBy ?? session.userId,
             updatedBy: session.userId,
             createdAt:
-                widget.entry?.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
+                widget.entry?.createdAt ??
+                DateTime.fromMillisecondsSinceEpoch(0),
             updatedAt: now,
             archived: false,
             dueDate: _dueDate,
@@ -196,7 +258,9 @@ class _MaterialExpenseFormSheetState
     );
 
     return AppFormSheet(
-      title: widget.entry == null ? 'إضافة فاتورة مواد بناء' : 'تعديل فاتورة مواد بناء',
+      title: widget.entry == null
+          ? 'إضافة فاتورة مواد بناء'
+          : 'تعديل فاتورة مواد بناء',
       child: Form(
         key: _formKey,
         child: Column(
@@ -218,7 +282,9 @@ class _MaterialExpenseFormSheetState
             const SizedBox(height: 12),
             TextFormField(
               controller: _supplierController,
-              decoration: const InputDecoration(labelText: 'اسم التاجر / المورد'),
+              decoration: const InputDecoration(
+                labelText: 'اسم التاجر / المورد',
+              ),
               validator: (value) =>
                   (value ?? '').trim().isEmpty ? 'أدخل اسم المورد.' : null,
             ),
@@ -240,7 +306,8 @@ class _MaterialExpenseFormSheetState
                     ),
                     decoration: const InputDecoration(labelText: 'الكمية'),
                     validator: (value) {
-                      final quantity = double.tryParse((value ?? '').trim()) ?? 0;
+                      final quantity =
+                          double.tryParse((value ?? '').trim()) ?? 0;
                       if (quantity <= 0) {
                         return 'أدخل كمية صحيحة.';
                       }
@@ -255,7 +322,9 @@ class _MaterialExpenseFormSheetState
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'إجمالي الفاتورة'),
+                    decoration: const InputDecoration(
+                      labelText: 'إجمالي الفاتورة',
+                    ),
                     validator: (value) {
                       final total = double.tryParse((value ?? '').trim()) ?? 0;
                       if (total <= 0) {
@@ -270,11 +339,14 @@ class _MaterialExpenseFormSheetState
             const SizedBox(height: 12),
             TextFormField(
               controller: _paidController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               decoration: const InputDecoration(labelText: 'المدفوع'),
               validator: (value) {
                 final paid = double.tryParse((value ?? '').trim()) ?? 0;
-                final total = double.tryParse(_totalInvoiceController.text.trim()) ?? 0;
+                final total =
+                    double.tryParse(_totalInvoiceController.text.trim()) ?? 0;
                 if (paid < 0) {
                   return 'أدخل مبلغًا صحيحًا.';
                 }
@@ -292,7 +364,7 @@ class _MaterialExpenseFormSheetState
                   for (final partner in payerOptions)
                     DropdownMenuItem(
                       value: partner.id,
-                      child: Text(partner.name.trim().isEmpty ? 'شريك' : partner.name),
+                      child: Text(_partnerOptionLabel(partner)),
                     ),
                 ],
                 onChanged: (value) {

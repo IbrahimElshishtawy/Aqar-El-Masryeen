@@ -1,6 +1,7 @@
 import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/firebase_auth_remote_data_source.dart';
+import 'package:aqarelmasryeen/features/auth/data/datasources/partner_account_provision_remote_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/user_profile_remote_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/data/repositories/firebase_auth_repository_impl.dart';
 import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
@@ -20,6 +21,13 @@ final userProfileRemoteDataSourceProvider =
       return UserProfileRemoteDataSource(ref.watch(firestoreProvider));
     });
 
+final partnerAccountProvisionRemoteDataSourceProvider =
+    Provider<PartnerAccountProvisionRemoteDataSource>((ref) {
+      return PartnerAccountProvisionRemoteDataSource(
+        ref.watch(firebaseFunctionsProvider),
+      );
+    });
+
 final authLocalDataSourceProvider = Provider<AuthLocalDataSource>((ref) {
   return AuthLocalDataSource(
     ref.watch(localCacheServiceProvider),
@@ -30,6 +38,7 @@ final authLocalDataSourceProvider = Provider<AuthLocalDataSource>((ref) {
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return FirebaseAuthRepository(
     ref.watch(firebaseAuthRemoteDataSourceProvider),
+    ref.watch(partnerAccountProvisionRemoteDataSourceProvider),
     ref.watch(userProfileRemoteDataSourceProvider),
     ref.watch(authLocalDataSourceProvider),
     ref.watch(activityRepositoryProvider),

@@ -18,7 +18,7 @@ class PartnerRepository {
   Stream<List<Partner>> watchPartners() {
     final source = _firestore
         .collection(FirestorePaths.partners)
-        .orderBy('createdAt')
+        .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs

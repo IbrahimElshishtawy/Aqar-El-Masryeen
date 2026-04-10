@@ -46,6 +46,7 @@ class NotificationRepository {
     required String route,
     String? referenceKey,
     Map<String, dynamic>? metadata,
+    String? workspaceId,
   }) {
     final id = referenceKey?.trim().isNotEmpty == true
         ? referenceKey!.trim()
@@ -60,6 +61,7 @@ class NotificationRepository {
       'createdAt': DateTime.now(),
       'referenceKey': referenceKey ?? '',
       'metadata': metadata ?? const {},
+      'workspaceId': workspaceId ?? '',
       'pushDelivery': const {
         'status': 'queued',
         'reason': 'awaiting_function_dispatch',
@@ -67,11 +69,56 @@ class NotificationRepository {
     });
   }
 
+  Future<void> createForUsers({
+    required Iterable<String> userIds,
+    required String title,
+    required String body,
+    required NotificationType type,
+    required String route,
+    String? workspaceId,
+    String? referenceKeyPrefix,
+    Map<String, dynamic>? metadata,
+  }) async {
+    final uniqueIds = userIds
+        .map((userId) => userId.trim())
+        .where((userId) => userId.isNotEmpty)
+        .toSet()
+        .toList(growable: false);
+    if (uniqueIds.isEmpty) {
+      return;
+    }
+
+    final batch = _firestore.batch();
+    for (final userId in uniqueIds) {
+      final referenceKey = referenceKeyPrefix?.trim().isNotEmpty == true
+          ? '${referenceKeyPrefix!.trim()}-$userId'
+          : _uuid.v4();
+      batch.set(_firestore.collection(FirestorePaths.notifications).doc(referenceKey), {
+        'userId': userId,
+        'title': title,
+        'body': body,
+        'type': type.name,
+        'route': route,
+        'isRead': false,
+        'createdAt': DateTime.now(),
+        'referenceKey': referenceKey,
+        'metadata': metadata ?? const {},
+        'workspaceId': workspaceId ?? '',
+        'pushDelivery': const {
+          'status': 'queued',
+          'reason': 'awaiting_function_dispatch',
+        },
+      }, SetOptions(merge: true));
+    }
+    await batch.commit();
+  }
+
   Future<void> createSecurityNotification({
     required String userId,
     required String title,
     required String body,
     required String route,
+    String? workspaceId,
   }) {
     return create(
       userId: userId,
@@ -79,6 +126,7 @@ class NotificationRepository {
       body: body,
       type: NotificationType.newDeviceLogin,
       route: route,
+      workspaceId: workspaceId,
     );
   }
 

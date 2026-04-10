@@ -25,6 +25,8 @@ class DashboardScreen extends ConsumerWidget {
       child: AsyncValueView(
         value: dashboardAsync,
         loadingLabel: 'جار تحميل لوحة المتابعة',
+        errorTitle: 'تعذر تحميل لوحة المتابعة',
+        onRetry: () => ref.invalidate(dashboardViewDataProvider),
         data: (viewData) => ListView(
           padding: const EdgeInsets.fromLTRB(6, 1, 6, 4),
           children: [

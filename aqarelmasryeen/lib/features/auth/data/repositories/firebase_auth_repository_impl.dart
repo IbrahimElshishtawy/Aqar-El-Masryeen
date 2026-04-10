@@ -7,6 +7,7 @@ import 'package:aqarelmasryeen/core/services/device_info_service.dart';
 import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/firebase_auth_remote_data_source.dart';
+import 'package:aqarelmasryeen/features/auth/data/datasources/partner_account_provision_remote_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/user_profile_remote_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
@@ -21,6 +22,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 class FirebaseAuthRepository implements AuthRepository {
   FirebaseAuthRepository(
     this._authDataSource,
+    this._partnerAccountProvisionDataSource,
     this._profileDataSource,
     this._localDataSource,
     this._activityRepository,
@@ -32,6 +34,7 @@ class FirebaseAuthRepository implements AuthRepository {
   );
 
   final FirebaseAuthRemoteDataSource _authDataSource;
+  final PartnerAccountProvisionRemoteDataSource _partnerAccountProvisionDataSource;
   final UserProfileRemoteDataSource _profileDataSource;
   final AuthLocalDataSource _localDataSource;
   final ActivityRepository _activityRepository;
@@ -125,6 +128,8 @@ class FirebaseAuthRepository implements AuthRepository {
         fullName: normalizedName,
         email: normalizedEmail,
         deviceInfo: deviceInfo,
+        createdBy: user.uid,
+        createdByName: normalizedName,
       );
 
       final profile = await _profileDataSource.fetchProfile(user.uid);
@@ -147,11 +152,29 @@ class FirebaseAuthRepository implements AuthRepository {
     required String fullName,
     required String email,
     required String password,
+    String? createdBy,
+    String? createdByName,
+    String? workspaceId,
   }) async {
     final normalizedEmail = email.trim().toLowerCase();
     final normalizedName = fullName.trim();
 
     try {
+      try {
+        return await _partnerAccountProvisionDataSource.provisionPartnerAccount(
+          fullName: normalizedName,
+          email: normalizedEmail,
+          password: password,
+          createdBy: createdBy,
+          createdByName: createdByName,
+          workspaceId: workspaceId,
+        );
+      } on AppException catch (error) {
+        if (!_shouldFallbackToClientProvisioning(error)) {
+          rethrow;
+        }
+      }
+
       final createdUid = await _authDataSource.createUserWithEmailOnIsolatedApp(
         email: normalizedEmail,
         password: password,
@@ -165,6 +188,10 @@ class FirebaseAuthRepository implements AuthRepository {
         fullName: normalizedName,
         email: normalizedEmail,
         deviceInfo: deviceInfo,
+        updateLastLoginAt: false,
+        createdBy: createdBy,
+        createdByName: createdByName,
+        workspaceId: workspaceId,
       );
 
       final profile = await _profileDataSource.fetchProfile(createdUid);
@@ -272,6 +299,15 @@ class FirebaseAuthRepository implements AuthRepository {
       trustedDeviceEnabled: existingProfile?.trustedDeviceEnabled ?? false,
       isActive: existingProfile?.isActive ?? true,
       role: existingProfile?.role.name ?? 'partner',
+      createdBy: existingProfile?.createdBy.isNotEmpty == true
+          ? existingProfile!.createdBy
+          : user.uid,
+      createdByName: existingProfile?.createdByName.isNotEmpty == true
+          ? existingProfile!.createdByName
+          : resolvedName,
+      workspaceId: existingProfile?.workspaceId,
+      linkedPartnerId: existingProfile?.linkedPartnerId,
+      linkedPartnerName: existingProfile?.linkedPartnerName,
     );
 
     return _profileDataSource.fetchProfile(user.uid);
@@ -496,5 +532,11 @@ class FirebaseAuthRepository implements AuthRepository {
 
   void _recordError(Object error, StackTrace stackTrace) {
     _crashlytics.recordError(error, stackTrace, fatal: false);
+  }
+
+  bool _shouldFallbackToClientProvisioning(AppException error) {
+    return error.code == 'functions_unavailable' ||
+        error.code == 'functions_not_ready' ||
+        error.code == 'functions_failed_precondition';
   }
 }

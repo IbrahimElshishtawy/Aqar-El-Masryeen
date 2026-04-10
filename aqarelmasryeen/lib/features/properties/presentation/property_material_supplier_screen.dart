@@ -1,12 +1,15 @@
+// ignore_for_file: unused_element
+
 import 'dart:math' as math;
 
-import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
+import 'package:aqarelmasryeen/core/widgets/load_failure_view.dart';
+import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/data/supplier_payment_repository.dart';
@@ -60,6 +63,7 @@ class _PropertyMaterialSupplierScreenState
     required List<Partner> partners,
     required double totalRemaining,
     required String? currentPartnerId,
+    required String currentUserLabel,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -69,6 +73,7 @@ class _PropertyMaterialSupplierScreenState
         supplierName: supplierName,
         partners: partners,
         currentPartnerId: currentPartnerId,
+        currentUserLabel: currentUserLabel,
         totalRemaining: totalRemaining,
         onSubmit: (amount, paidAt, notes, paidByPartnerId) =>
             _applySupplierPayment(
@@ -82,6 +87,11 @@ class _PropertyMaterialSupplierScreenState
             ),
       ),
     );
+  }
+
+  String _currentUserLabel() {
+    final session = ref.read(authSessionProvider).valueOrNull;
+    return _resolveUserDisplayName(session);
   }
 
   Future<void> _applySupplierPayment({
@@ -152,7 +162,12 @@ class _PropertyMaterialSupplierScreenState
       return;
     }
 
-    final paidByLabel = _partnerLabel(partners, paidByPartnerId);
+    final paidByLabel = _partnerLabel(
+      partners,
+      paidByPartnerId,
+      currentUserId: session.userId,
+      currentUserLabel: _currentUserLabel(),
+    );
     await ref
         .read(supplierPaymentRepositoryProvider)
         .save(
@@ -255,12 +270,16 @@ class _PropertyMaterialSupplierScreenState
         title: 'كشف المورد',
         subtitle: 'تعذر تحميل البيانات',
         currentIndex: 1,
-        child: EmptyStateView(
+        child: LoadFailureView(
           title: 'تعذر تحميل كشف المورد',
-          message: mapException(error).message,
+          error: error,
+          onRetry: () => ref.invalidate(
+            propertyProjectViewDataProvider(widget.propertyId),
+          ),
         ),
       ),
       data: (data) {
+        final session = ref.watch(authSessionProvider).valueOrNull;
         if (data == null) {
           return const AppShellScaffold(
             title: 'كشف المورد',
@@ -274,6 +293,8 @@ class _PropertyMaterialSupplierScreenState
         }
 
         final supplierName = _normalizeSupplierName(widget.supplierName);
+        final currentUserId = session?.userId;
+        final currentUserLabel = _resolveUserDisplayName(session);
         final invoiceRows =
             data.materials
                 .where(
@@ -328,6 +349,9 @@ class _PropertyMaterialSupplierScreenState
         final ledgerRows = _buildLedgerRows(
           invoiceRows: invoiceRows,
           paymentRows: paymentRows,
+          partners: data.partners,
+          currentUserId: currentUserId,
+          currentUserLabel: currentUserLabel,
         );
         final currentPartnerId = data.currentPartner?.id;
         final canAddPayment =
@@ -337,33 +361,13 @@ class _PropertyMaterialSupplierScreenState
           title: supplierName,
           subtitle: data.property.name,
           currentIndex: 1,
-          actions: [
-            _SupplierTopBarAction(
-              label: 'إضافة كمية',
-              icon: Icons.add_box_outlined,
-              onPressed: () => _showMaterialSheet(
-                partners: data.partners,
-                initialSupplierName: supplierName,
-              ),
-            ),
-            if (canAddPayment)
-              _SupplierTopBarAction(
-                label: 'إضافة دفعة',
-                icon: Icons.add_card_rounded,
-                onPressed: () => _showSupplierPaymentSheet(
-                  supplierName: supplierName,
-                  invoiceRows: invoiceRows,
-                  partners: data.partners,
-                  totalRemaining: accountSummary.totalRemaining,
-                  currentPartnerId: currentPartnerId,
-                ),
-              ),
-          ],
+
           child: ListView(
             padding: const EdgeInsets.fromLTRB(6, 8, 6, 24),
             children: [
               _SupplierHeaderPanel(
                 supplierName: supplierName,
+                totalQuantity: accountSummary.totalQuantity,
                 invoiceCount: invoiceRows.length,
                 paymentCount: paymentRows.length,
                 totalRequired: accountSummary.totalRequired,
@@ -381,6 +385,7 @@ class _PropertyMaterialSupplierScreenState
                         partners: data.partners,
                         totalRemaining: accountSummary.totalRemaining,
                         currentPartnerId: currentPartnerId,
+                        currentUserLabel: currentUserLabel,
                       )
                     : null,
               ),
@@ -417,46 +422,54 @@ class _PropertyMaterialSupplierScreenState
                   },
                   columns: [
                     LedgerColumn(
-                      label: '#',
-                      valueBuilder: (row) => Text('${row.sequence}'),
-                      minWidth: 52,
-                      numeric: true,
-                    ),
-                    LedgerColumn(
-                      label: 'التاريخ',
+                      label: 'تاريخ الحركة',
                       valueBuilder: (row) =>
                           Text(row.displayDate.formatShort()),
                       minWidth: 118,
                     ),
                     LedgerColumn(
-                      label: 'نوع الحركة',
-                      valueBuilder: (row) => FinancialStatusChip(
-                        label: row.typeLabel,
-                        color: row.isPayment
-                            ? const Color(0xFF9A4F42)
-                            : const Color(0xFF2E6B3F),
+                      label: 'النوع',
+                      valueBuilder: (row) => Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Center(
+                            child: Text(
+                              row.description,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                        ],
                       ),
-                      minWidth: 128,
-                    ),
-                    LedgerColumn(
-                      label: 'البيان',
-                      valueBuilder: (row) => Text(
-                        row.description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      minWidth: 220,
+                      minWidth: 170,
                     ),
                     LedgerColumn(
                       label: 'الكمية',
                       valueBuilder: (row) => Text(row.quantityLabel),
-                      minWidth: 84,
+                      minWidth: 92,
                       numeric: true,
                     ),
                     LedgerColumn(
-                      label: 'القيمة المضافة',
-                      valueBuilder: (row) => Text(row.addedValue.egp),
-                      minWidth: 126,
+                      label: 'السعر',
+                      valueBuilder: (row) => Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(row.priceLabel),
+                          if (row.unitPrice > 0) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              'الوحدة ${row.unitPrice.egp}',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(color: const Color(0xFF5F655B)),
+                            ),
+                          ],
+                        ],
+                      ),
+                      minWidth: 132,
                       numeric: true,
                     ),
                     LedgerColumn(
@@ -507,7 +520,11 @@ class _PropertyMaterialSupplierScreenState
                   totalsFooter: LedgerTotalsFooter(
                     children: [
                       LedgerFooterValue(
-                        label: 'إجمالي المطلوب',
+                        label: 'إجمالي الكمية',
+                        value: _formatQuantity(accountSummary.totalQuantity),
+                      ),
+                      LedgerFooterValue(
+                        label: 'إجمالي السعر',
                         value: accountSummary.totalRequired.egp,
                       ),
                       LedgerFooterValue(
@@ -566,6 +583,7 @@ class _SupplierTopBarAction extends StatelessWidget {
 class _SupplierHeaderPanel extends StatelessWidget {
   const _SupplierHeaderPanel({
     required this.supplierName,
+    required this.totalQuantity,
     required this.invoiceCount,
     required this.paymentCount,
     required this.totalRequired,
@@ -577,6 +595,7 @@ class _SupplierHeaderPanel extends StatelessWidget {
   });
 
   final String supplierName;
+  final double totalQuantity;
   final int invoiceCount;
   final int paymentCount;
   final double totalRequired;
@@ -601,7 +620,11 @@ class _SupplierHeaderPanel extends StatelessWidget {
             runSpacing: 10,
             children: [
               _SupplierMetricCard(
-                label: 'إجمالي المطلوب',
+                label: 'إجمالي الكمية',
+                value: _formatQuantity(totalQuantity),
+              ),
+              _SupplierMetricCard(
+                label: 'إجمالي السعر',
                 value: totalRequired.egp,
               ),
               _SupplierMetricCard(
@@ -701,7 +724,7 @@ class _SupplierLedgerCompactCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFD8D8D2)),
       ),
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -718,7 +741,9 @@ class _SupplierLedgerCompactCard extends StatelessWidget {
                           : '${row.typeLabel} #$rowNumber',
                       style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         fontWeight: FontWeight.w800,
-                        color: const Color(0xFF2E6B3F),
+                        color: row.isPayment
+                            ? const Color(0xFF9A4F42)
+                            : const Color(0xFF2E6B3F),
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -748,8 +773,9 @@ class _SupplierLedgerCompactCard extends StatelessWidget {
             runSpacing: 8,
             children: [
               _LedgerChip(label: row.displayDate.formatShort()),
+              _LedgerChip(label: 'النوع: ${row.typeLabel}'),
               _LedgerChip(label: 'الكمية: ${row.quantityLabel}'),
-              _LedgerChip(label: 'دفع: ${row.paidByLabel}'),
+              _LedgerChip(label: 'من دفع: ${row.paidByLabel}'),
             ],
           ),
           const SizedBox(height: 12),
@@ -757,7 +783,7 @@ class _SupplierLedgerCompactCard extends StatelessWidget {
             spacing: 12,
             runSpacing: 8,
             children: [
-              _LedgerValue(label: 'القيمة المضافة', value: row.addedValue.egp),
+              _LedgerValue(label: 'السعر', value: row.priceLabel),
               _LedgerValue(label: 'المدفوع', value: row.paidValue.egp),
               _LedgerValue(label: 'المتبقي', value: row.remainingAfter.egp),
             ],
@@ -805,7 +831,7 @@ class _LedgerChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
       decoration: BoxDecoration(
         color: const Color(0xFFF3F5F0),
         borderRadius: BorderRadius.circular(999),
@@ -860,6 +886,7 @@ class _SupplierPaymentSheet extends StatefulWidget {
     required this.supplierName,
     required this.partners,
     required this.currentPartnerId,
+    required this.currentUserLabel,
     required this.totalRemaining,
     required this.onSubmit,
   });
@@ -867,6 +894,7 @@ class _SupplierPaymentSheet extends StatefulWidget {
   final String supplierName;
   final List<Partner> partners;
   final String? currentPartnerId;
+  final String currentUserLabel;
   final double totalRemaining;
   final Future<void> Function(
     double amount,
@@ -904,6 +932,25 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
     _amountController.dispose();
     _notesController.dispose();
     super.dispose();
+  }
+
+  String _partnerOptionLabel(Partner partner) {
+    final name = partner.name.trim();
+    if (name.isNotEmpty) {
+      return name;
+    }
+
+    if (partner.id == widget.currentPartnerId &&
+        widget.currentUserLabel.trim().isNotEmpty) {
+      return widget.currentUserLabel;
+    }
+
+    final linkedEmail = partner.linkedEmail.trim();
+    if (linkedEmail.isNotEmpty) {
+      return linkedEmail;
+    }
+
+    return 'شريك';
   }
 
   Future<void> _pickDate() async {
@@ -993,9 +1040,7 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
                   for (final partner in widget.partners)
                     DropdownMenuItem(
                       value: partner.id,
-                      child: Text(
-                        partner.name.trim().isEmpty ? 'شريك' : partner.name,
-                      ),
+                      child: Text(_partnerOptionLabel(partner)),
                     ),
                 ],
                 onChanged: (value) {
@@ -1043,6 +1088,9 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
 List<_SupplierLedgerRow> _buildLedgerRows({
   required List<MaterialExpenseEntry> invoiceRows,
   required List<SupplierPaymentRecord> paymentRows,
+  required List<Partner> partners,
+  required String? currentUserId,
+  required String currentUserLabel,
 }) {
   final events =
       <_SupplierLedgerEvent>[
@@ -1080,16 +1128,22 @@ List<_SupplierLedgerRow> _buildLedgerRows({
           displayDate: invoice.date,
           isPayment: false,
           description: invoice.itemName.trim().isEmpty
-              ? 'إضافة كمية'
+              ? 'صنف غير محدد'
               : invoice.itemName.trim(),
           quantity: invoice.quantity,
+          unitPrice: invoice.unitPrice,
           addedValue: invoice.totalPrice,
           paidValue: invoice.initialPaidAmount,
           remainingAfter: remaining,
           paidByLabel: invoice.initialPaidAmount > 0
-              ? (invoice.initialPaidByLabel.trim().isEmpty
-                    ? 'غير محدد'
-                    : invoice.initialPaidByLabel.trim())
+              ? _resolveStoredPayerLabel(
+                  storedLabel: invoice.initialPaidByLabel,
+                  partnerId: invoice.initialPaidByPartnerId,
+                  partners: partners,
+                  currentUserId: currentUserId,
+                  currentUserLabel: currentUserLabel,
+                  createdBy: invoice.createdBy,
+                )
               : '-',
           notes: invoice.notes,
           materialEntry: invoice,
@@ -1106,16 +1160,20 @@ List<_SupplierLedgerRow> _buildLedgerRows({
         sequence: rows.length + 1,
         displayDate: payment.paidAt,
         isPayment: true,
-        description: payment.notes.trim().isEmpty
-            ? 'دفعة مورد'
-            : payment.notes.trim(),
+        description: 'دفعة على المورد',
         quantity: null,
+        unitPrice: 0,
         addedValue: 0,
         paidValue: payment.amount,
         remainingAfter: remaining,
-        paidByLabel: payment.paidByLabel.trim().isEmpty
-            ? 'غير محدد'
-            : payment.paidByLabel.trim(),
+        paidByLabel: _resolveStoredPayerLabel(
+          storedLabel: payment.paidByLabel,
+          partnerId: payment.paidByPartnerId,
+          partners: partners,
+          currentUserId: currentUserId,
+          currentUserLabel: currentUserLabel,
+          createdBy: payment.createdBy,
+        ),
         notes: payment.notes,
         materialEntry: null,
         paymentEntry: payment,
@@ -1130,6 +1188,10 @@ _SupplierAccountSummary _buildSupplierAccountSummary({
   required List<MaterialExpenseEntry> invoiceRows,
   required List<SupplierPaymentRecord> paymentRows,
 }) {
+  final totalQuantity = invoiceRows.fold<double>(
+    0,
+    (sum, item) => sum + item.quantity,
+  );
   final totalRequired = invoiceRows.fold<double>(
     0,
     (sum, item) => sum + item.totalPrice,
@@ -1155,20 +1217,113 @@ _SupplierAccountSummary _buildSupplierAccountSummary({
       : (totalRequired - totalPaid).clamp(0, totalRequired).toDouble();
 
   return _SupplierAccountSummary(
+    totalQuantity: totalQuantity,
     totalRequired: totalRequired,
     totalPaid: totalPaid,
     totalRemaining: totalRemaining,
   );
 }
 
-String _partnerLabel(List<Partner> partners, String partnerId) {
+String _formatQuantity(double value) {
+  return value.toStringAsFixed(value % 1 == 0 ? 0 : 2);
+}
+
+String _resolveUserDisplayName(AppSession? session) {
+  final profileName = session?.profile?.fullName.trim() ?? '';
+  if (profileName.isNotEmpty) {
+    return profileName;
+  }
+
+  final displayName = session?.displayName?.trim() ?? '';
+  if (displayName.isNotEmpty) {
+    return displayName;
+  }
+
+  return 'شريك';
+}
+
+String _partnerLabel(
+  List<Partner> partners,
+  String partnerId, {
+  String? currentUserId,
+  String currentUserLabel = 'شريك',
+}) {
   for (final partner in partners) {
     if (partner.id == partnerId) {
-      final name = partner.name.trim();
-      return name.isEmpty ? 'شريك' : name;
+      final label = _partnerDisplayName(
+        partner,
+        currentUserId: currentUserId,
+        currentUserLabel: currentUserLabel,
+      );
+      return label.isEmpty ? currentUserLabel : label;
     }
   }
-  return 'شريك';
+  return currentUserLabel;
+}
+
+String _partnerDisplayName(
+  Partner partner, {
+  String? currentUserId,
+  String currentUserLabel = 'شريك',
+}) {
+  final name = partner.name.trim();
+  if (name.isNotEmpty) {
+    return name;
+  }
+
+  if (currentUserId != null &&
+      partner.userId == currentUserId &&
+      currentUserLabel.trim().isNotEmpty) {
+    return currentUserLabel;
+  }
+
+  final linkedEmail = partner.linkedEmail.trim();
+  if (linkedEmail.isNotEmpty) {
+    return linkedEmail;
+  }
+
+  return '';
+}
+
+String _resolveStoredPayerLabel({
+  required String storedLabel,
+  required String partnerId,
+  required List<Partner> partners,
+  required String? currentUserId,
+  required String currentUserLabel,
+  String? createdBy,
+}) {
+  if (partnerId.trim().isNotEmpty) {
+    final partnerLabel = _partnerLabel(
+      partners,
+      partnerId,
+      currentUserId: currentUserId,
+      currentUserLabel: currentUserLabel,
+    ).trim();
+    if (partnerLabel.isNotEmpty && partnerLabel != 'شريك') {
+      return partnerLabel;
+    }
+  }
+
+  final cleanedStoredLabel = storedLabel.trim();
+  if (cleanedStoredLabel.isNotEmpty &&
+      cleanedStoredLabel != 'شريك' &&
+      cleanedStoredLabel != 'غير محدد') {
+    return cleanedStoredLabel;
+  }
+
+  if (cleanedStoredLabel == 'شريك' &&
+      createdBy != null &&
+      createdBy == currentUserId &&
+      currentUserLabel.trim().isNotEmpty) {
+    return currentUserLabel;
+  }
+
+  if (cleanedStoredLabel == 'غير محدد') {
+    return cleanedStoredLabel;
+  }
+
+  return cleanedStoredLabel.isEmpty ? 'غير محدد' : currentUserLabel;
 }
 
 String _normalizeSupplierName(String supplierName) {
@@ -1178,11 +1333,13 @@ String _normalizeSupplierName(String supplierName) {
 
 class _SupplierAccountSummary {
   const _SupplierAccountSummary({
+    required this.totalQuantity,
     required this.totalRequired,
     required this.totalPaid,
     required this.totalRemaining,
   });
 
+  final double totalQuantity;
   final double totalRequired;
   final double totalPaid;
   final double totalRemaining;
@@ -1195,6 +1352,7 @@ class _SupplierLedgerRow {
     required this.isPayment,
     required this.description,
     required this.quantity,
+    required this.unitPrice,
     required this.addedValue,
     required this.paidValue,
     required this.remainingAfter,
@@ -1209,6 +1367,7 @@ class _SupplierLedgerRow {
   final bool isPayment;
   final String description;
   final double? quantity;
+  final double unitPrice;
   final double addedValue;
   final double paidValue;
   final double remainingAfter;
@@ -1217,13 +1376,20 @@ class _SupplierLedgerRow {
   final MaterialExpenseEntry? materialEntry;
   final SupplierPaymentRecord? paymentEntry;
 
-  String get typeLabel => isPayment ? 'دفعة' : 'إضافة كمية';
+  String get typeLabel => isPayment ? 'دفعة' : '';
 
   String get quantityLabel {
     if (quantity == null || quantity == 0) {
       return '-';
     }
-    return quantity!.toStringAsFixed(quantity! % 1 == 0 ? 0 : 2);
+    return _formatQuantity(quantity!);
+  }
+
+  String get priceLabel {
+    if (isPayment || addedValue <= 0) {
+      return '-';
+    }
+    return addedValue.egp;
   }
 }
 

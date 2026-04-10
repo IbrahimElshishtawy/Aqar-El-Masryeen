@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/utils/firestore_parser.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 
@@ -11,6 +12,9 @@ class Partner {
     required this.contributionTotal,
     required this.createdAt,
     required this.updatedAt,
+    this.createdBy = '',
+    this.updatedBy = '',
+    this.workspaceId = AppConfig.defaultWorkspaceId,
   });
 
   final String id;
@@ -21,6 +25,11 @@ class Partner {
   final double contributionTotal;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String createdBy;
+  final String updatedBy;
+  final String workspaceId;
+
+  bool get hasAccount => userId.trim().isNotEmpty || linkedEmail.trim().isNotEmpty;
 
   Map<String, dynamic> toMap() {
     return {
@@ -31,6 +40,9 @@ class Partner {
       'contributionTotal': contributionTotal,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
+      'createdBy': createdBy,
+      'updatedBy': updatedBy,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -45,6 +57,10 @@ class Partner {
       contributionTotal: parseDouble(data['contributionTotal']),
       createdAt: parseDate(data['createdAt']),
       updatedAt: parseDate(data['updatedAt']),
+      createdBy: data['createdBy'] as String? ?? '',
+      updatedBy: data['updatedBy'] as String? ?? '',
+      workspaceId:
+          data['workspaceId'] as String? ?? AppConfig.defaultWorkspaceId,
     );
   }
 
@@ -57,6 +73,9 @@ class Partner {
     double? contributionTotal,
     DateTime? createdAt,
     DateTime? updatedAt,
+    String? createdBy,
+    String? updatedBy,
+    String? workspaceId,
   }) {
     return Partner(
       id: id ?? this.id,
@@ -67,6 +86,9 @@ class Partner {
       contributionTotal: contributionTotal ?? this.contributionTotal,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      createdBy: createdBy ?? this.createdBy,
+      updatedBy: updatedBy ?? this.updatedBy,
+      workspaceId: workspaceId ?? this.workspaceId,
     );
   }
 }
@@ -81,6 +103,7 @@ class ActivityLogEntry {
     required this.entityId,
     required this.createdAt,
     required this.metadata,
+    this.workspaceId = AppConfig.defaultWorkspaceId,
   });
 
   final String id;
@@ -91,6 +114,7 @@ class ActivityLogEntry {
   final String entityId;
   final DateTime createdAt;
   final Map<String, dynamic> metadata;
+  final String workspaceId;
 
   Map<String, dynamic> toMap() {
     return {
@@ -101,6 +125,7 @@ class ActivityLogEntry {
       'entityId': entityId,
       'createdAt': createdAt,
       'metadata': metadata,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -115,6 +140,8 @@ class ActivityLogEntry {
       entityId: data['entityId'] as String? ?? '',
       createdAt: parseDate(data['createdAt']),
       metadata: Map<String, dynamic>.from(data['metadata'] as Map? ?? const {}),
+      workspaceId:
+          data['workspaceId'] as String? ?? AppConfig.defaultWorkspaceId,
     );
   }
 }
@@ -131,6 +158,7 @@ class AppNotificationItem {
     required this.createdAt,
     this.referenceKey = '',
     this.metadata = const {},
+    this.workspaceId = AppConfig.defaultWorkspaceId,
   });
 
   final String id;
@@ -143,6 +171,7 @@ class AppNotificationItem {
   final DateTime createdAt;
   final String referenceKey;
   final Map<String, dynamic> metadata;
+  final String workspaceId;
 
   Map<String, dynamic> toMap() {
     return {
@@ -155,6 +184,7 @@ class AppNotificationItem {
       'createdAt': createdAt,
       'referenceKey': referenceKey,
       'metadata': metadata,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -174,6 +204,8 @@ class AppNotificationItem {
       createdAt: parseDate(data['createdAt']),
       referenceKey: data['referenceKey'] as String? ?? '',
       metadata: Map<String, dynamic>.from(data['metadata'] as Map? ?? const {}),
+      workspaceId:
+          data['workspaceId'] as String? ?? AppConfig.defaultWorkspaceId,
     );
   }
 
@@ -188,6 +220,7 @@ class AppNotificationItem {
     DateTime? createdAt,
     String? referenceKey,
     Map<String, dynamic>? metadata,
+    String? workspaceId,
   }) {
     return AppNotificationItem(
       id: id ?? this.id,
@@ -200,6 +233,7 @@ class AppNotificationItem {
       createdAt: createdAt ?? this.createdAt,
       referenceKey: referenceKey ?? this.referenceKey,
       metadata: metadata ?? this.metadata,
+      workspaceId: workspaceId ?? this.workspaceId,
     );
   }
 }

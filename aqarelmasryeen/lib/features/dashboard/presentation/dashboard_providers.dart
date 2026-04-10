@@ -10,44 +10,36 @@ import 'package:aqarelmasryeen/features/partners/domain/partner_ledger_calculato
 import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final dashboardPropertiesProvider = StreamProvider.autoDispose(
-  (ref) =>
-      _fallbackToEmpty(ref.watch(propertyRepositoryProvider).watchProperties()),
+  (ref) => ref.watch(propertyRepositoryProvider).watchProperties(),
 );
 final dashboardUnitsProvider = StreamProvider.autoDispose(
-  (ref) => _fallbackToEmpty(ref.watch(salesRepositoryProvider).watchAll()),
+  (ref) => ref.watch(salesRepositoryProvider).watchAll(),
 );
 final dashboardPaymentsProvider = StreamProvider.autoDispose(
-  (ref) => _fallbackToEmpty(ref.watch(paymentRepositoryProvider).watchAll()),
+  (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
 );
 final dashboardInstallmentsProvider = StreamProvider.autoDispose(
-  (ref) => _fallbackToEmpty(
-    ref.watch(installmentRepositoryProvider).watchAllInstallments(),
-  ),
+  (ref) => ref.watch(installmentRepositoryProvider).watchAllInstallments(),
 );
 final dashboardExpensesProvider = StreamProvider.autoDispose(
-  (ref) => _fallbackToEmpty(ref.watch(expenseRepositoryProvider).watchAll()),
+  (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
 );
 final dashboardMaterialsProvider = StreamProvider.autoDispose(
-  (ref) =>
-      _fallbackToEmpty(ref.watch(materialExpenseRepositoryProvider).watchAll()),
+  (ref) => ref.watch(materialExpenseRepositoryProvider).watchAll(),
 );
 final dashboardSupplierPaymentsProvider = StreamProvider.autoDispose(
-  (ref) =>
-      _fallbackToEmpty(ref.watch(supplierPaymentRepositoryProvider).watchAll()),
+  (ref) => ref.watch(supplierPaymentRepositoryProvider).watchAll(),
 );
 final dashboardPartnersProvider = StreamProvider.autoDispose(
-  (ref) =>
-      _fallbackToEmpty(ref.watch(partnerRepositoryProvider).watchPartners()),
+  (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
 );
 final dashboardPartnerLedgerProvider = StreamProvider.autoDispose(
-  (ref) =>
-      _fallbackToEmpty(ref.watch(partnerLedgerRepositoryProvider).watchAll()),
+  (ref) => ref.watch(partnerLedgerRepositoryProvider).watchAll(),
 );
 
 final dashboardViewDataProvider =
@@ -66,15 +58,7 @@ final dashboardViewDataProvider =
 
       final error = values.firstWhereOrNull((value) => value.hasError);
       if (error != null) {
-        final currentError = error.error;
-        if (currentError is FirebaseException &&
-            _shouldShowEmptyState(currentError)) {
-          return AsyncData(_buildEmptyDashboardViewData(ref));
-        }
-        return AsyncError(
-          currentError!,
-          error.stackTrace ?? StackTrace.current,
-        );
+        return AsyncError(error.error!, error.stackTrace ?? StackTrace.current);
       }
       if (values.any((value) => !value.hasValue)) {
         return const AsyncLoading();
@@ -136,30 +120,6 @@ final dashboardViewDataProvider =
       );
     });
 
-DashboardViewData _buildEmptyDashboardViewData(Ref ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
-
-  return DashboardViewData(
-    snapshot: const DashboardSnapshotBuilder().build(
-      properties: const [],
-      units: const [],
-      installments: const [],
-      payments: const [],
-      expenses: const [],
-      materials: const [],
-      supplierPayments: const [],
-      partners: const [],
-      currentUserId: session?.userId,
-      currentPartnerId: null,
-    ),
-    partners: const [],
-    currentPartner: null,
-    currentUserId: session?.userId ?? '',
-    linkedPartnersCount: 0,
-    partnerSummaries: const [],
-  );
-}
-
 class DashboardViewData {
   const DashboardViewData({
     required this.snapshot,
@@ -176,21 +136,4 @@ class DashboardViewData {
   final String currentUserId;
   final int linkedPartnersCount;
   final List<PartnerLedgerSummaryRow> partnerSummaries;
-}
-
-Stream<List<T>> _fallbackToEmpty<T>(Stream<List<T>> source) async* {
-  try {
-    yield* source;
-  } on FirebaseException catch (error) {
-    if (_shouldShowEmptyState(error)) {
-      yield const [];
-      return;
-    }
-    rethrow;
-  }
-}
-
-bool _shouldShowEmptyState(FirebaseException error) {
-  return error.plugin == 'cloud_firestore' &&
-      (error.code == 'permission-denied' || error.code == 'unauthenticated');
 }

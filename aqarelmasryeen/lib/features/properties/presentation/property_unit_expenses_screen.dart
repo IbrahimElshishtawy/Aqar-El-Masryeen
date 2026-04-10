@@ -1,6 +1,6 @@
-import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
+import 'package:aqarelmasryeen/core/widgets/load_failure_view.dart';
 import 'package:aqarelmasryeen/features/expenses/data/unit_expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/unit_expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
@@ -99,9 +99,17 @@ class _PropertyUnitExpensesScreenState
         title: 'مصروفات الوحدة',
         subtitle: 'تعذر تحميل البيانات',
         currentIndex: 1,
-        child: EmptyStateView(
+        child: LoadFailureView(
           title: 'تعذر تحميل سجل مصروفات الوحدة',
-          message: mapException(error).message,
+          error: error,
+          onRetry: () => ref.invalidate(
+            propertyUnitViewDataProvider(
+              PropertyUnitRequest(
+                propertyId: widget.propertyId,
+                unitId: widget.unitId,
+              ),
+            ),
+          ),
         ),
       ),
       data: (data) {

@@ -1,4 +1,4 @@
-enum UserRole { partner }
+enum UserRole { owner, admin, partner }
 
 enum PropertyStatus { planning, active, delivered, archived }
 
@@ -32,10 +32,12 @@ enum NotificationType {
   expenseAdded,
   paymentReceived,
   supplierPaymentDue,
+  supplierPaymentOverdue,
   largeExpenseRecorded,
   ledgerUpdated,
   partnerLinkRequest,
   partnerLinkAccepted,
+  partnerReminder,
   newDeviceLogin,
   systemAlert,
 }
@@ -60,6 +62,10 @@ enum PartnerLedgerEntryType { contribution, settlement, obligation, adjustment }
 extension EnumLabelX on Enum {
   String get label {
     switch (this) {
+      case UserRole.owner:
+        return 'مالك';
+      case UserRole.admin:
+        return 'مدير';
       case UserRole.partner:
         return 'شريك';
       case PropertyStatus.planning:
@@ -146,6 +152,8 @@ extension EnumLabelX on Enum {
         return 'تم استلام دفعة';
       case NotificationType.supplierPaymentDue:
         return 'استحقاق مورد';
+      case NotificationType.supplierPaymentOverdue:
+        return 'مورد متأخر';
       case NotificationType.largeExpenseRecorded:
         return 'مصروف كبير مسجل';
       case NotificationType.ledgerUpdated:
@@ -154,6 +162,8 @@ extension EnumLabelX on Enum {
         return 'طلب ربط شريك';
       case NotificationType.partnerLinkAccepted:
         return 'تم قبول الربط';
+      case NotificationType.partnerReminder:
+        return 'تذكير من الشريك';
       case NotificationType.newDeviceLogin:
         return 'دخول من جهاز جديد';
       case NotificationType.systemAlert:

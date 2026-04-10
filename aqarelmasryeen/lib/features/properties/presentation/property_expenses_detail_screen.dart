@@ -1,6 +1,6 @@
-import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
+import 'package:aqarelmasryeen/core/widgets/load_failure_view.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
@@ -87,9 +87,12 @@ class _PropertyExpensesDetailScreenState
         title: 'كل المصروفات',
         subtitle: 'تعذر تحميل البيانات',
         currentIndex: 1,
-        child: EmptyStateView(
+        child: LoadFailureView(
           title: 'تعذر تحميل جدول المصروفات',
-          message: mapException(error).message,
+          error: error,
+          onRetry: () => ref.invalidate(
+            propertyProjectViewDataProvider(widget.propertyId),
+          ),
         ),
       ),
       data: (data) {

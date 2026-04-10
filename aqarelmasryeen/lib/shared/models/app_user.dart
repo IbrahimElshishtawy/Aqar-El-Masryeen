@@ -1,6 +1,7 @@
+import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/utils/firestore_parser.dart';
-import 'package:aqarelmasryeen/shared/models/auth_device_info.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
+import 'package:aqarelmasryeen/shared/models/auth_device_info.dart';
 import 'package:equatable/equatable.dart';
 
 class AppUser extends Equatable {
@@ -20,6 +21,12 @@ class AppUser extends Equatable {
     required this.deviceInfo,
     required this.isActive,
     required this.securitySetupCompletedAt,
+    this.createdBy = '',
+    this.createdByName = '',
+    this.workspaceId = AppConfig.defaultWorkspaceId,
+    this.linkedPartnerId = '',
+    this.linkedPartnerName = '',
+    this.fcmTokens = const [],
   });
 
   final String uid;
@@ -37,6 +44,12 @@ class AppUser extends Equatable {
   final AuthDeviceInfo? deviceInfo;
   final bool isActive;
   final DateTime? securitySetupCompletedAt;
+  final String createdBy;
+  final String createdByName;
+  final String workspaceId;
+  final String linkedPartnerId;
+  final String linkedPartnerName;
+  final List<String> fcmTokens;
 
   String get id => uid;
 
@@ -46,6 +59,8 @@ class AppUser extends Equatable {
       fullName.trim().isNotEmpty && email.trim().isNotEmpty;
 
   bool get isSecuritySetupComplete => securitySetupCompletedAt != null;
+
+  bool get isLinkedToPartner => linkedPartnerId.trim().isNotEmpty;
 
   Map<String, dynamic> toMap() {
     return {
@@ -65,6 +80,12 @@ class AppUser extends Equatable {
       'deviceInfo': deviceInfo?.toMap(),
       'isActive': isActive,
       'securitySetupCompletedAt': securitySetupCompletedAt,
+      'createdBy': createdBy,
+      'createdByName': createdByName,
+      'workspaceId': workspaceId,
+      'linkedPartnerId': linkedPartnerId,
+      'linkedPartnerName': linkedPartnerName,
+      'fcmTokens': fcmTokens,
     };
   }
 
@@ -72,6 +93,7 @@ class AppUser extends Equatable {
     final data = map ?? <String, dynamic>{};
     final createdAt = parseDate(data['createdAt'], fallback: DateTime.now());
     final updatedAt = parseDate(data['updatedAt'], fallback: createdAt);
+    final createdBy = data['createdBy'] as String? ?? id;
     return AppUser(
       uid: data['uid'] as String? ?? id,
       phone: data['phone'] as String? ?? '',
@@ -97,6 +119,16 @@ class AppUser extends Equatable {
       securitySetupCompletedAt: data['securitySetupCompletedAt'] == null
           ? null
           : parseDate(data['securitySetupCompletedAt']),
+      createdBy: createdBy,
+      createdByName: data['createdByName'] as String? ?? '',
+      workspaceId:
+          data['workspaceId'] as String? ?? AppConfig.defaultWorkspaceId,
+      linkedPartnerId: data['linkedPartnerId'] as String? ?? '',
+      linkedPartnerName: data['linkedPartnerName'] as String? ?? '',
+      fcmTokens: (data['fcmTokens'] as List<dynamic>? ?? const [])
+          .map((value) => '$value'.trim())
+          .where((value) => value.isNotEmpty)
+          .toList(growable: false),
     );
   }
 
@@ -116,6 +148,12 @@ class AppUser extends Equatable {
     AuthDeviceInfo? deviceInfo,
     bool? isActive,
     DateTime? securitySetupCompletedAt,
+    String? createdBy,
+    String? createdByName,
+    String? workspaceId,
+    String? linkedPartnerId,
+    String? linkedPartnerName,
+    List<String>? fcmTokens,
   }) {
     return AppUser(
       uid: uid ?? this.uid,
@@ -135,6 +173,12 @@ class AppUser extends Equatable {
       isActive: isActive ?? this.isActive,
       securitySetupCompletedAt:
           securitySetupCompletedAt ?? this.securitySetupCompletedAt,
+      createdBy: createdBy ?? this.createdBy,
+      createdByName: createdByName ?? this.createdByName,
+      workspaceId: workspaceId ?? this.workspaceId,
+      linkedPartnerId: linkedPartnerId ?? this.linkedPartnerId,
+      linkedPartnerName: linkedPartnerName ?? this.linkedPartnerName,
+      fcmTokens: fcmTokens ?? this.fcmTokens,
     );
   }
 
@@ -155,5 +199,11 @@ class AppUser extends Equatable {
     deviceInfo,
     isActive,
     securitySetupCompletedAt,
+    createdBy,
+    createdByName,
+    workspaceId,
+    linkedPartnerId,
+    linkedPartnerName,
+    fcmTokens,
   ];
 }

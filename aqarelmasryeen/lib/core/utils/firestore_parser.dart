@@ -3,6 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 DateTime parseDate(dynamic value, {DateTime? fallback}) {
   if (value is Timestamp) return value.toDate();
   if (value is DateTime) return value;
+  if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+  if (value is String) {
+    return DateTime.tryParse(value) ?? fallback ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
   return fallback ?? DateTime.fromMillisecondsSinceEpoch(0);
 }
 

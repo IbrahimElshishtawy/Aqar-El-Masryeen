@@ -15,7 +15,6 @@ import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -24,41 +23,33 @@ export 'package:aqarelmasryeen/features/properties/presentation/controllers/prop
 
 final _allPropertiesProvider =
     StreamProvider.autoDispose<List<PropertyProject>>(
-      (ref) => _fallbackToEmpty(
-        ref.watch(propertyRepositoryProvider).watchProperties(),
-      ),
+      (ref) => ref.watch(propertyRepositoryProvider).watchProperties(),
     );
 
 final _allUnitsProvider = StreamProvider.autoDispose<List<UnitSale>>(
-  (ref) => _fallbackToEmpty(ref.watch(salesRepositoryProvider).watchAll()),
+  (ref) => ref.watch(salesRepositoryProvider).watchAll(),
 );
 
 final _allInstallmentsProvider = StreamProvider.autoDispose<List<Installment>>(
-  (ref) => _fallbackToEmpty(
-    ref.watch(installmentRepositoryProvider).watchAllInstallments(),
-  ),
+  (ref) => ref.watch(installmentRepositoryProvider).watchAllInstallments(),
 );
 
 final _allPaymentsProvider = StreamProvider.autoDispose<List<PaymentRecord>>(
-  (ref) => _fallbackToEmpty(ref.watch(paymentRepositoryProvider).watchAll()),
+  (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
 );
 
 final _allExpensesProvider = StreamProvider.autoDispose<List<ExpenseRecord>>(
-  (ref) => _fallbackToEmpty(ref.watch(expenseRepositoryProvider).watchAll()),
+  (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
 );
 
 final _allMaterialsProvider =
     StreamProvider.autoDispose<List<MaterialExpenseEntry>>(
-      (ref) => _fallbackToEmpty(
-        ref.watch(materialExpenseRepositoryProvider).watchAll(),
-      ),
+      (ref) => ref.watch(materialExpenseRepositoryProvider).watchAll(),
     );
 
 final _allSupplierPaymentsProvider =
     StreamProvider.autoDispose<List<SupplierPaymentRecord>>(
-      (ref) => _fallbackToEmpty(
-        ref.watch(supplierPaymentRepositoryProvider).watchAll(),
-      ),
+      (ref) => ref.watch(supplierPaymentRepositoryProvider).watchAll(),
     );
 
 final propertyDetailsProvider = Provider.autoDispose
@@ -138,22 +129,17 @@ final propertySupplierPaymentsProvider = Provider.autoDispose
     });
 
 final propertyPartnersProvider = StreamProvider.autoDispose<List<Partner>>(
-  (ref) =>
-      _fallbackToEmpty(ref.watch(partnerRepositoryProvider).watchPartners()),
+  (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
 );
 
 final unitExpensesByUnitProvider = StreamProvider.autoDispose
     .family<List<UnitExpenseRecord>, String>(
-      (ref, unitId) => _fallbackToEmpty(
-        ref.watch(unitExpenseRepositoryProvider).watchByUnit(unitId),
-      ),
+      (ref, unitId) => ref.watch(unitExpenseRepositoryProvider).watchByUnit(unitId),
     );
 
 final propertyPartnerLedgerProvider =
     StreamProvider.autoDispose<List<PartnerLedgerEntry>>(
-      (ref) => _fallbackToEmpty(
-        ref.watch(partnerLedgerRepositoryProvider).watchAll(),
-      ),
+      (ref) => ref.watch(partnerLedgerRepositoryProvider).watchAll(),
     );
 
 final propertyProjectViewDataProvider = Provider.autoDispose
@@ -319,23 +305,6 @@ AsyncValue<List<T>> _filterByProperty<T>(
         .where((item) => propertyIdSelector(item) == propertyId)
         .toList(growable: false),
   );
-}
-
-Stream<List<T>> _fallbackToEmpty<T>(Stream<List<T>> source) async* {
-  try {
-    yield* source;
-  } on FirebaseException catch (error) {
-    if (_shouldShowEmptyState(error)) {
-      yield const [];
-      return;
-    }
-    rethrow;
-  }
-}
-
-bool _shouldShowEmptyState(FirebaseException error) {
-  return error.plugin == 'cloud_firestore' &&
-      (error.code == 'permission-denied' || error.code == 'unauthenticated');
 }
 
 PropertyProject _buildFallbackProperty(String propertyId) {

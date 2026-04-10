@@ -23,6 +23,17 @@ class UserProfileRemoteDataSource {
     });
   }
 
+  Stream<List<AppUser>> watchAllProfiles() {
+    return _users
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => AppUser.fromMap(doc.id, doc.data()))
+              .toList(growable: false),
+        );
+  }
+
   Future<AppUser?> fetchProfile(String uid) async {
     final snapshot = await _users.doc(uid).get();
     if (!snapshot.exists) return null;
@@ -54,29 +65,64 @@ class UserProfileRemoteDataSource {
     bool trustedDeviceEnabled = false,
     bool isActive = true,
     String role = 'partner',
+    bool updateLastLoginAt = true,
+    String? createdBy,
+    String? createdByName,
+    String? workspaceId,
+    String? linkedPartnerId,
+    String? linkedPartnerName,
   }) async {
     final existing = await _tryFetchProfile(uid);
+    final resolvedWorkspaceId = _resolveWorkspaceId(
+      requested: workspaceId,
+      existing: existing?.workspaceId,
+    );
+    final resolvedCreatedBy = _resolveCreatedBy(
+      requested: createdBy,
+      existing: existing?.createdBy,
+      fallback: uid,
+    );
+    final resolvedCreatedByName =
+        (existing?.createdByName.trim().isNotEmpty == true
+            ? existing!.createdByName
+            : (createdByName?.trim().isNotEmpty == true
+                  ? createdByName!.trim()
+                  : fullName.trim()));
+
+    final data = <String, dynamic>{
+      'uid': uid,
+      'phone': existing?.phone ?? '',
+      'fullName': fullName,
+      'name': fullName,
+      'email': email,
+      'role': role,
+      'isActive': isActive,
+      'trustedDeviceEnabled': trustedDeviceEnabled,
+      'biometricEnabled': biometricEnabled,
+      'appLockEnabled': appLockEnabled,
+      'inactivityTimeoutSeconds': AppConfig.defaultInactivityTimeoutSeconds,
+      'createdAt': existing?.createdAt ?? FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+      'deviceInfo': deviceInfo.toMap(),
+      'securitySetupCompletedAt': existing?.securitySetupCompletedAt,
+      'createdBy': resolvedCreatedBy,
+      'createdByName': resolvedCreatedByName,
+      'workspaceId': resolvedWorkspaceId,
+      'linkedPartnerId': linkedPartnerId ?? existing?.linkedPartnerId ?? '',
+      'linkedPartnerName':
+          linkedPartnerName ?? existing?.linkedPartnerName ?? '',
+    };
+
+    if (updateLastLoginAt) {
+      data['lastLoginAt'] = FieldValue.serverTimestamp();
+    } else if (existing?.lastLoginAt != null) {
+      data['lastLoginAt'] = existing!.lastLoginAt;
+    }
+
     await _writeProfile(
       uid: uid,
       previousEmail: existing?.email,
-      data: {
-        'uid': uid,
-        'phone': '',
-        'fullName': fullName,
-        'name': fullName,
-        'email': email,
-        'role': role,
-        'isActive': isActive,
-        'trustedDeviceEnabled': trustedDeviceEnabled,
-        'biometricEnabled': biometricEnabled,
-        'appLockEnabled': appLockEnabled,
-        'inactivityTimeoutSeconds': AppConfig.defaultInactivityTimeoutSeconds,
-        'createdAt': existing?.createdAt ?? FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-        'lastLoginAt': FieldValue.serverTimestamp(),
-        'deviceInfo': deviceInfo.toMap(),
-        'securitySetupCompletedAt': existing?.securitySetupCompletedAt,
-      },
+      data: data,
     );
   }
 
@@ -92,6 +138,38 @@ class UserProfileRemoteDataSource {
       email: email,
       deviceInfo: deviceInfo,
     );
+  }
+
+  Future<void> setPartnerLink({
+    required String uid,
+    required String partnerId,
+    required String partnerName,
+    String? workspaceId,
+  }) {
+    return _users.doc(uid).set({
+      'linkedPartnerId': partnerId,
+      'linkedPartnerName': partnerName,
+      'workspaceId': workspaceId ?? AppConfig.defaultWorkspaceId,
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
+  Future<void> clearPartnerLink(
+    String uid, {
+    String? expectedPartnerId,
+  }) async {
+    if (expectedPartnerId?.trim().isNotEmpty == true) {
+      final existing = await fetchProfile(uid);
+      if (existing == null || existing.linkedPartnerId != expectedPartnerId) {
+        return;
+      }
+    }
+
+    await _users.doc(uid).set({
+      'linkedPartnerId': '',
+      'linkedPartnerName': '',
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
   }
 
   Future<void> _writeCompletedProfile({
@@ -110,7 +188,7 @@ class UserProfileRemoteDataSource {
         'fullName': fullName,
         'name': fullName,
         'email': email,
-        'role': UserRole.partner.name,
+        'role': existing?.role.name ?? UserRole.partner.name,
         'createdAt': existing?.createdAt ?? FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
         'lastLoginAt': FieldValue.serverTimestamp(),
@@ -123,6 +201,15 @@ class UserProfileRemoteDataSource {
             existing?.inactivityTimeoutSeconds ??
             AppConfig.defaultInactivityTimeoutSeconds,
         'securitySetupCompletedAt': existing?.securitySetupCompletedAt,
+        'createdBy': existing?.createdBy.isNotEmpty == true
+            ? existing!.createdBy
+            : user.uid,
+        'createdByName': existing?.createdByName.isNotEmpty == true
+            ? existing!.createdByName
+            : fullName,
+        'workspaceId': existing?.workspaceId ?? AppConfig.defaultWorkspaceId,
+        'linkedPartnerId': existing?.linkedPartnerId ?? '',
+        'linkedPartnerName': existing?.linkedPartnerName ?? '',
       },
     );
   }
@@ -205,5 +292,36 @@ class UserProfileRemoteDataSource {
     }
 
     await batch.commit();
+  }
+
+  String _resolveWorkspaceId({
+    required String? requested,
+    required String? existing,
+  }) {
+    final normalizedRequested = requested?.trim() ?? '';
+    if (normalizedRequested.isNotEmpty) {
+      return normalizedRequested;
+    }
+    final normalizedExisting = existing?.trim() ?? '';
+    if (normalizedExisting.isNotEmpty) {
+      return normalizedExisting;
+    }
+    return AppConfig.defaultWorkspaceId;
+  }
+
+  String _resolveCreatedBy({
+    required String? requested,
+    required String? existing,
+    required String fallback,
+  }) {
+    final normalizedRequested = requested?.trim() ?? '';
+    if (normalizedRequested.isNotEmpty) {
+      return normalizedRequested;
+    }
+    final normalizedExisting = existing?.trim() ?? '';
+    if (normalizedExisting.isNotEmpty) {
+      return normalizedExisting;
+    }
+    return fallback;
   }
 }

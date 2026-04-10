@@ -1,18 +1,86 @@
+import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
+import 'package:aqarelmasryeen/core/widgets/load_failure_view.dart';
+import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
+import 'package:aqarelmasryeen/features/partners/domain/partner_account_summary.dart';
 import 'package:aqarelmasryeen/features/partners/presentation/partner_form_sheet.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
+import 'package:aqarelmasryeen/shared/models/app_user.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>(
   (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
 );
+
+final partnerAccountsStreamProvider = StreamProvider.autoDispose<List<AppUser>>(
+  (ref) => ref.watch(userProfileRemoteDataSourceProvider).watchAllProfiles(),
+);
+
+final partnerAccountsProvider =
+    Provider.autoDispose<AsyncValue<List<PartnerAccountSummary>>>((ref) {
+      final usersAsync = ref.watch(partnerAccountsStreamProvider);
+      final partnersAsync = ref.watch(partnersStreamProvider);
+      if (usersAsync.hasError) {
+        return AsyncError(
+          usersAsync.error!,
+          usersAsync.stackTrace ?? StackTrace.current,
+        );
+      }
+      if (partnersAsync.hasError) {
+        return AsyncError(
+          partnersAsync.error!,
+          partnersAsync.stackTrace ?? StackTrace.current,
+        );
+      }
+      if (!usersAsync.hasValue || !partnersAsync.hasValue) {
+        return const AsyncLoading();
+      }
+
+      final session = ref.watch(authSessionProvider).valueOrNull;
+      final currentUserId = session?.userId ?? '';
+      final users = usersAsync.valueOrNull ?? const <AppUser>[];
+      final partners = partnersAsync.valueOrNull ?? const <Partner>[];
+      final usersById = {for (final user in users) user.uid: user};
+      final partnerByUserId = {
+        for (final partner in partners)
+          if (partner.userId.trim().isNotEmpty) partner.userId: partner,
+      };
+
+      final summaries = users.map((user) {
+        final linkedPartner =
+            partnerByUserId[user.uid] ??
+            partners.firstWhereOrNull(
+              (partner) => partner.id == user.linkedPartnerId,
+            );
+        final creator = usersById[user.createdBy];
+        final createdByCurrentUser =
+            currentUserId.isNotEmpty && user.createdBy == currentUserId;
+        final creatorName = createdByCurrentUser
+            ? 'أنا'
+            : user.createdByName.trim().isNotEmpty
+            ? user.createdByName.trim()
+            : creator?.fullName.trim().isNotEmpty == true
+            ? creator!.fullName.trim()
+            : 'غير محدد';
+        return PartnerAccountSummary(
+          user: user,
+          linkedPartner: linkedPartner,
+          createdByName: creatorName,
+          createdByCurrentUser: createdByCurrentUser,
+        );
+      }).toList(growable: false)
+        ..sort((a, b) => b.user.createdAt.compareTo(a.user.createdAt));
+
+      return AsyncData(summaries);
+    });
 
 final pendingPartnerLinkRequestsProvider =
     StreamProvider.autoDispose<List<AppNotificationItem>>((ref) async* {
@@ -38,6 +106,8 @@ final pendingPartnerLinkRequestsProvider =
 
 enum _PartnersFilter { all, hasAccount, noAccount }
 
+enum _PartnerAccountsFilter { all, createdByMe, linkedOnly, unlinked }
+
 class PartnersScreen extends ConsumerStatefulWidget {
   const PartnersScreen({super.key});
 
@@ -48,6 +118,7 @@ class PartnersScreen extends ConsumerStatefulWidget {
 class _PartnersScreenState extends ConsumerState<PartnersScreen> {
   final TextEditingController _searchController = TextEditingController();
   _PartnersFilter _activeFilter = _PartnersFilter.all;
+  _PartnerAccountsFilter _activeAccountFilter = _PartnerAccountsFilter.all;
 
   @override
   void dispose() {
@@ -57,7 +128,10 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final session = ref.watch(authSessionProvider).valueOrNull;
+    final currentUserId = session?.userId ?? '';
     final partnersAsync = ref.watch(partnersStreamProvider);
+    final accountsAsync = ref.watch(partnerAccountsProvider);
     final pendingRequestsAsync = ref.watch(pendingPartnerLinkRequestsProvider);
 
     return Directionality(
@@ -77,6 +151,12 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
             final hasAccountCount = partnerItems.where(_hasAccount).length;
             final noAccountCount = partnerItems.length - hasAccountCount;
             final pendingCount = pendingRequestsAsync.valueOrNull?.length ?? 0;
+            final accountItems =
+                accountsAsync.valueOrNull ?? const <PartnerAccountSummary>[];
+            final filteredAccounts = _applyAccountFilters(
+              accountItems,
+              currentUserId,
+            );
 
             return ListView(
               padding: const EdgeInsets.all(6),
@@ -103,7 +183,27 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                   },
                   onSearchChanged: (_) => setState(() {}),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 12),
+                _PartnerAccountsSection(
+                  accountsAsync: accountsAsync,
+                  accounts: filteredAccounts,
+                  activeFilter: _activeAccountFilter,
+                  totalAccountsCount: accountItems.length,
+                  createdByMeCount: currentUserId.isEmpty
+                      ? 0
+                      : accountItems
+                            .where((item) => item.createdByCurrentUser)
+                            .length,
+                  linkedCount: accountItems.where((item) => item.isLinked).length,
+                  onFilterChanged: (filter) {
+                    setState(() => _activeAccountFilter = filter);
+                  },
+                  onRetry: () {
+                    ref.invalidate(partnerAccountsStreamProvider);
+                    ref.invalidate(partnerAccountsProvider);
+                  },
+                ),
+                const SizedBox(height: 12),
                 if (partnerItems.isEmpty)
                   EmptyStateView(
                     title: 'لا يوجد شركاء حاليًا',
@@ -131,7 +231,16 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
               ],
             );
           },
-          error: (error, _) => Center(child: Text(error.toString())),
+          error: (error, _) => LoadFailureView(
+            title: 'تعذر تحميل بيانات الشركاء',
+            error: error,
+            onRetry: () {
+              ref.invalidate(partnersStreamProvider);
+              ref.invalidate(partnerAccountsStreamProvider);
+              ref.invalidate(partnerAccountsProvider);
+              ref.invalidate(pendingPartnerLinkRequestsProvider);
+            },
+          ),
           loading: () => const Center(child: CircularProgressIndicator()),
         ),
       ),
@@ -193,6 +302,38 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
 
       return name.contains(query) || email.contains(query);
     }).toList();
+  }
+
+  List<PartnerAccountSummary> _applyAccountFilters(
+    List<PartnerAccountSummary> source,
+    String currentUserId,
+  ) {
+    final query = _searchController.text.trim().toLowerCase();
+
+    return source.where((item) {
+      final passesFilter = switch (_activeAccountFilter) {
+        _PartnerAccountsFilter.all => true,
+        _PartnerAccountsFilter.createdByMe =>
+          currentUserId.isNotEmpty && item.createdByCurrentUser,
+        _PartnerAccountsFilter.linkedOnly => item.isLinked,
+        _PartnerAccountsFilter.unlinked => !item.isLinked,
+      };
+
+      if (!passesFilter) {
+        return false;
+      }
+
+      if (query.isEmpty) {
+        return true;
+      }
+
+      final uidPreview = _shortUid(item.user.uid).toLowerCase();
+      return item.user.fullName.toLowerCase().contains(query) ||
+          item.user.email.toLowerCase().contains(query) ||
+          item.createdByName.toLowerCase().contains(query) ||
+          uidPreview.contains(query) ||
+          (item.linkedPartner?.name.toLowerCase().contains(query) ?? false);
+    }).toList(growable: false);
   }
 
   Future<void> _openPartnerForm({Partner? partner}) async {
@@ -307,6 +448,11 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
       return;
     }
 
+    if (partner.userId.trim().isNotEmpty) {
+      await ref
+          .read(userProfileRemoteDataSourceProvider)
+          .clearPartnerLink(partner.userId, expectedPartnerId: partner.id);
+    }
     await ref.read(partnerRepositoryProvider).delete(partner.id);
     _showInfoSnackBar('تم حذف الشريك بنجاح.');
   }
@@ -319,6 +465,11 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
     );
 
     await ref.read(partnerRepositoryProvider).upsert(updatedPartner);
+    if (partner.userId.trim().isNotEmpty) {
+      await ref
+          .read(userProfileRemoteDataSourceProvider)
+          .clearPartnerLink(partner.userId, expectedPartnerId: partner.id);
+    }
     _showInfoSnackBar('تم فك ربط الحساب من الشريك.');
   }
 
@@ -532,6 +683,269 @@ class _FilterChipButton extends StatelessWidget {
   }
 }
 
+class _PartnerAccountsSection extends StatelessWidget {
+  const _PartnerAccountsSection({
+    required this.accountsAsync,
+    required this.accounts,
+    required this.activeFilter,
+    required this.totalAccountsCount,
+    required this.createdByMeCount,
+    required this.linkedCount,
+    required this.onFilterChanged,
+    required this.onRetry,
+  });
+
+  final AsyncValue<List<PartnerAccountSummary>> accountsAsync;
+  final List<PartnerAccountSummary> accounts;
+  final _PartnerAccountsFilter activeFilter;
+  final int totalAccountsCount;
+  final int createdByMeCount;
+  final int linkedCount;
+  final ValueChanged<_PartnerAccountsFilter> onFilterChanged;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE7E9EE)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'الحسابات داخل النظام',
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'عرض المستخدمين الذين لديهم حسابات فعلية أو تم إنشاؤهم وربطهم بالنظام.',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _TagPill(
+                icon: Icons.people_alt_outlined,
+                label: 'كل الحسابات: $totalAccountsCount',
+              ),
+              _TagPill(
+                icon: Icons.person_add_alt_rounded,
+                label: 'أنشأتها أنا: $createdByMeCount',
+              ),
+              _TagPill(
+                icon: Icons.link_rounded,
+                label: 'المرتبطة: $linkedCount',
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _FilterChipButton(
+                label: 'كل المستخدمين',
+                selected: activeFilter == _PartnerAccountsFilter.all,
+                onTap: () => onFilterChanged(_PartnerAccountsFilter.all),
+              ),
+              _FilterChipButton(
+                label: 'تم إنشاؤهم بواسطتي',
+                selected: activeFilter == _PartnerAccountsFilter.createdByMe,
+                onTap: () => onFilterChanged(_PartnerAccountsFilter.createdByMe),
+              ),
+              _FilterChipButton(
+                label: 'المرتبطون فقط',
+                selected: activeFilter == _PartnerAccountsFilter.linkedOnly,
+                onTap: () => onFilterChanged(_PartnerAccountsFilter.linkedOnly),
+              ),
+              _FilterChipButton(
+                label: 'غير المرتبطين',
+                selected: activeFilter == _PartnerAccountsFilter.unlinked,
+                onTap: () => onFilterChanged(_PartnerAccountsFilter.unlinked),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          accountsAsync.when(
+            data: (_) {
+              if (totalAccountsCount == 0) {
+                return const EmptyStateView(
+                  title: 'لا توجد حسابات بعد',
+                  message: 'عند إنشاء حسابات للمستخدمين أو ربطها ستظهر هنا.',
+                );
+              }
+              if (accounts.isEmpty) {
+                return const EmptyStateView(
+                  title: 'لا توجد نتائج مطابقة',
+                  message: 'جرّب تغيير فلتر الحسابات أو تعديل عبارة البحث.',
+                );
+              }
+              return Column(
+                children: [
+                  for (var index = 0; index < accounts.length; index++) ...[
+                    _PartnerAccountCard(summary: accounts[index]),
+                    if (index != accounts.length - 1) const SizedBox(height: 10),
+                  ],
+                ],
+              );
+            },
+            error: (error, _) => LoadFailureView(
+              title: 'تعذر تحميل حسابات المستخدمين',
+              error: error,
+              onRetry: onRetry,
+            ),
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PartnerAccountCard extends StatelessWidget {
+  const _PartnerAccountCard({required this.summary});
+
+  final PartnerAccountSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final user = summary.user;
+    final linkedPartnerName =
+        summary.linkedPartner?.name.trim().isNotEmpty == true
+        ? summary.linkedPartner!.name.trim()
+        : user.linkedPartnerName.trim();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FC),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE6EAF2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: const Color(0xFFE8ECF5),
+                child: Text(
+                  user.fullName.trim().isEmpty ? '?' : user.fullName.trim()[0],
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.fullName.trim().isEmpty
+                          ? 'مستخدم بدون اسم'
+                          : user.fullName.trim(),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user.email.trim().isEmpty
+                          ? 'لا يوجد بريد إلكتروني'
+                          : user.email.trim(),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              const _TagPill(
+                icon: Icons.verified_user_outlined,
+                label: 'لديه حساب',
+              ),
+              _TagPill(
+                icon: summary.createdByCurrentUser
+                    ? Icons.person_add_alt_1_rounded
+                    : Icons.badge_outlined,
+                label: summary.createdByCurrentUser
+                    ? 'تم إنشاؤه بواسطتي'
+                    : 'أنشأه ${summary.createdByName}',
+              ),
+              _TagPill(
+                icon: summary.isLinked
+                    ? Icons.link_rounded
+                    : Icons.link_off_rounded,
+                label: summary.isLinked
+                    ? 'مرتبط: ${linkedPartnerName.isEmpty ? 'نعم' : linkedPartnerName}'
+                    : 'غير مرتبط',
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 18,
+            runSpacing: 8,
+            children: [
+              _InfoText(label: 'تاريخ الإنشاء', value: user.createdAt.formatShort()),
+              _InfoText(label: 'UID مختصر', value: _shortUid(user.uid)),
+              _InfoText(
+                label: 'حالة الحساب',
+                value: user.isActive ? 'نشط' : 'معطل',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoText extends StatelessWidget {
+  const _InfoText({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      text: TextSpan(
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: const Color(0xFF59607A)),
+        children: [
+          TextSpan(
+            text: '$label: ',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          TextSpan(text: value),
+        ],
+      ),
+    );
+  }
+}
+
 class _PartnerCard extends StatelessWidget {
   const _PartnerCard({
     required this.partner,
@@ -698,6 +1112,14 @@ class _ActionTile extends StatelessWidget {
 
 bool _hasAccount(Partner partner) {
   return partner.userId.isNotEmpty || partner.linkedEmail.isNotEmpty;
+}
+
+String _shortUid(String uid) {
+  final normalized = uid.trim();
+  if (normalized.length <= 8) {
+    return normalized;
+  }
+  return '${normalized.substring(0, 8)}...';
 }
 
 void _openLinkingOptionsSheet({

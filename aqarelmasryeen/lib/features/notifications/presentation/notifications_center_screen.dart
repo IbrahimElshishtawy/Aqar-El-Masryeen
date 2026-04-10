@@ -1,4 +1,5 @@
 import 'package:aqarelmasryeen/core/widgets/app_top_bar.dart';
+import 'package:aqarelmasryeen/core/widgets/load_failure_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
 import 'package:flutter/material.dart';
@@ -61,7 +62,11 @@ class NotificationsCenterScreen extends ConsumerWidget {
             },
           );
         },
-        error: (error, _) => Center(child: Text(error.toString())),
+        error: (error, _) => LoadFailureView(
+          title: 'تعذر تحميل الإشعارات',
+          error: error,
+          onRetry: () => ref.invalidate(userNotificationsProvider),
+        ),
         loading: () => const Center(child: CircularProgressIndicator()),
       ),
     );

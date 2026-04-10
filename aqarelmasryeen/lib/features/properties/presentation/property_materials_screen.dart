@@ -1,9 +1,9 @@
-import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
+import 'package:aqarelmasryeen/core/widgets/load_failure_view.dart';
 import 'package:aqarelmasryeen/features/expenses/domain/materials_ledger_calculator.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/material_expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
@@ -60,9 +60,12 @@ class _PropertyMaterialsScreenState
         title: 'مواد البناء',
         subtitle: 'تعذر تحميل البيانات',
         currentIndex: 1,
-        child: EmptyStateView(
+        child: LoadFailureView(
           title: 'تعذر تحميل مواد البناء',
-          message: mapException(error).message,
+          error: error,
+          onRetry: () => ref.invalidate(
+            propertyProjectViewDataProvider(widget.propertyId),
+          ),
         ),
       ),
       data: (data) {

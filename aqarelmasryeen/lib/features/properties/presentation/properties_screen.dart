@@ -29,14 +29,15 @@ class PropertiesScreen extends ConsumerWidget {
       child: AsyncValueView(
         value: propertiesAsync,
         loadingLabel: 'جار تحميل المشروعات',
+        errorTitle: 'تعذر تحميل المشاريع',
+        onRetry: () => ref.invalidate(propertiesViewDataProvider),
         data: (viewData) => ListView(
           padding: const EdgeInsets.fromLTRB(6, 4, 6, 14),
           children: [
             if (viewData.summaries.isEmpty)
               const EmptyStateView(
                 title: 'لا توجد مشروعات بعد',
-                message:
-                    'ستظهر المشروعات هنا بعد إضافة البيانات إلى مساحة العمل.',
+                message: 'ستظهر المشروعات هنا بعد إضافة البيانات إلى مساحة العمل.',
               )
             else
               LayoutBuilder(
