@@ -40,6 +40,7 @@ class ExpensesLedgerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(authSessionProvider).valueOrNull;
+    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
     final expensesAsync = ref.watch(allExpensesProvider);
     final partnersAsync = ref.watch(allPartnersProvider);
     final propertiesAsync = ref.watch(allPropertiesProvider);
@@ -76,8 +77,28 @@ class ExpensesLedgerScreen extends ConsumerWidget {
     final expenses = expensesAsync.value!
         .where((expense) => !expense.archived)
         .toList(growable: false);
-    final partners = partnersAsync.value!;
-    final properties = propertiesAsync.value!;
+    final partners = workspaceId.isEmpty
+        ? const <Partner>[]
+        : partnersAsync.value!
+              .where((partner) => partner.workspaceId.trim() == workspaceId)
+              .toList(growable: false);
+    final accountUserIds = {
+      session?.userId ?? '',
+      ...partners
+          .map((partner) => partner.userId.trim())
+          .where((userId) => userId.isNotEmpty),
+    }..removeWhere((userId) => userId.isEmpty);
+    final properties = workspaceId.isEmpty
+        ? const <PropertyProject>[]
+        : propertiesAsync.value!
+              .where((property) => accountUserIds.contains(property.createdBy.trim()))
+              .toList(growable: false);
+    final propertyIds = properties.map((property) => property.id).toSet();
+    final scopedExpenses = workspaceId.isEmpty
+        ? const <ExpenseRecord>[]
+        : expenses
+              .where((expense) => propertyIds.contains(expense.propertyId))
+              .toList(growable: false);
     final showingHistory = _showingHistory(context);
     final today = DateTime.now();
 
@@ -92,13 +113,13 @@ class ExpensesLedgerScreen extends ConsumerWidget {
       maxVisibleNames: 1,
     );
     final rows = _buildExpenseRows(
-      expenses: expenses,
+      expenses: scopedExpenses,
       currentUserId: currentUserId,
       currentPartnerId: currentPartner?.id,
       referenceDate: today,
       includeOlderDays: showingHistory,
     );
-    final currentTotal = expenses
+    final currentTotal = scopedExpenses
         .where(
           (expense) => _isCurrentUserExpense(
             expense,
@@ -107,7 +128,7 @@ class ExpensesLedgerScreen extends ConsumerWidget {
           ),
         )
         .fold<double>(0, (sum, expense) => sum + expense.amount);
-    final counterpartTotal = expenses
+    final counterpartTotal = scopedExpenses
         .where(
           (expense) => !_isCurrentUserExpense(
             expense,
@@ -116,7 +137,7 @@ class ExpensesLedgerScreen extends ConsumerWidget {
           ),
         )
         .fold<double>(0, (sum, expense) => sum + expense.amount);
-    final hasOlderRows = expenses.any(
+    final hasOlderRows = scopedExpenses.any(
       (expense) => !_isSameCalendarDay(expense.date, today),
     );
 
@@ -134,7 +155,7 @@ class ExpensesLedgerScreen extends ConsumerWidget {
           _ExpensesOverviewPanel(
             currentTotal: currentTotal,
             counterpartTotal: counterpartTotal,
-            entriesCount: expenses.length,
+            entriesCount: scopedExpenses.length,
             showingHistory: showingHistory,
             hasOlderRows: hasOlderRows,
             currentColumnLabel: currentColumnLabel,
@@ -166,10 +187,18 @@ class ExpensesLedgerScreen extends ConsumerWidget {
             currentColumnLabel: currentColumnLabel,
             counterpartColumnLabel: counterpartColumnLabel,
             emptyTitle: showingHistory
-                ? 'لا توجد مصروفات في الأيام السابقة'
+                ? workspaceId.isEmpty
+                      ? 'الحساب غير مرتبط بمساحة عمل'
+                      : 'لا توجد مصروفات في الأيام السابقة'
+                : workspaceId.isEmpty
+                ? 'الحساب غير مرتبط بمساحة عمل'
                 : 'لا توجد مصروفات اليوم',
             emptyMessage: showingHistory
-                ? 'عند وجود مصروفات بتاريخ أقدم من اليوم ستظهر هنا.'
+                ? workspaceId.isEmpty
+                      ? 'لن تظهر أي بيانات مالية حتى يتم ربط الحساب بمساحة عمل وشريك.'
+                      : 'عند وجود مصروفات بتاريخ أقدم من اليوم ستظهر هنا.'
+                : workspaceId.isEmpty
+                ? 'لن تظهر أي بيانات مالية حتى يتم ربط الحساب بمساحة عمل وشريك.'
                 : 'بمجرد إضافة مصروف اليوم سيظهر هنا تحت $currentColumnLabel أو $counterpartColumnLabel.',
           ),
         ],

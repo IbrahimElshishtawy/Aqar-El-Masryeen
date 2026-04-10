@@ -3,6 +3,7 @@ import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
+import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:flutter/material.dart';
@@ -31,6 +32,7 @@ class _InstallmentPlanFormSheetState
   late final TextEditingController _amountController;
   late String _unitId;
   DateTime _startDate = DateTime.now();
+  final List<_DraftInstallment> _draftInstallments = [];
   bool _saving = false;
 
   @override
@@ -41,6 +43,7 @@ class _InstallmentPlanFormSheetState
     _amountController = TextEditingController();
     _unitId = widget.units.isEmpty ? '' : widget.units.first.id;
     _prefillAmount();
+    _seedDraftInstallments();
   }
 
   @override
@@ -64,6 +67,20 @@ class _InstallmentPlanFormSheetState
     _amountController.text = installmentAmount.toStringAsFixed(0);
   }
 
+  void _seedDraftInstallments() {
+    final count = int.tryParse(_countController.text.trim()) ?? 0;
+    if (count <= 0 || _draftInstallments.isNotEmpty) return;
+    final installmentAmount = double.tryParse(_amountController.text.trim()) ?? 0;
+    for (var i = 0; i < count; i++) {
+      _draftInstallments.add(
+        _DraftInstallment(
+          dueDate: _startDate.add(Duration(days: i * 30)),
+          amount: installmentAmount,
+        ),
+      );
+    }
+  }
+
   Future<void> _pickDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -80,11 +97,18 @@ class _InstallmentPlanFormSheetState
     if (!_formKey.currentState!.validate()) return;
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) return;
+    if (_draftInstallments.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('أضف قسطًا واحدًا على الأقل.')));
+      return;
+    }
 
     setState(() => _saving = true);
     final now = DateTime.now();
+    final planId = 'manual_${_unitId}_${now.microsecondsSinceEpoch}';
     final plan = InstallmentPlan(
-      id: '',
+      id: planId,
       propertyId: widget.propertyId,
       unitId: _unitId,
       installmentCount: int.tryParse(_countController.text.trim()) ?? 0,
@@ -99,7 +123,30 @@ class _InstallmentPlanFormSheetState
 
     await ref
         .read(installmentRepositoryProvider)
-        .savePlan(plan, actorId: session.userId);
+        .savePlan(plan, actorId: session.userId, generateInstallments: false);
+    for (var i = 0; i < _draftInstallments.length; i++) {
+      final item = _draftInstallments[i];
+      await ref
+          .read(installmentRepositoryProvider)
+          .saveInstallment(
+            Installment(
+              id: '',
+              planId: planId,
+              propertyId: widget.propertyId,
+              unitId: _unitId,
+              sequence: i + 1,
+              amount: item.amount,
+              paidAmount: 0,
+              dueDate: item.dueDate,
+              status: InstallmentStatus.pending,
+              notes: item.notes,
+              createdAt: now,
+              updatedAt: now,
+              createdBy: session.userId,
+              updatedBy: session.userId,
+            ),
+          );
+    }
     await ref
         .read(activityRepositoryProvider)
         .log(
@@ -210,6 +257,59 @@ class _InstallmentPlanFormSheetState
               },
             ),
             const SizedBox(height: 18),
+            Row(
+              children: [
+                Text(
+                  'الأقساط اليدوية (${_draftInstallments.length})',
+                  style: Theme.of(context).textTheme.titleSmall,
+                ),
+                const Spacer(),
+                OutlinedButton.icon(
+                  onPressed: _saving ? null : _addInstallment,
+                  icon: const Icon(Icons.add),
+                  label: const Text('إضافة قسط'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_draftInstallments.isEmpty)
+              const ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text('لا توجد أقساط مضافة بعد'),
+                subtitle: Text('أضف تواريخ وقيم الأقساط يدويًا قبل الحفظ.'),
+              )
+            else
+              ..._draftInstallments.asMap().entries.map(
+                (entry) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    'القسط ${entry.key + 1} • ${entry.value.amount.toStringAsFixed(0)}',
+                  ),
+                  subtitle: Text(
+                    '${entry.value.dueDate.formatShort()}${entry.value.notes.trim().isEmpty ? '' : ' • ${entry.value.notes}'}',
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: _saving
+                            ? null
+                            : () => _editInstallment(entry.key),
+                        icon: const Icon(Icons.edit_outlined),
+                      ),
+                      IconButton(
+                        onPressed: _saving
+                            ? null
+                            : () => setState(
+                                () => _draftInstallments.removeAt(entry.key),
+                              ),
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 18),
             SizedBox(
               width: double.infinity,
               child: FilledButton(
@@ -222,4 +322,113 @@ class _InstallmentPlanFormSheetState
       ),
     );
   }
+
+  Future<void> _addInstallment() async {
+    final item = await _showInstallmentEditor();
+    if (item == null) return;
+    setState(() => _draftInstallments.add(item));
+  }
+
+  Future<void> _editInstallment(int index) async {
+    final item = await _showInstallmentEditor(initial: _draftInstallments[index]);
+    if (item == null) return;
+    setState(() => _draftInstallments[index] = item);
+  }
+
+  Future<_DraftInstallment?> _showInstallmentEditor({
+    _DraftInstallment? initial,
+  }) async {
+    final formKey = GlobalKey<FormState>();
+    final amountController = TextEditingController(
+      text: initial == null ? '' : initial.amount.toStringAsFixed(0),
+    );
+    final notesController = TextEditingController(text: initial?.notes ?? '');
+    DateTime dueDate = initial?.dueDate ?? _startDate;
+
+    return showDialog<_DraftInstallment>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setStateDialog) {
+          return AlertDialog(
+            title: Text(initial == null ? 'إضافة قسط' : 'تعديل قسط'),
+            content: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: dueDate,
+                        firstDate: DateTime(2020),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setStateDialog(() => dueDate = picked);
+                      }
+                    },
+                    child: InputDecorator(
+                      decoration: const InputDecoration(labelText: 'تاريخ القسط'),
+                      child: Text(dueDate.formatShort()),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: amountController,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: const InputDecoration(labelText: 'قيمة القسط'),
+                    validator: (value) {
+                      if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
+                        return 'أدخل قيمة صحيحة';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: notesController,
+                    decoration: const InputDecoration(labelText: 'ملاحظة (اختياري)'),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () {
+                  if (!formKey.currentState!.validate()) return;
+                  Navigator.of(context).pop(
+                    _DraftInstallment(
+                      dueDate: dueDate,
+                      amount: double.tryParse(amountController.text.trim()) ?? 0,
+                      notes: notesController.text.trim(),
+                    ),
+                  );
+                },
+                child: const Text('حفظ'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DraftInstallment {
+  const _DraftInstallment({
+    required this.dueDate,
+    required this.amount,
+    this.notes = '',
+  });
+
+  final DateTime dueDate;
+  final double amount;
+  final String notes;
 }
