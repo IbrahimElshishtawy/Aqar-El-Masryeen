@@ -32,11 +32,9 @@ final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>(
 
 final partnerAccountsStreamProvider = StreamProvider.autoDispose<List<AppUser>>(
   (ref) {
-    final session = ref.watch(authSessionProvider).valueOrNull;
-    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
     return ref
         .watch(userProfileRemoteDataSourceProvider)
-        .watchProfilesByWorkspace(workspaceId);
+        .watchAllProfiles();
   },
 );
 
