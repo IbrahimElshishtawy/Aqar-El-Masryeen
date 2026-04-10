@@ -34,13 +34,9 @@ final partnerAccountsStreamProvider = StreamProvider.autoDispose<List<AppUser>>(
   (ref) {
     final session = ref.watch(authSessionProvider).valueOrNull;
     final workspaceId = session?.profile?.workspaceId.trim() ?? '';
-    return ref.watch(userProfileRemoteDataSourceProvider).watchAllProfiles().map(
-      (users) => workspaceId.isEmpty
-          ? const <AppUser>[]
-          : users
-                .where((user) => user.workspaceId.trim() == workspaceId)
-                .toList(growable: false),
-    );
+    return ref
+        .watch(userProfileRemoteDataSourceProvider)
+        .watchProfilesByWorkspace(workspaceId);
   },
 );
 
@@ -126,7 +122,14 @@ final pendingPartnerLinkRequestsProvider =
 
 enum _PartnersFilter { all, hasAccount, noAccount }
 
-enum _PartnerAccountsFilter { all, createdByMe, linkedOnly, unlinked }
+enum _PartnerAccountsFilter {
+  all,
+  createdByMe,
+  linkedOnly,
+  unlinked,
+  hasLoginAccount,
+  availableForLink,
+}
 
 class PartnersScreen extends ConsumerStatefulWidget {
   const PartnersScreen({super.key});
@@ -177,6 +180,9 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
               accountItems,
               currentUserId,
             );
+            final availableLinkCount = accountItems
+                .where((item) => !item.isLinked && item.user.isActive)
+                .length;
 
             return ListView(
               padding: const EdgeInsets.all(6),
@@ -210,6 +216,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                             .where((item) => item.createdByCurrentUser)
                             .length,
                   linkedCount: accountItems.where((item) => item.isLinked).length,
+                  availableLinkCount: availableLinkCount,
                   onFilterChanged: (filter) {
                     setState(() => _activeAccountFilter = filter);
                   },
@@ -336,6 +343,10 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
           currentUserId.isNotEmpty && item.createdByCurrentUser,
         _PartnerAccountsFilter.linkedOnly => item.isLinked,
         _PartnerAccountsFilter.unlinked => !item.isLinked,
+        _PartnerAccountsFilter.hasLoginAccount =>
+          item.user.email.trim().isNotEmpty,
+        _PartnerAccountsFilter.availableForLink =>
+          !item.isLinked && item.user.isActive,
       };
 
       if (!passesFilter) {
@@ -379,16 +390,25 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
       return;
     }
 
-    final availableUsers = accounts
-        .where((account) => !account.isLinked)
+    final availablePartners = partners
+        .where((partner) => partner.userId.trim().isEmpty)
         .toList(growable: false);
-    if (availableUsers.isEmpty) {
-      _showInfoSnackBar('لا يوجد مستخدمون متاحون للربط حاليًا');
+    if (availablePartners.isEmpty) {
+      _showInfoSnackBar('كل الشركاء مرتبطون بالفعل.');
       return;
     }
 
-    String? selectedPartnerId = partners.first.id;
+    final availableUsers = accounts
+        .where((account) => !account.isLinked && account.user.isActive)
+        .toList(growable: false);
+    if (availableUsers.isEmpty) {
+      _showInfoSnackBar('لا يوجد مستخدمون متاحون للربط');
+      return;
+    }
+
+    String? selectedPartnerId = availablePartners.first.id;
     String? selectedUserId = availableUsers.first.user.uid;
+    var selectedStep = 0;
 
     final approved = await showDialog<bool>(
       context: context,
@@ -399,11 +419,34 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('1) اختيار الشريك'),
+                        selected: selectedStep == 0,
+                        onSelected: (_) =>
+                            setLocalState(() => selectedStep = 0),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ChoiceChip(
+                        label: const Text('2) اختيار الحساب'),
+                        selected: selectedStep == 1,
+                        onSelected: (_) =>
+                            setLocalState(() => selectedStep = 1),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (selectedStep == 0)
                 DropdownButtonFormField<String>(
                   initialValue: selectedPartnerId,
                   decoration: const InputDecoration(labelText: 'اختيار شريك'),
                   items: [
-                    for (final partner in partners)
+                    for (final partner in availablePartners)
                       DropdownMenuItem(
                         value: partner.id,
                         child: Text(partner.name),
@@ -413,7 +456,8 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                     selectedPartnerId = value;
                   }),
                 ),
-                const SizedBox(height: 12),
+                if (selectedStep == 0) const SizedBox(height: 12),
+                if (selectedStep == 1)
                 DropdownButtonFormField<String>(
                   initialValue: selectedUserId,
                   decoration: const InputDecoration(labelText: 'اختيار مستخدم'),
@@ -438,6 +482,11 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                 onPressed: () => Navigator.of(dialogContext).pop(false),
                 child: const Text('إلغاء'),
               ),
+              if (selectedStep == 0)
+                OutlinedButton(
+                  onPressed: () => setLocalState(() => selectedStep = 1),
+                  child: const Text('التالي'),
+                ),
               FilledButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
                 child: const Text('تنفيذ الربط'),
@@ -451,7 +500,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
     if (approved != true || selectedPartnerId == null || selectedUserId == null) {
       return;
     }
-    final selectedPartner = partners.firstWhereOrNull(
+    final selectedPartner = availablePartners.firstWhereOrNull(
       (partner) => partner.id == selectedPartnerId,
     );
     final selectedAccount = accounts.firstWhereOrNull(
@@ -473,6 +522,16 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
     required AppUser user,
     required String workspaceId,
   }) async {
+    if (partner.userId.trim().isNotEmpty && partner.userId.trim() == user.uid.trim()) {
+      _showInfoSnackBar('هذا الشريك مرتبط بالفعل بنفس المستخدم.');
+      return;
+    }
+    if (user.linkedPartnerId.trim().isNotEmpty &&
+        user.linkedPartnerId.trim() != partner.id.trim()) {
+      _showInfoSnackBar('هذا المستخدم مرتبط بالفعل بشريك آخر.');
+      return;
+    }
+
     await _unlinkUserFromOtherPartners(user.uid, exceptPartnerId: partner.id);
     if (partner.userId.trim().isNotEmpty && partner.userId != user.uid) {
       await ref
@@ -494,7 +553,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
       partnerName: partner.name,
       workspaceId: workspaceId,
     );
-    _showInfoSnackBar('تم ربط المستخدم بالشريك بنجاح.');
+    _showInfoSnackBar('تم ربط الحساب بالشريك بنجاح');
   }
 
   Future<void> _unlinkUserFromOtherPartners(
@@ -862,6 +921,7 @@ class _PartnerAccountsSection extends StatelessWidget {
     required this.totalAccountsCount,
     required this.createdByMeCount,
     required this.linkedCount,
+    required this.availableLinkCount,
     required this.onFilterChanged,
     required this.onRetry,
   });
@@ -872,6 +932,7 @@ class _PartnerAccountsSection extends StatelessWidget {
   final int totalAccountsCount;
   final int createdByMeCount;
   final int linkedCount;
+  final int availableLinkCount;
   final ValueChanged<_PartnerAccountsFilter> onFilterChanged;
   final VoidCallback onRetry;
 
@@ -915,6 +976,10 @@ class _PartnerAccountsSection extends StatelessWidget {
                 icon: Icons.link_rounded,
                 label: 'المرتبطة: $linkedCount',
               ),
+              _TagPill(
+                icon: Icons.person_search_rounded,
+                label: 'المتاحة للربط: $availableLinkCount',
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -942,6 +1007,18 @@ class _PartnerAccountsSection extends StatelessWidget {
                 selected: activeFilter == _PartnerAccountsFilter.unlinked,
                 onTap: () => onFilterChanged(_PartnerAccountsFilter.unlinked),
               ),
+              _FilterChipButton(
+                label: 'الذين لهم حساب',
+                selected: activeFilter == _PartnerAccountsFilter.hasLoginAccount,
+                onTap: () =>
+                    onFilterChanged(_PartnerAccountsFilter.hasLoginAccount),
+              ),
+              _FilterChipButton(
+                label: 'المتاحون للربط',
+                selected: activeFilter == _PartnerAccountsFilter.availableForLink,
+                onTap: () =>
+                    onFilterChanged(_PartnerAccountsFilter.availableForLink),
+              ),
             ],
           ),
           const SizedBox(height: 12),
@@ -949,8 +1026,8 @@ class _PartnerAccountsSection extends StatelessWidget {
             data: (_) {
               if (totalAccountsCount == 0) {
                 return const EmptyStateView(
-                  title: 'لا توجد حسابات بعد',
-                  message: 'عند إنشاء حسابات للمستخدمين أو ربطها ستظهر هنا.',
+                  title: 'لا توجد حسابات مسجلة داخل النظام',
+                  message: 'تأكد من إنشاء profile للمستخدمين داخل مجموعة users.',
                 );
               }
               if (accounts.isEmpty) {
@@ -1080,6 +1157,12 @@ class _PartnerAccountCard extends StatelessWidget {
             children: [
               _InfoText(label: 'تاريخ الإنشاء', value: user.createdAt.formatShort()),
               _InfoText(label: 'UID مختصر', value: _shortUid(user.uid)),
+              _InfoText(
+                label: 'مساحة العمل',
+                value: user.workspaceId.trim().isEmpty
+                    ? 'غير محدد'
+                    : user.workspaceId.trim(),
+              ),
               _InfoText(
                 label: 'حالة الحساب',
                 value: user.isActive ? 'نشط' : 'معطل',

@@ -218,19 +218,19 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
 
       _showMessage(
         accountCreated
-            ? 'تم إنشاء حساب الشريك وربطه مباشرة. أول ما يسجل دخول هيظهر له نفس المشروعات والحسابات.'
+            ? 'تم إنشاء حساب الدخول وربطه بنجاح'
             : requestSent
             ? 'تم حفظ الشريك وإرسال طلب ربط الحساب.'
             : linkedUserId == session.userId
             ? 'تم حفظ الشريك وربطه بالحساب الحالي.'
             : linkedUserId.isNotEmpty
-            ? 'تم حفظ الشريك وربطه بالحساب المحدد.'
-            : 'تم حفظ بيانات الشريك.',
+            ? 'تم ربط الحساب بالشريك بنجاح'
+            : 'تم إنشاء الشريك بنجاح',
       );
       Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) return;
-      _showMessage(mapException(error).message);
+      _showMessage(_createPartnerAccount ? 'فشل إنشاء الحساب' : mapException(error).message);
     } finally {
       if (mounted) {
         setState(() => _saving = false);

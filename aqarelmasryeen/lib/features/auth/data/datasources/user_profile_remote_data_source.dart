@@ -34,6 +34,23 @@ class UserProfileRemoteDataSource {
         );
   }
 
+  Stream<List<AppUser>> watchProfilesByWorkspace(String workspaceId) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <AppUser>[]);
+    }
+
+    return _users
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => AppUser.fromMap(doc.id, doc.data()))
+              .toList(growable: false),
+        );
+  }
+
   Future<AppUser?> fetchProfile(String uid) async {
     final snapshot = await _users.doc(uid).get();
     if (!snapshot.exists) return null;
