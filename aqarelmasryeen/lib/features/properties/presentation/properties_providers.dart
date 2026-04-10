@@ -5,22 +5,25 @@ import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/properties/domain/property_financial_summary.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
+import 'package:aqarelmasryeen/shared/models/financial_models.dart';
+import 'package:aqarelmasryeen/shared/models/partner_models.dart';
+import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 
-final propertiesStreamProvider = StreamProvider.autoDispose(
+final propertiesStreamProvider = StreamProvider.autoDispose<List<PropertyProject>>(
   (ref) => ref.watch(propertyRepositoryProvider).watchProperties(),
 );
-final propertyExpensesStreamProvider = StreamProvider.autoDispose(
+final propertyExpensesStreamProvider = StreamProvider.autoDispose<List<ExpenseRecord>>(
   (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
 );
-final propertyPaymentsStreamProvider = StreamProvider.autoDispose(
+final propertyPaymentsStreamProvider = StreamProvider.autoDispose<List<PaymentRecord>>(
   (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
 );
-final propertyUnitsStreamProvider = StreamProvider.autoDispose(
+final propertyUnitsStreamProvider = StreamProvider.autoDispose<List<UnitSale>>(
   (ref) => ref.watch(salesRepositoryProvider).watchAll(),
 );
-final partnersStreamProvider = StreamProvider.autoDispose(
+final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>(
   (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
 );
 
