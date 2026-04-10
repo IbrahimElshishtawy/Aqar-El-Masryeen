@@ -36,12 +36,9 @@ class PropertiesScreen extends ConsumerWidget {
           children: [
             if (viewData.summaries.isEmpty)
               EmptyStateView(
-                title: viewData.isWorkspaceLinked
-                    ? 'لا توجد مشروعات بعد'
-                    : 'لا توجد مشاريع بعد',
-                message: viewData.isWorkspaceLinked
-                    ? 'ستظهر المشروعات هنا بعد إضافة البيانات إلى مساحة العمل.'
-                    : 'هذا الحساب غير مرتبط بأي مساحة عمل حاليًا.',
+                title: 'لا توجد مشروعات بعد',
+                message:
+                    'ستظهر المشروعات هنا بعد إنشاء مشروع جديد أو ربط الحساب ببيانات موجودة.',
               )
             else
               LayoutBuilder(

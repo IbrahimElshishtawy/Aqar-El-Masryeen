@@ -322,6 +322,7 @@ PropertyProject _buildFallbackProperty(String propertyId) {
     updatedAt: now,
     createdBy: '',
     updatedBy: '',
+    workspaceId: '',
     archived: false,
   );
 }

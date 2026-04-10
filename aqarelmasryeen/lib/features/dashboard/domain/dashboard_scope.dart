@@ -43,20 +43,12 @@ class DashboardScopeResolver {
     required List<SupplierPaymentRecord> supplierPayments,
   }) {
     final workspaceId = profile?.workspaceId.trim() ?? '';
-    if (workspaceId.isEmpty) {
-      return const DashboardScopedData(
-        partners: [],
-        properties: [],
-        units: [],
-        installments: [],
-        payments: [],
-        expenses: [],
-        materials: [],
-        supplierPayments: [],
-      );
-    }
     final visiblePartners = partners
         .where((partner) {
+          if (workspaceId.isEmpty) {
+            return partner.createdBy.trim() == currentUserId.trim() ||
+                partner.userId.trim() == currentUserId.trim();
+          }
           final partnerWorkspace = partner.workspaceId.trim();
           return workspaceId == partnerWorkspace;
         })
@@ -75,6 +67,10 @@ class DashboardScopeResolver {
 
     final visibleProperties = properties
         .where((property) {
+          if (workspaceId.isNotEmpty &&
+              property.workspaceId.trim() == workspaceId) {
+            return true;
+          }
           return accountUserIds.contains(property.createdBy.trim());
         })
         .toList(growable: false);

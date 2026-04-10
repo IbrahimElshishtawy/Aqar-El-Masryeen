@@ -3,6 +3,7 @@ import 'package:aqarelmasryeen/core/widgets/app_top_bar.dart';
 import 'package:aqarelmasryeen/core/widgets/async_value_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
+import 'package:aqarelmasryeen/features/properties/presentation/properties_providers.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
@@ -90,32 +91,53 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       updatedAt: DateTime.now(),
       createdBy: existing?.createdBy ?? session.userId,
       updatedBy: session.userId,
+      workspaceId:
+          existing?.workspaceId ?? session.profile?.workspaceId.trim() ?? '',
       archived: existing?.archived ?? false,
     );
-
-    final propertyId = await ref
-        .read(propertyRepositoryProvider)
-        .save(property);
-    await ref
-        .read(activityRepositoryProvider)
-        .log(
-          actorId: session.userId,
-          actorName:
-              ref.read(authSessionProvider).value?.profile?.name ?? 'شريك',
-          action: existing == null ? 'property_created' : 'property_updated',
-          entityType: 'property',
-          entityId: propertyId,
-          metadata: {
-            'name': property.name,
-            'location': property.location,
-            'apartmentCount': property.apartmentCount,
-            'status': property.status.label,
-          },
+    try {
+      final propertyId = await ref
+          .read(propertyRepositoryProvider)
+          .save(property);
+      await ref
+          .read(activityRepositoryProvider)
+          .log(
+            actorId: session.userId,
+            actorName:
+                ref.read(authSessionProvider).value?.profile?.name ?? 'شريك',
+            action: existing == null ? 'property_created' : 'property_updated',
+            entityType: 'property',
+            entityId: propertyId,
+            metadata: {
+              'name': property.name,
+              'location': property.location,
+              'apartmentCount': property.apartmentCount,
+              'status': property.status.label,
+              'workspaceId': property.workspaceId,
+            },
+          );
+      ref.invalidate(propertiesStreamProvider);
+      ref.invalidate(propertiesViewDataProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              existing == null
+                  ? 'تم إنشاء المشروع بنجاح'
+                  : 'تم حفظ المشروع وتحديث الصفحة',
+            ),
+          ),
         );
-
-    if (mounted) {
-      setState(() => _saving = false);
-      context.go(AppRoutes.propertyDetails(propertyId));
+        setState(() => _saving = false);
+        context.go(AppRoutes.propertyDetails(propertyId));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('تعذر حفظ المشروع')));
+        setState(() => _saving = false);
+      }
     }
   }
 
