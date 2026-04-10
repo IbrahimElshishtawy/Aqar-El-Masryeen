@@ -49,7 +49,7 @@ final propertiesViewDataProvider =
       final workspaceId = session?.profile?.workspaceId.trim() ?? '';
       final allPartners = ref.watch(partnersStreamProvider).valueOrNull ?? const [];
       final scopedPartners = workspaceId.isEmpty
-          ? const []
+          ? const <Partner>[]
           : allPartners
                 .where((partner) => partner.workspaceId.trim() == workspaceId)
                 .toList(growable: false);
@@ -61,22 +61,28 @@ final propertiesViewDataProvider =
       }..removeWhere((userId) => userId.trim().isEmpty);
 
       final scopedProperties = workspaceId.isEmpty
-          ? const []
-          : (ref.watch(propertiesStreamProvider).valueOrNull ?? const [])
+          ? const <PropertyProject>[]
+          : (ref.watch(propertiesStreamProvider).valueOrNull ??
+                const <PropertyProject>[])
                 .where((property) => accountUserIds.contains(property.createdBy.trim()))
                 .toList(growable: false);
       final propertyIds = scopedProperties
           .map((property) => property.id)
           .toSet();
-      final scopedUnits = (ref.watch(propertyUnitsStreamProvider).valueOrNull ?? const [])
+      final scopedUnits =
+          (ref.watch(propertyUnitsStreamProvider).valueOrNull ?? const <UnitSale>[])
           .where((unit) => propertyIds.contains(unit.propertyId))
           .toList(growable: false);
       final summaries = const PropertyFinancialSummaryBuilder().build(
         properties: scopedProperties,
-        expenses: (ref.watch(propertyExpensesStreamProvider).valueOrNull ?? const [])
+        expenses:
+            (ref.watch(propertyExpensesStreamProvider).valueOrNull ??
+                  const <ExpenseRecord>[])
             .where((expense) => propertyIds.contains(expense.propertyId))
             .toList(growable: false),
-        payments: (ref.watch(propertyPaymentsStreamProvider).valueOrNull ?? const [])
+        payments:
+            (ref.watch(propertyPaymentsStreamProvider).valueOrNull ??
+                  const <PaymentRecord>[])
             .where((payment) => propertyIds.contains(payment.propertyId))
             .toList(growable: false),
         units: scopedUnits,
