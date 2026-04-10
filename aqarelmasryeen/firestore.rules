@@ -80,8 +80,8 @@ service cloud.firestore {
         && request.resource.data.isActive == true;
 
       allow read: if isOwner(userId)
-        || isActivePartner()
-        || (hasWorkspace() && matchesWorkspace(resource.data));
+        || (hasWorkspace() && matchesWorkspace(resource.data))
+        || (isActivePartner() && resource.data.createdBy == request.auth.uid);
 
       allow update: if (isOwner(userId) || (hasWorkspace() && matchesWorkspace(resource.data)))
         && immutableUserCore(userId)

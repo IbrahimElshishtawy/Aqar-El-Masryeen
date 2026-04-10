@@ -21,6 +21,8 @@ abstract class AuthRepository {
     String? workspaceId,
   });
 
+  Future<Map<String, int>> backfillAuthProfiles({String? workspaceId});
+
   Future<void> signInWithEmail({
     required String email,
     required String password,
