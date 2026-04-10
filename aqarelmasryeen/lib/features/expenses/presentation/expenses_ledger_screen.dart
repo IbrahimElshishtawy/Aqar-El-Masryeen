@@ -1,4 +1,4 @@
-// ignore_for_file: dead_code
+// ignore_for_file: dead_code, unused_element
 
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
@@ -10,6 +10,7 @@ import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/expense_form_sheet.dart';
+import 'package:aqarelmasryeen/features/expenses/presentation/widgets/expense_split_ledger_table.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
@@ -80,24 +81,41 @@ class ExpensesLedgerScreen extends ConsumerWidget {
     final showingHistory = _showingHistory(context);
     final today = DateTime.now();
 
+    final currentUserId = session?.userId;
     final currentPartner = partners.firstWhereOrNull(
-      (partner) => partner.userId == session?.userId,
+      (partner) => partner.userId == currentUserId,
     );
     final currentColumnLabel = resolveCurrentPartyLabel(currentPartner);
     final counterpartColumnLabel = resolveCounterpartPartyLabel(
       partners: partners,
       currentPartner: currentPartner,
+      maxVisibleNames: 1,
     );
     final rows = _buildExpenseRows(
       expenses: expenses,
+      currentUserId: currentUserId,
       currentPartnerId: currentPartner?.id,
       referenceDate: today,
       includeOlderDays: showingHistory,
     );
-    final totalAmount = rows.fold<double>(
-      0,
-      (sum, row) => sum + row.expense.amount,
-    );
+    final currentTotal = expenses
+        .where(
+          (expense) => _isCurrentUserExpense(
+            expense,
+            currentUserId: currentUserId,
+            currentPartnerId: currentPartner?.id,
+          ),
+        )
+        .fold<double>(0, (sum, expense) => sum + expense.amount);
+    final counterpartTotal = expenses
+        .where(
+          (expense) => !_isCurrentUserExpense(
+            expense,
+            currentUserId: currentUserId,
+            currentPartnerId: currentPartner?.id,
+          ),
+        )
+        .fold<double>(0, (sum, expense) => sum + expense.amount);
     final hasOlderRows = expenses.any(
       (expense) => !_isSameCalendarDay(expense.date, today),
     );
@@ -109,19 +127,14 @@ class ExpensesLedgerScreen extends ConsumerWidget {
           : 'جدول يومي بسيط بين $currentColumnLabel و$counterpartColumnLabel',
       currentIndex: 1,
       automaticallyImplyLeading: false,
-      titleActions: [
-        _ExpensesTopBarActions(
-          properties: properties,
-          partners: partners,
-          showingHistory: showingHistory,
-        ),
-      ],
+      titleActions: [_ExpensesTopBarActions(showingHistory: showingHistory)],
       child: ListView(
         padding: const EdgeInsets.fromLTRB(6, 8, 6, 24),
         children: [
           _ExpensesOverviewPanel(
-            totalAmount: totalAmount,
-            entriesCount: rows.length,
+            currentTotal: currentTotal,
+            counterpartTotal: counterpartTotal,
+            entriesCount: expenses.length,
             showingHistory: showingHistory,
             hasOlderRows: hasOlderRows,
             currentColumnLabel: currentColumnLabel,
@@ -139,8 +152,17 @@ class ExpensesLedgerScreen extends ConsumerWidget {
                 : null,
           ),
           const SizedBox(height: 16),
-          _ExpensesDailyTable(
-            rows: rows,
+          ExpenseSplitLedgerTable(
+            rows: rows
+                .map(
+                  (row) => ExpenseSplitLedgerRow(
+                    dateLabel: row.expense.date.formatShort(),
+                    amountLabel: row.expense.amount.egp,
+                    description: _expenseMeaning(row.expense),
+                    isCurrentSide: row.isCurrentUser,
+                  ),
+                )
+                .toList(growable: false),
             currentColumnLabel: currentColumnLabel,
             counterpartColumnLabel: counterpartColumnLabel,
             emptyTitle: showingHistory
@@ -157,46 +179,34 @@ class ExpensesLedgerScreen extends ConsumerWidget {
 }
 
 class _ExpensesTopBarActions extends StatelessWidget {
-  const _ExpensesTopBarActions({
-    required this.properties,
-    required this.partners,
-    required this.showingHistory,
-  });
+  const _ExpensesTopBarActions({required this.showingHistory});
 
-  final List<PropertyProject> properties;
-  final List<Partner> partners;
   final bool showingHistory;
 
   @override
   Widget build(BuildContext context) {
     final canGoBack = showingHistory || context.canPop();
 
+    if (!canGoBack) {
+      return const SizedBox.shrink();
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         _TopBarIconButton(
-          icon: Icons.add_rounded,
-          tooltip: 'إضافة مصروف',
-          onPressed: () => _showExpenseSheet(
-            context,
-            properties: properties,
-            partners: partners,
-          ),
+          icon: Icons.arrow_forward_rounded,
+          tooltip: 'رجوع',
+          onPressed: () {
+            if (showingHistory) {
+              context.go(AppRoutes.expenses);
+              return;
+            }
+            if (context.canPop()) {
+              context.pop();
+            }
+          },
         ),
-        if (canGoBack)
-          _TopBarIconButton(
-            icon: Icons.arrow_forward_rounded,
-            tooltip: 'رجوع',
-            onPressed: () {
-              if (showingHistory) {
-                context.go(AppRoutes.expenses);
-                return;
-              }
-              if (context.canPop()) {
-                context.pop();
-              }
-            },
-          ),
       ],
     );
   }
@@ -231,7 +241,8 @@ class _TopBarIconButton extends StatelessWidget {
 
 class _ExpensesOverviewPanel extends StatelessWidget {
   const _ExpensesOverviewPanel({
-    required this.totalAmount,
+    required this.currentTotal,
+    required this.counterpartTotal,
     required this.entriesCount,
     required this.showingHistory,
     required this.hasOlderRows,
@@ -242,7 +253,8 @@ class _ExpensesOverviewPanel extends StatelessWidget {
     this.onShowToday,
   });
 
-  final double totalAmount;
+  final double currentTotal;
+  final double counterpartTotal;
   final int entriesCount;
   final bool showingHistory;
   final bool hasOlderRows;
@@ -255,10 +267,10 @@ class _ExpensesOverviewPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppPanel(
-      title: showingHistory ? 'باقي الأيام' : 'ملخص اليوم',
+      title: 'ملخص المصروفات',
       subtitle: showingHistory
-          ? 'هنا ستشوف تواريخ الأيام السابقة للمصاريف.'
-          : 'القيمة والوصف يظهران داخل عمود $currentColumnLabel أو $counterpartColumnLabel فقط.',
+          ? 'الإجماليات هنا محسوبة من كل المصروفات المسجلة، بينما الجدول بالأسفل يعرض الأيام السابقة فقط.'
+          : 'الإجماليات هنا محسوبة من كل المصروفات المسجلة، بينما الصفوف توزع بين $currentColumnLabel و$counterpartColumnLabel.',
       trailing: Wrap(
         spacing: 8,
         runSpacing: 8,
@@ -279,8 +291,12 @@ class _ExpensesOverviewPanel extends StatelessWidget {
         runSpacing: 10,
         children: [
           _MetricPill(
-            label: showingHistory ? 'إجمالي المعروض' : 'إجمالي اليوم',
-            value: totalAmount.egp,
+            label: 'إجمالي $currentColumnLabel',
+            value: currentTotal.egp,
+          ),
+          _MetricPill(
+            label: 'إجمالي $counterpartColumnLabel',
+            value: counterpartTotal.egp,
           ),
           _MetricPill(label: 'عدد المصروفات', value: '$entriesCount'),
         ],
@@ -353,11 +369,11 @@ class _ExpensesDailyTable extends StatelessWidget {
           ? EmptyStateView(title: emptyTitle, message: emptyMessage)
           : LayoutBuilder(
               builder: (context, constraints) {
-                final tableWidth = constraints.maxWidth < 520
-                    ? 620.0
+                final tableWidth = constraints.maxWidth < 360
+                    ? 360.0
                     : constraints.maxWidth;
                 final innerTableWidth = tableWidth - 2;
-                final dateColumnWidth = 126.0;
+                final dateColumnWidth = 78.0;
                 final sideColumnWidth = (innerTableWidth - dateColumnWidth) / 2;
 
                 return SingleChildScrollView(
@@ -366,7 +382,7 @@ class _ExpensesDailyTable extends StatelessWidget {
                     width: tableWidth,
                     decoration: BoxDecoration(
                       color: const Color(0xFFFFFEFB),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: const Color(0xFFD9DED6)),
                     ),
                     child: Column(
@@ -411,7 +427,7 @@ class _ExpenseTableHeader extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFFE7EEE6),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       child: Row(
         children: [
@@ -434,7 +450,7 @@ class _HeaderCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
       decoration: const BoxDecoration(
         border: Border(left: BorderSide(color: Color(0xFFD9DED6))),
       ),
@@ -502,7 +518,7 @@ class _ExpenseDateCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: width,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(8),
       decoration: const BoxDecoration(
         color: Color(0xFFF7F8F4),
         border: Border(left: BorderSide(color: Color(0xFFD9DED6))),
@@ -535,7 +551,7 @@ class _ExpenseSideCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: width,
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(4),
       decoration: const BoxDecoration(
         border: Border(left: BorderSide(color: Color(0xFFD9DED6))),
       ),
@@ -569,10 +585,10 @@ class _ExpenseEntryCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
       decoration: BoxDecoration(
         color: tint,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: const Color(0xFFD5DDD5)),
       ),
       child: Column(
@@ -588,12 +604,12 @@ class _ExpenseEntryCard extends StatelessWidget {
               color: const Color(0xFF17352F),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             meaning,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontWeight: FontWeight.w700,
               color: const Color(0xFF40564F),
               height: 1.25,
@@ -709,12 +725,27 @@ bool _showingHistory(BuildContext context) {
   return GoRouterState.of(context).uri.queryParameters['history'] == 'older';
 }
 
+String _expenseMeaning(ExpenseRecord expense) {
+  final description = expense.description.trim();
+  return description.isEmpty ? expense.category.label : description;
+}
+
 bool _isSameCalendarDay(DateTime first, DateTime second) {
   return DateUtils.isSameDay(first, second);
 }
 
+bool _isCurrentUserExpense(
+  ExpenseRecord expense, {
+  required String? currentUserId,
+  required String? currentPartnerId,
+}) {
+  return (currentUserId != null && expense.createdBy == currentUserId) ||
+      (currentPartnerId != null && expense.paidByPartnerId == currentPartnerId);
+}
+
 List<_ExpenseDisplayRow> _buildExpenseRows({
   required List<ExpenseRecord> expenses,
+  required String? currentUserId,
   required String? currentPartnerId,
   required DateTime referenceDate,
   required bool includeOlderDays,
@@ -728,9 +759,11 @@ List<_ExpenseDisplayRow> _buildExpenseRows({
       .map(
         (expense) => _ExpenseDisplayRow(
           expense: expense,
-          isCurrentUser:
-              currentPartnerId != null &&
-              expense.paidByPartnerId == currentPartnerId,
+          isCurrentUser: _isCurrentUserExpense(
+            expense,
+            currentUserId: currentUserId,
+            currentPartnerId: currentPartnerId,
+          ),
         ),
       )
       .toList(growable: false);

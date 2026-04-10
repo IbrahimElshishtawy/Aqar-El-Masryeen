@@ -28,7 +28,7 @@ class DashboardScreen extends ConsumerWidget {
         data: (viewData) => ListView(
           padding: const EdgeInsets.fromLTRB(6, 1, 6, 4),
           children: [
-            DashboardOverviewSection(snapshot: viewData.snapshot),
+            DashboardOverviewSection(viewData: viewData),
             const SizedBox(height: 5),
             DashboardFinanceChart(buckets: viewData.snapshot.chart),
             const SizedBox(height: 5),

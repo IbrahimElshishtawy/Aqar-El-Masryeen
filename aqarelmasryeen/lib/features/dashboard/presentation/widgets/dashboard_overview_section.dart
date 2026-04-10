@@ -1,15 +1,28 @@
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
+import 'package:aqarelmasryeen/core/utils/partner_display_labels.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/features/dashboard/domain/dashboard_snapshot.dart';
+import 'package:aqarelmasryeen/features/dashboard/presentation/dashboard_providers.dart';
 import 'package:flutter/material.dart';
 
 class DashboardOverviewSection extends StatelessWidget {
-  const DashboardOverviewSection({super.key, required this.snapshot});
+  const DashboardOverviewSection({super.key, required this.viewData});
 
-  final DashboardSnapshot snapshot;
+  final DashboardViewData viewData;
 
   @override
   Widget build(BuildContext context) {
+    final snapshot = viewData.snapshot;
+    final counterpartLabel = resolveCounterpartPartyLabel(
+      partners: viewData.partners,
+      currentPartner: viewData.currentPartner,
+      fallback: 'الشريك',
+      maxVisibleNames: 1,
+    );
+    final counterpartExpensesLabel = counterpartLabel == 'الشريك'
+        ? 'مصروفات الشريك'
+        : 'مصروفات $counterpartLabel';
+
     return AppPanel(
       padding: const EdgeInsets.all(14),
       child: Column(
@@ -20,16 +33,28 @@ class DashboardOverviewSection extends StatelessWidget {
           DashboardStatsGrid(
             cards: [
               DashboardStatCard(
+                label: 'إجمالي المصروفات',
+                value: snapshot.totalExpenses.egp,
+                subtitle: 'كل المصروفات المباشرة مع المدفوع الفعلي للمواد والموردين',
+                icon: Icons.receipt_long_outlined,
+              ),
+              DashboardStatCard(
+                label: 'مصروفاتك',
+                value: snapshot.currentUserExpenses.egp,
+                subtitle: 'كل ما تم تسجيله أو دفعه من جهتك داخل المصروفات والمواد',
+                icon: Icons.person_outline_rounded,
+              ),
+              DashboardStatCard(
+                label: counterpartExpensesLabel,
+                value: snapshot.counterpartExpenses.egp,
+                subtitle: 'إجمالي ما يخص الطرف الآخر من المصروفات والمدفوعات',
+                icon: Icons.groups_2_outlined,
+              ),
+              DashboardStatCard(
                 label: 'قيمة المبيعات',
                 value: snapshot.totalSalesValue.egp,
                 subtitle: 'إجمالي المبيعات على مستوى كل المشاريع والوحدات',
                 icon: Icons.sell_outlined,
-              ),
-              DashboardStatCard(
-                label: 'قيمة المصروفات',
-                value: snapshot.totalExpenses.egp,
-                subtitle: 'مصروفات الطرفين مع مدفوعات الموردين الفعلية',
-                icon: Icons.receipt_long_outlined,
               ),
               DashboardStatCard(
                 label: 'الأقساط المحصلة',

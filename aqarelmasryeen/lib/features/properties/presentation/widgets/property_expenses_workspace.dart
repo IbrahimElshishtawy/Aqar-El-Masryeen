@@ -1,6 +1,7 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
+import 'package:aqarelmasryeen/features/expenses/presentation/widgets/expense_split_ledger_table.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
@@ -37,6 +38,16 @@ class PropertyExpensesWorkspace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = _buildRows();
+    final splitRows = rows
+        .map(
+          (row) => ExpenseSplitLedgerRow(
+            dateLabel: row.row.expense.date.formatShort(),
+            amountLabel: row.row.expense.amount.egp,
+            description: row.description,
+            isCurrentSide: row.isCurrentSide,
+          ),
+        )
+        .toList(growable: false);
     final currentTotal = rows
         .where((row) => row.isCurrentSide)
         .fold<double>(0, (sum, row) => sum + row.row.expense.amount);
@@ -83,6 +94,14 @@ class PropertyExpensesWorkspace extends StatelessWidget {
           ),
           const SizedBox(height: 12),
         ],
+        ExpenseSplitLedgerTable(
+          rows: splitRows,
+          currentColumnLabel: data.currentColumnLabel,
+          counterpartColumnLabel: data.counterpartColumnLabel,
+          emptyTitle: _emptyTitle,
+          emptyMessage: _emptyMessage,
+        ),
+        const SizedBox(height: 12),
         FinancialLedgerTable<_ExpenseTableRow>(
           title: _tableTitle,
           subtitle: _tableSubtitle,

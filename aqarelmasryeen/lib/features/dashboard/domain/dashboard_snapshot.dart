@@ -45,6 +45,8 @@ class DashboardSnapshot {
     required this.propertyCount,
     required this.totalSalesValue,
     required this.totalExpenses,
+    required this.currentUserExpenses,
+    required this.counterpartExpenses,
     required this.totalPaidInstallments,
     required this.totalRemainingInstallments,
     required this.pendingSupplierDues,
@@ -56,6 +58,8 @@ class DashboardSnapshot {
   final int propertyCount;
   final double totalSalesValue;
   final double totalExpenses;
+  final double currentUserExpenses;
+  final double counterpartExpenses;
   final double totalPaidInstallments;
   final double totalRemainingInstallments;
   final double pendingSupplierDues;
@@ -76,6 +80,8 @@ class DashboardSnapshotBuilder {
     required List<MaterialExpenseEntry> materials,
     required List<SupplierPaymentRecord> supplierPayments,
     required List<Partner> partners,
+    String? currentUserId,
+    String? currentPartnerId,
   }) {
     final propertyNames = {
       for (final property in properties) property.id: property.name,
@@ -101,6 +107,43 @@ class DashboardSnapshotBuilder {
       (sum, record) => sum + record.amount,
     );
     final totalExpenses = totalDirectExpenses + materialsSnapshot.overallPaid;
+    final currentDirectExpenses = expenses
+        .where(
+          (record) => _belongsToCurrentSide(
+            actorUserId: record.createdBy,
+            payerPartnerId: record.paidByPartnerId,
+            currentUserId: currentUserId,
+            currentPartnerId: currentPartnerId,
+          ),
+        )
+        .fold<double>(0, (sum, record) => sum + record.amount);
+    final currentMaterialExpenses = materials
+        .where(
+          (record) => _belongsToCurrentSide(
+            actorUserId: record.createdBy,
+            payerPartnerId: record.initialPaidByPartnerId,
+            currentUserId: currentUserId,
+            currentPartnerId: currentPartnerId,
+          ),
+        )
+        .fold<double>(0, (sum, record) => sum + record.initialPaidAmount);
+    final currentSupplierExpenses = supplierPayments
+        .where(
+          (record) => _belongsToCurrentSide(
+            actorUserId: record.createdBy,
+            payerPartnerId: record.paidByPartnerId,
+            currentUserId: currentUserId,
+            currentPartnerId: currentPartnerId,
+          ),
+        )
+        .fold<double>(0, (sum, record) => sum + record.amount);
+    final currentUserExpenses =
+        currentDirectExpenses +
+        currentMaterialExpenses +
+        currentSupplierExpenses;
+    final counterpartExpenses = (totalExpenses - currentUserExpenses) < 0
+        ? 0.0
+        : (totalExpenses - currentUserExpenses);
     final totalPaidInstallments = trackedSummaries.fold<double>(
       0,
       (sum, summary) => sum + summary.totalPaidSoFar,
@@ -180,6 +223,8 @@ class DashboardSnapshotBuilder {
       propertyCount: properties.length,
       totalSalesValue: totalSalesValue,
       totalExpenses: totalExpenses,
+      currentUserExpenses: currentUserExpenses,
+      counterpartExpenses: counterpartExpenses,
       totalPaidInstallments: totalPaidInstallments,
       totalRemainingInstallments: totalRemainingInstallments,
       pendingSupplierDues: pendingSupplierDues,
@@ -245,4 +290,21 @@ class DashboardSnapshotBuilder {
 
     return buckets;
   }
+}
+
+bool _belongsToCurrentSide({
+  required String actorUserId,
+  required String payerPartnerId,
+  required String? currentUserId,
+  required String? currentPartnerId,
+}) {
+  final normalizedCurrentPartnerId = currentPartnerId?.trim() ?? '';
+  if (normalizedCurrentPartnerId.isNotEmpty &&
+      payerPartnerId.trim() == normalizedCurrentPartnerId) {
+    return true;
+  }
+
+  final normalizedCurrentUserId = currentUserId?.trim() ?? '';
+  return normalizedCurrentUserId.isNotEmpty &&
+      actorUserId.trim() == normalizedCurrentUserId;
 }

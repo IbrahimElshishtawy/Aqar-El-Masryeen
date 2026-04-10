@@ -4,8 +4,10 @@ String resolveCurrentPartyLabel(
   Partner? currentPartner, {
   String fallback = 'المستخدم',
 }) {
-  final name = currentPartner?.name.trim() ?? '';
-  return name.isEmpty ? fallback : name;
+  final label = currentPartner == null
+      ? ''
+      : _resolvePartnerDisplayName(currentPartner);
+  return label.isEmpty ? fallback : label;
 }
 
 String summarizePartnerNames(
@@ -14,7 +16,7 @@ String summarizePartnerNames(
   int maxVisibleNames = 2,
 }) {
   final names = partners
-      .map((partner) => partner.name.trim())
+      .map(_resolvePartnerDisplayName)
       .where((name) => name.isNotEmpty)
       .toList(growable: false);
   if (names.isEmpty) {
@@ -44,4 +46,18 @@ String resolveCounterpartPartyLabel({
     fallback: fallback,
     maxVisibleNames: maxVisibleNames,
   );
+}
+
+String _resolvePartnerDisplayName(Partner partner) {
+  final name = partner.name.trim();
+  if (name.isNotEmpty) {
+    return name;
+  }
+
+  final linkedEmail = partner.linkedEmail.trim();
+  if (linkedEmail.isNotEmpty) {
+    return linkedEmail;
+  }
+
+  return '';
 }

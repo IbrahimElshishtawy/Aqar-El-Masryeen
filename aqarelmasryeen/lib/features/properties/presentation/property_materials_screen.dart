@@ -129,7 +129,7 @@ class _MaterialsTopBarAction extends StatelessWidget {
           label: const Text('إضافة فاتورة'),
           style: FilledButton.styleFrom(
             visualDensity: VisualDensity.compact,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
           ),
         ),
       ),
@@ -162,9 +162,9 @@ class _SupplierOverviewPanel extends StatelessWidget {
             )
           : LayoutBuilder(
               builder: (context, constraints) {
-                final columns = constraints.maxWidth >= 1100
+                final columns = constraints.maxWidth >= 900
                     ? 3
-                    : constraints.maxWidth >= 720
+                    : constraints.maxWidth >= 520
                     ? 2
                     : 1;
                 return GridView.builder(
@@ -210,12 +210,12 @@ class _SupplierSummaryCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return InkWell(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFFFFFEFB),
-          borderRadius: BorderRadius.circular(22),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: const Color(0xFFD8D8D2)),
           boxShadow: const [
             BoxShadow(
@@ -225,7 +225,7 @@ class _SupplierSummaryCard extends StatelessWidget {
             ),
           ],
         ),
-        padding: const EdgeInsets.all(5),
+        padding: const EdgeInsets.all(15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -241,11 +241,11 @@ class _SupplierSummaryCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 2),
                 const Icon(Icons.arrow_forward_rounded, size: 18),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Text(
               '${summary.invoiceCount} فاتورة',
               style: theme.textTheme.bodySmall?.copyWith(
@@ -253,22 +253,26 @@ class _SupplierSummaryCard extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
+            const SizedBox(height: 4),
+            Row(
               children: [
-                _SupplierMetricPill(
-                  label: 'المطلوب',
-                  value: summary.totalPurchased.egp,
-                ),
-                _SupplierMetricPill(
-                  label: 'المدفوع',
-                  value: summary.totalPaid.egp,
-                ),
-                _SupplierMetricPill(
-                  label: 'المتبقي',
-                  value: summary.totalRemaining.egp,
+                Wrap(
+                  spacing: 5,
+                  runSpacing: 5,
+                  children: [
+                    _SupplierMetricPill(
+                      label: 'المطلوب',
+                      value: summary.totalPurchased.egp,
+                    ),
+                    _SupplierMetricPill(
+                      label: 'المدفوع',
+                      value: summary.totalPaid.egp,
+                    ),
+                    _SupplierMetricPill(
+                      label: 'المتبقي',
+                      value: summary.totalRemaining.egp,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -313,14 +317,15 @@ class _SupplierMetricPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minWidth: 120),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      width: 40,
+      height: 60,
+      constraints: const BoxConstraints(minWidth: 100),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
       decoration: BoxDecoration(
         color: const Color(0xFFF4F6F1),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,

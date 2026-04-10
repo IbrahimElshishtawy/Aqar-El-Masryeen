@@ -83,12 +83,12 @@ class PropertyProjectViewData {
 
   String get counterpartLabel => counterpartColumnLabel;
 
-  String get counterpartColumnLabel {
-    if (counterpartPartners.isEmpty) {
-      return 'الشريك';
-    }
-    return counterpartPartners.length > 1 ? 'الشركاء' : 'الشريك';
-  }
+  String get counterpartColumnLabel => resolveCounterpartPartyLabel(
+    partners: partners,
+    currentPartner: currentPartner,
+    fallback: 'الشريك',
+    maxVisibleNames: 1,
+  );
 
   bool get hasLinkedPartner => counterpartPartners.isNotEmpty;
 

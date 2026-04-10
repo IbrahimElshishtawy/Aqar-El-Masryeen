@@ -46,6 +46,7 @@
 - انشر `firestore.rules`.
 - انشر `storage.rules`.
 - انشر `firestore.indexes.json`.
+- راجع الكود الجاهز داخل `docs/doc/firebase_rules.md`.
 
 ## Cloud Functions setup
 
@@ -77,13 +78,14 @@ notifications/{notificationId}
 3. انشر `firestore.indexes.json`.
 4. أنشئ أول مستخدم من التطبيق.
 5. تأكد من إنشاء `users/{uid}` بعد التسجيل أو أول دخول.
-6. اختبر إنشاء مشروع.
-7. اختبر إنشاء وحدة.
-8. اختبر خطة تقسيط ثم أقساط.
-9. اختبر تسجيل دفعة ومصروف ومصروف خامات.
-10. اختبر إنشاء مستند جديد داخل `notifications`.
-11. تأكد من ظهور `pushDelivery.status` داخل نفس المستند بعد تشغيل Function.
-12. اختبر الإشعار والتطبيق في foreground وbackground وclosed state على Android وiPhone.
+6. تأكد أن `users/{uid}.role == 'partner'` و `users/{uid}.isActive == true`.
+7. اختبر إنشاء مشروع.
+8. اختبر إنشاء وحدة.
+9. اختبر خطة تقسيط ثم أقساط.
+10. اختبر تسجيل دفعة ومصروف ومصروف خامات.
+11. اختبر إنشاء مستند جديد داخل `notifications`.
+12. تأكد من ظهور `pushDelivery.status` داخل نفس المستند بعد تشغيل Function.
+13. اختبر الإشعار والتطبيق في foreground وbackground وclosed state على Android وiPhone.
 
 ## Important note
 
