@@ -2,7 +2,7 @@ class AppConfig {
   const AppConfig._();
 
   static const appName = 'عقار المصريين';
-  static const defaultWorkspaceId = 'workspace_main';
+  static const defaultWorkspaceId = '';
   static const defaultInactivityTimeoutSeconds = 90;
   static const minPasswordLength = 10;
   static const notificationChannelId = 'finance_alerts';

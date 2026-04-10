@@ -46,16 +46,23 @@ class FirebaseAuthRepository implements AuthRepository {
   final DeviceInfoService _deviceInfoService;
   final FirebaseAnalytics _analytics;
   final FirebaseCrashlytics _crashlytics;
+  String _lastSessionUid = '';
 
   @override
   Stream<AppSession?> watchSession() async* {
     await for (final user in _authDataSource.authStateChanges()) {
       if (user == null) {
+        _lastSessionUid = '';
         await _secureStorage.clearSessionData();
         await _cacheService.clearByPrefix('cache.');
         yield null;
         continue;
       }
+
+      if (_lastSessionUid.isNotEmpty && _lastSessionUid != user.uid) {
+        await _cacheService.clearByPrefix('cache.');
+      }
+      _lastSessionUid = user.uid;
 
       final cachedProfile = await _localDataSource.readProfile(user.uid);
       if (cachedProfile != null) {
@@ -263,6 +270,7 @@ class FirebaseAuthRepository implements AuthRepository {
         }
       }
 
+      await _cacheService.clearByPrefix('cache.');
       await _syncLocalSession(profile, user.uid);
       await _analytics.logLogin(loginMethod: 'email_password');
       await _logSecurityEvent(

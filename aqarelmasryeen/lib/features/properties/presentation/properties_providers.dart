@@ -1,4 +1,6 @@
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
+import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
+import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/properties/domain/property_financial_summary.dart';
@@ -18,6 +20,9 @@ final propertyPaymentsStreamProvider = StreamProvider.autoDispose(
 final propertyUnitsStreamProvider = StreamProvider.autoDispose(
   (ref) => ref.watch(salesRepositoryProvider).watchAll(),
 );
+final partnersStreamProvider = StreamProvider.autoDispose(
+  (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
+);
 
 final propertiesViewDataProvider =
     Provider.autoDispose<AsyncValue<PropertiesViewData>>((ref) {
@@ -26,6 +31,7 @@ final propertiesViewDataProvider =
         ref.watch(propertyExpensesStreamProvider),
         ref.watch(propertyPaymentsStreamProvider),
         ref.watch(propertyUnitsStreamProvider),
+        ref.watch(partnersStreamProvider),
       ];
 
       final error = values.firstWhereOrNull((value) => value.hasError);
@@ -36,13 +42,41 @@ final propertiesViewDataProvider =
         return const AsyncLoading();
       }
 
+      final session = ref.watch(authSessionProvider).valueOrNull;
+      final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+      final allPartners = ref.watch(partnersStreamProvider).valueOrNull ?? const [];
+      final scopedPartners = workspaceId.isEmpty
+          ? const []
+          : allPartners
+                .where((partner) => partner.workspaceId.trim() == workspaceId)
+                .toList(growable: false);
+      final accountUserIds = {
+        session?.userId ?? '',
+        ...scopedPartners
+            .map((partner) => partner.userId.trim())
+            .where((userId) => userId.isNotEmpty),
+      }..removeWhere((userId) => userId.trim().isEmpty);
+
+      final scopedProperties = workspaceId.isEmpty
+          ? const []
+          : (ref.watch(propertiesStreamProvider).valueOrNull ?? const [])
+                .where((property) => accountUserIds.contains(property.createdBy.trim()))
+                .toList(growable: false);
+      final propertyIds = scopedProperties
+          .map((property) => property.id)
+          .toSet();
+      final scopedUnits = (ref.watch(propertyUnitsStreamProvider).valueOrNull ?? const [])
+          .where((unit) => propertyIds.contains(unit.propertyId))
+          .toList(growable: false);
       final summaries = const PropertyFinancialSummaryBuilder().build(
-        properties: ref.watch(propertiesStreamProvider).valueOrNull ?? const [],
-        expenses:
-            ref.watch(propertyExpensesStreamProvider).valueOrNull ?? const [],
-        payments:
-            ref.watch(propertyPaymentsStreamProvider).valueOrNull ?? const [],
-        units: ref.watch(propertyUnitsStreamProvider).valueOrNull ?? const [],
+        properties: scopedProperties,
+        expenses: (ref.watch(propertyExpensesStreamProvider).valueOrNull ?? const [])
+            .where((expense) => propertyIds.contains(expense.propertyId))
+            .toList(growable: false),
+        payments: (ref.watch(propertyPaymentsStreamProvider).valueOrNull ?? const [])
+            .where((payment) => propertyIds.contains(payment.propertyId))
+            .toList(growable: false),
+        units: scopedUnits,
       );
       final totalExpenses = summaries.fold<double>(
         0,
@@ -55,6 +89,7 @@ final propertiesViewDataProvider =
 
       return AsyncData(
         PropertiesViewData(
+          isWorkspaceLinked: workspaceId.isNotEmpty,
           summaries: summaries,
           totalExpenses: totalExpenses,
           totalPayments: totalPayments,
@@ -64,11 +99,13 @@ final propertiesViewDataProvider =
 
 class PropertiesViewData {
   const PropertiesViewData({
+    required this.isWorkspaceLinked,
     required this.summaries,
     required this.totalExpenses,
     required this.totalPayments,
   });
 
+  final bool isWorkspaceLinked;
   final List<PropertyFinancialSummary> summaries;
   final double totalExpenses;
   final double totalPayments;
