@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  flutter:
+    name: Flutter Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.24.5
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: aqarelmasryeen
+
+      - name: Analyze
+        run: flutter analyze
+        working-directory: aqarelmasryeen
+
+      - name: Test
+        run: flutter test
+        working-directory: aqarelmasryeen
+
+      - name: Sanity build (web)
+        run: flutter build web --release --no-tree-shake-icons
+        working-directory: aqarelmasryeen
+
+  functions:
+    name: Firebase Functions Checks
+    runs-on: ubuntu-latest
+    if: ${{ hashFiles('aqarelmasryeen/functions/package.json') != '' }}
+
+    defaults:
+      run:
+        working-directory: aqarelmasryeen/functions
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: aqarelmasryeen/functions/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run lint if available
+        run: |
+          if npm run | grep -qE '^\s+lint\b'; then
+            npm run lint
+          else
+            echo "No lint script configured, skipping."
+          fi
+
+      - name: Run tests if available
+        run: |
+          if npm run | grep -qE '^\s+test\b'; then
+            npm test
+          else
+            echo "No test script configured, skipping."
+          fi

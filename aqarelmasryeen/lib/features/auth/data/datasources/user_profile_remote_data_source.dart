@@ -171,6 +171,31 @@ class UserProfileRemoteDataSource {
     }, SetOptions(merge: true));
   }
 
+  Future<void> updateAccountLinkage({
+    required String uid,
+    required String workspaceId,
+    String? linkedPartnerId,
+    String? linkedPartnerName,
+    String? createdBy,
+  }) async {
+    final existing = await fetchProfile(uid);
+    final resolvedCreatedBy = _resolveCreatedBy(
+      requested: createdBy,
+      existing: existing?.createdBy,
+      fallback: uid,
+    );
+
+    await _users.doc(uid).set({
+      'workspaceId': workspaceId.trim(),
+      'linkedPartnerId': linkedPartnerId ?? existing?.linkedPartnerId ?? '',
+      'linkedPartnerName':
+          linkedPartnerName ?? existing?.linkedPartnerName ?? '',
+      'createdBy': resolvedCreatedBy,
+      'createdAt': existing?.createdAt ?? FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<void> clearPartnerLink(
     String uid, {
     String? expectedPartnerId,
