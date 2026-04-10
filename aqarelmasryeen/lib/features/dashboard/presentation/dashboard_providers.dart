@@ -1,4 +1,5 @@
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
+import 'package:aqarelmasryeen/features/dashboard/domain/dashboard_scope.dart';
 import 'package:aqarelmasryeen/features/dashboard/domain/dashboard_snapshot.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
@@ -64,54 +65,70 @@ final dashboardViewDataProvider =
         return const AsyncLoading();
       }
 
-      final partners =
+      final allPartners =
           ref.watch(dashboardPartnersProvider).valueOrNull ?? const [];
-      final expenses =
+      final allProperties =
+          ref.watch(dashboardPropertiesProvider).valueOrNull ?? const [];
+      final allUnits = ref.watch(dashboardUnitsProvider).valueOrNull ?? const [];
+      final allInstallments =
+          ref.watch(dashboardInstallmentsProvider).valueOrNull ?? const [];
+      final allPayments =
+          ref.watch(dashboardPaymentsProvider).valueOrNull ?? const [];
+      final allExpenses =
           ref.watch(dashboardExpensesProvider).valueOrNull ?? const [];
-      final materials =
+      final allMaterials =
           ref.watch(dashboardMaterialsProvider).valueOrNull ?? const [];
-      final supplierPayments =
+      final allSupplierPayments =
           ref.watch(dashboardSupplierPaymentsProvider).valueOrNull ?? const [];
       final partnerLedgerEntries =
           ref.watch(dashboardPartnerLedgerProvider).valueOrNull ?? const [];
       final session = ref.watch(authSessionProvider).valueOrNull;
       final currentUserId = session?.userId ?? '';
+
+      final scopedData = const DashboardScopeResolver().resolve(
+        profile: session?.profile,
+        currentUserId: currentUserId,
+        partners: allPartners,
+        properties: allProperties,
+        units: allUnits,
+        installments: allInstallments,
+        payments: allPayments,
+        expenses: allExpenses,
+        materials: allMaterials,
+        supplierPayments: allSupplierPayments,
+      );
+
       final currentPartner = session == null
           ? null
-          : partners.firstWhereOrNull(
+          : scopedData.partners.firstWhereOrNull(
               (partner) => partner.userId == session.userId,
             );
-      final linkedPartnersCount = partners
+      final linkedPartnersCount = scopedData.partners
           .where((partner) => partner.userId.isNotEmpty)
           .length;
       final partnerSummaries = const PartnerLedgerCalculator().build(
-        partners: partners,
-        expenses: expenses,
-        materialExpenses: materials,
-        supplierPayments: supplierPayments,
+        partners: scopedData.partners,
+        expenses: scopedData.expenses,
+        materialExpenses: scopedData.materials,
+        supplierPayments: scopedData.supplierPayments,
         ledgerEntries: partnerLedgerEntries,
       );
 
       return AsyncData(
         DashboardViewData(
           snapshot: const DashboardSnapshotBuilder().build(
-            properties:
-                ref.watch(dashboardPropertiesProvider).valueOrNull ?? const [],
-            units: ref.watch(dashboardUnitsProvider).valueOrNull ?? const [],
-            installments:
-                ref.watch(dashboardInstallmentsProvider).valueOrNull ??
-                const [],
-            payments:
-                ref.watch(dashboardPaymentsProvider).valueOrNull ?? const [],
-            expenses:
-                ref.watch(dashboardExpensesProvider).valueOrNull ?? const [],
-            materials: materials,
-            supplierPayments: supplierPayments,
-            partners: partners,
+            properties: scopedData.properties,
+            units: scopedData.units,
+            installments: scopedData.installments,
+            payments: scopedData.payments,
+            expenses: scopedData.expenses,
+            materials: scopedData.materials,
+            supplierPayments: scopedData.supplierPayments,
+            partners: scopedData.partners,
             currentUserId: currentUserId,
             currentPartnerId: currentPartner?.id,
           ),
-          partners: partners,
+          partners: scopedData.partners,
           currentPartner: currentPartner,
           currentUserId: currentUserId,
           linkedPartnersCount: linkedPartnersCount,
