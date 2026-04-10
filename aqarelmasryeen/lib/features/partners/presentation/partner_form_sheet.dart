@@ -232,7 +232,8 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
       Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) return;
-      _showMessage(_createPartnerAccount ? 'فشل إنشاء الحساب' : mapException(error).message);
+      final failure = mapException(error).message;
+      _showMessage(_createPartnerAccount ? 'فشل إنشاء الحساب: $failure' : failure);
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -273,6 +274,29 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
       return false;
     }
     return partner.linkedEmail.trim().toLowerCase() == normalizedEmail;
+  }
+
+  String get _submitButtonLabel {
+    if (_createPartnerAccount) {
+      return 'إنشاء الحساب وربط الشريك';
+    }
+    if (_linkToCurrentAccount) {
+      return 'حفظ وربط بالحساب الحالي';
+    }
+    if (_emailController.text.trim().isEmpty) {
+      return 'حفظ الشريك فقط';
+    }
+    return 'حفظ وإرسال طلب ربط';
+  }
+
+  String get _savingButtonLabel {
+    if (_createPartnerAccount) {
+      return 'جارٍ إنشاء الحساب والربط...';
+    }
+    if (_linkToCurrentAccount || _emailController.text.trim().isNotEmpty) {
+      return 'جارٍ تنفيذ الربط...';
+    }
+    return 'جارٍ حفظ الشريك...';
   }
 
   @override
@@ -421,17 +445,21 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
               width: double.infinity,
               child: FilledButton(
                 onPressed: _saving ? null : _submit,
-                child: Text(
-                  _saving
-                      ? 'جار الحفظ...'
-                      : _createPartnerAccount
-                      ? 'إنشاء الحساب وربط الشريك'
-                      : _linkToCurrentAccount
-                      ? 'حفظ وربط بالحساب الحالي'
-                      : _emailController.text.trim().isEmpty
-                      ? 'حفظ الشريك فقط'
-                      : 'حفظ وإرسال طلب ربط',
-                ),
+                child: _saving
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(_savingButtonLabel),
+                        ],
+                      )
+                    : Text(_submitButtonLabel),
               ),
             ),
           ],

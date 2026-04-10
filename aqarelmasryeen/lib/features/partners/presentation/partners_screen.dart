@@ -9,6 +9,7 @@ import 'package:aqarelmasryeen/features/notifications/data/notification_reposito
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/partners/domain/partner_account_summary.dart';
 import 'package:aqarelmasryeen/features/partners/presentation/partner_form_sheet.dart';
+import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/app_user.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
@@ -16,45 +17,49 @@ import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>(
-  (ref) {
-    final session = ref.watch(authSessionProvider).valueOrNull;
-    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
-    return ref.watch(partnerRepositoryProvider).watchPartners().map(
-      (partners) => workspaceId.isEmpty
-          ? partners
-                .where(
-                  (partner) =>
-                      partner.createdBy.trim() == (session?.userId ?? '') ||
-                      partner.userId.trim() == (session?.userId ?? ''),
-                )
-                .toList(growable: false)
-          : partners
-                .where((partner) => partner.workspaceId.trim() == workspaceId)
-                .toList(growable: false),
-    );
-  },
-);
+final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+  return ref
+      .watch(partnerRepositoryProvider)
+      .watchPartners()
+      .map(
+        (partners) => workspaceId.isEmpty
+            ? partners
+                  .where(
+                    (partner) =>
+                        partner.createdBy.trim() == (session?.userId ?? '') ||
+                        partner.userId.trim() == (session?.userId ?? ''),
+                  )
+                  .toList(growable: false)
+            : partners
+                  .where((partner) => partner.workspaceId.trim() == workspaceId)
+                  .toList(growable: false),
+      );
+});
 
 final partnerAccountsStreamProvider = StreamProvider.autoDispose<List<AppUser>>(
   (ref) {
     final session = ref.watch(authSessionProvider).valueOrNull;
     final workspaceId = session?.profile?.workspaceId.trim() ?? '';
     final currentUid = session?.userId ?? '';
-    return ref.watch(userProfileRemoteDataSourceProvider).watchAllProfiles().map((
-      users,
-    ) {
-      return users.where((user) {
-        if (user.uid == currentUid) {
-          return true;
-        }
-        final userWorkspaceId = user.workspaceId.trim();
-        if (workspaceId.isNotEmpty && userWorkspaceId == workspaceId) {
-          return true;
-        }
-        return userWorkspaceId.isEmpty && user.createdBy == currentUid;
-      }).toList(growable: false);
-    });
+    return ref
+        .watch(userProfileRemoteDataSourceProvider)
+        .watchAllProfiles()
+        .map((users) {
+          return users
+              .where((user) {
+                if (user.uid == currentUid) {
+                  return true;
+                }
+                final userWorkspaceId = user.workspaceId.trim();
+                if (workspaceId.isNotEmpty && userWorkspaceId == workspaceId) {
+                  return true;
+                }
+                return userWorkspaceId.isEmpty && user.createdBy == currentUid;
+              })
+              .toList(growable: false);
+        });
   },
 );
 
@@ -88,30 +93,33 @@ final partnerAccountsProvider =
           if (partner.userId.trim().isNotEmpty) partner.userId: partner,
       };
 
-      final summaries = users.map((user) {
-        final linkedPartner =
-            partnerByUserId[user.uid] ??
-            partners.firstWhereOrNull(
-              (partner) => partner.id == user.linkedPartnerId,
-            );
-        final creator = usersById[user.createdBy];
-        final createdByCurrentUser =
-            currentUserId.isNotEmpty && user.createdBy == currentUserId;
-        final creatorName = createdByCurrentUser
-            ? 'أنا'
-            : user.createdByName.trim().isNotEmpty
-            ? user.createdByName.trim()
-            : creator?.fullName.trim().isNotEmpty == true
-            ? creator!.fullName.trim()
-            : 'غير محدد';
-        return PartnerAccountSummary(
-          user: user,
-          linkedPartner: linkedPartner,
-          createdByName: creatorName,
-          createdByCurrentUser: createdByCurrentUser,
-        );
-      }).toList(growable: false)
-        ..sort((a, b) => b.user.createdAt.compareTo(a.user.createdAt));
+      final summaries =
+          users
+              .map((user) {
+                final linkedPartner =
+                    partnerByUserId[user.uid] ??
+                    partners.firstWhereOrNull(
+                      (partner) => partner.id == user.linkedPartnerId,
+                    );
+                final creator = usersById[user.createdBy];
+                final createdByCurrentUser =
+                    currentUserId.isNotEmpty && user.createdBy == currentUserId;
+                final creatorName = createdByCurrentUser
+                    ? 'أنا'
+                    : user.createdByName.trim().isNotEmpty
+                    ? user.createdByName.trim()
+                    : creator?.fullName.trim().isNotEmpty == true
+                    ? creator!.fullName.trim()
+                    : 'غير محدد';
+                return PartnerAccountSummary(
+                  user: user,
+                  linkedPartner: linkedPartner,
+                  createdByName: creatorName,
+                  createdByCurrentUser: createdByCurrentUser,
+                );
+              })
+              .toList(growable: false)
+            ..sort((a, b) => b.user.createdAt.compareTo(a.user.createdAt));
 
       return AsyncData(summaries);
     });
@@ -124,9 +132,10 @@ final pendingPartnerLinkRequestsProvider =
         return;
       }
 
+      final workspaceId = session.profile?.workspaceId.trim() ?? '';
       yield* ref
           .watch(notificationRepositoryProvider)
-          .watchNotifications(session.userId)
+          .watchNotifications(userId: session.userId, workspaceId: workspaceId)
           .map(
             (items) => items
                 .where(
@@ -161,6 +170,8 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
   final TextEditingController _searchController = TextEditingController();
   _PartnersFilter _activeFilter = _PartnersFilter.all;
   _PartnerAccountsFilter _activeAccountFilter = _PartnerAccountsFilter.all;
+  bool _linkingAccount = false;
+  bool _syncingAccounts = false;
 
   @override
   void dispose() {
@@ -195,7 +206,8 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
             final pendingCount = pendingRequestsAsync.valueOrNull?.length ?? 0;
             final accountItems =
                 accountsAsync.valueOrNull ?? const <PartnerAccountSummary>[];
-            final currentWorkspaceId = session?.profile?.workspaceId.trim() ?? '';
+            final currentWorkspaceId =
+                session?.profile?.workspaceId.trim() ?? '';
             final filteredAccounts = _applyAccountFilters(
               accountItems,
               currentUserId,
@@ -218,6 +230,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                   searchController: _searchController,
                   activeFilter: _activeFilter,
                   pendingCount: pendingCount,
+                  linkingAccount: _linkingAccount,
                   onCreatePartner: _openPartnerForm,
                   onLinkAccount: _openLinkAccountFlow,
                   onFilterChanged: (filter) {
@@ -237,7 +250,9 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                       : accountItems
                             .where((item) => item.createdByCurrentUser)
                             .length,
-                  linkedCount: accountItems.where((item) => item.isLinked).length,
+                  linkedCount: accountItems
+                      .where((item) => item.isLinked)
+                      .length,
                   availableLinkCount: availableLinkCount,
                   onFilterChanged: (filter) {
                     setState(() => _activeAccountFilter = filter);
@@ -254,7 +269,8 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                     title: session?.profile?.workspaceId.trim().isEmpty == true
                         ? 'لا توجد بيانات شركاء'
                         : 'لا يوجد شركاء حاليًا',
-                    message: session?.profile?.workspaceId.trim().isEmpty == true
+                    message:
+                        session?.profile?.workspaceId.trim().isEmpty == true
                         ? 'هذا الحساب غير مرتبط بأي مساحة عمل حاليًا.'
                         : 'ابدأ بإضافة شريك جديد أو ربط حساب موجود',
                     actionLabel: 'إنشاء شريك',
@@ -312,8 +328,14 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
             ),
             child: IconButton(
               tooltip: 'مزامنة الحسابات',
-              onPressed: _backfillMissingProfiles,
-              icon: const Icon(Icons.sync_rounded),
+              onPressed: _syncingAccounts ? null : _backfillMissingProfiles,
+              icon: _syncingAccounts
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.sync_rounded),
             ),
           ),
         ];
@@ -375,37 +397,39 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
   ) {
     final query = _searchController.text.trim().toLowerCase();
 
-    return source.where((item) {
-      final passesFilter = switch (_activeAccountFilter) {
-        _PartnerAccountsFilter.all => true,
-        _PartnerAccountsFilter.createdByMe =>
-          currentUserId.isNotEmpty && item.createdByCurrentUser,
-        _PartnerAccountsFilter.linkedOnly => item.isLinked,
-        _PartnerAccountsFilter.unlinked => !item.isLinked,
-        _PartnerAccountsFilter.sameWorkspace =>
-          currentWorkspaceId.isNotEmpty &&
-          item.user.workspaceId.trim() == currentWorkspaceId,
-        _PartnerAccountsFilter.hasLoginAccount =>
-          item.user.email.trim().isNotEmpty,
-        _PartnerAccountsFilter.availableForLink =>
-          !item.isLinked && item.user.isActive,
-      };
+    return source
+        .where((item) {
+          final passesFilter = switch (_activeAccountFilter) {
+            _PartnerAccountsFilter.all => true,
+            _PartnerAccountsFilter.createdByMe =>
+              currentUserId.isNotEmpty && item.createdByCurrentUser,
+            _PartnerAccountsFilter.linkedOnly => item.isLinked,
+            _PartnerAccountsFilter.unlinked => !item.isLinked,
+            _PartnerAccountsFilter.sameWorkspace =>
+              currentWorkspaceId.isNotEmpty &&
+                  item.user.workspaceId.trim() == currentWorkspaceId,
+            _PartnerAccountsFilter.hasLoginAccount =>
+              item.user.email.trim().isNotEmpty,
+            _PartnerAccountsFilter.availableForLink =>
+              !item.isLinked && item.user.isActive,
+          };
 
-      if (!passesFilter) {
-        return false;
-      }
+          if (!passesFilter) {
+            return false;
+          }
 
-      if (query.isEmpty) {
-        return true;
-      }
+          if (query.isEmpty) {
+            return true;
+          }
 
-      final uidPreview = _shortUid(item.user.uid).toLowerCase();
-      return item.user.fullName.toLowerCase().contains(query) ||
-          item.user.email.toLowerCase().contains(query) ||
-          item.createdByName.toLowerCase().contains(query) ||
-          uidPreview.contains(query) ||
-          (item.linkedPartner?.name.toLowerCase().contains(query) ?? false);
-    }).toList(growable: false);
+          final uidPreview = _shortUid(item.user.uid).toLowerCase();
+          return item.user.fullName.toLowerCase().contains(query) ||
+              item.user.email.toLowerCase().contains(query) ||
+              item.createdByName.toLowerCase().contains(query) ||
+              uidPreview.contains(query) ||
+              (item.linkedPartner?.name.toLowerCase().contains(query) ?? false);
+        })
+        .toList(growable: false);
   }
 
   Future<void> _openPartnerForm({Partner? partner}) async {
@@ -418,6 +442,10 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
   }
 
   Future<void> _openLinkAccountFlow() async {
+    if (_linkingAccount) {
+      return;
+    }
+
     final session = ref.read(authSessionProvider).valueOrNull;
     final workspaceId = session?.profile?.workspaceId.trim() ?? '';
     if (workspaceId.isEmpty) {
@@ -484,39 +512,41 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                 ),
                 const SizedBox(height: 12),
                 if (selectedStep == 0)
-                DropdownButtonFormField<String>(
-                  initialValue: selectedPartnerId,
-                  decoration: const InputDecoration(labelText: 'اختيار شريك'),
-                  items: [
-                    for (final partner in availablePartners)
-                      DropdownMenuItem(
-                        value: partner.id,
-                        child: Text(partner.name),
-                      ),
-                  ],
-                  onChanged: (value) => setLocalState(() {
-                    selectedPartnerId = value;
-                  }),
-                ),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedPartnerId,
+                    decoration: const InputDecoration(labelText: 'اختيار شريك'),
+                    items: [
+                      for (final partner in availablePartners)
+                        DropdownMenuItem(
+                          value: partner.id,
+                          child: Text(partner.name),
+                        ),
+                    ],
+                    onChanged: (value) => setLocalState(() {
+                      selectedPartnerId = value;
+                    }),
+                  ),
                 if (selectedStep == 0) const SizedBox(height: 12),
                 if (selectedStep == 1)
-                DropdownButtonFormField<String>(
-                  initialValue: selectedUserId,
-                  decoration: const InputDecoration(labelText: 'اختيار مستخدم'),
-                  items: [
-                    for (final account in availableUsers)
-                      DropdownMenuItem(
-                        value: account.user.uid,
-                        child: Text(
-                          '${account.user.fullName} - ${account.user.email}',
-                          overflow: TextOverflow.ellipsis,
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedUserId,
+                    decoration: const InputDecoration(
+                      labelText: 'اختيار مستخدم',
+                    ),
+                    items: [
+                      for (final account in availableUsers)
+                        DropdownMenuItem(
+                          value: account.user.uid,
+                          child: Text(
+                            '${account.user.fullName} - ${account.user.email}',
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                  ],
-                  onChanged: (value) => setLocalState(() {
-                    selectedUserId = value;
-                  }),
-                ),
+                    ],
+                    onChanged: (value) => setLocalState(() {
+                      selectedUserId = value;
+                    }),
+                  ),
               ],
             ),
             actions: [
@@ -539,7 +569,9 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
       ),
     );
 
-    if (approved != true || selectedPartnerId == null || selectedUserId == null) {
+    if (approved != true ||
+        selectedPartnerId == null ||
+        selectedUserId == null) {
       return;
     }
     final selectedPartner = availablePartners.firstWhereOrNull(
@@ -552,11 +584,21 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
       _showInfoSnackBar('تعذر العثور على بيانات الربط المطلوبة.');
       return;
     }
-    await _linkPartnerToUser(
-      partner: selectedPartner,
-      user: selectedAccount.user,
-      workspaceId: workspaceId,
-    );
+    setState(() => _linkingAccount = true);
+    _showInfoSnackBar('جارٍ تنفيذ الربط...');
+    try {
+      await _linkPartnerToUser(
+        partner: selectedPartner,
+        user: selectedAccount.user,
+        workspaceId: workspaceId,
+      );
+    } catch (error) {
+      _showInfoSnackBar('فشل الربط: $error');
+    } finally {
+      if (mounted) {
+        setState(() => _linkingAccount = false);
+      }
+    }
   }
 
   Future<void> _linkPartnerToUser({
@@ -564,7 +606,8 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
     required AppUser user,
     required String workspaceId,
   }) async {
-    if (partner.userId.trim().isNotEmpty && partner.userId.trim() == user.uid.trim()) {
+    if (partner.userId.trim().isNotEmpty &&
+        partner.userId.trim() == user.uid.trim()) {
       _showInfoSnackBar('هذا الشريك مرتبط بالفعل بنفس المستخدم.');
       return;
     }
@@ -581,11 +624,29 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
           .clearPartnerLink(partner.userId, expectedPartnerId: partner.id);
     }
 
-    await ref.read(partnerRepositoryProvider).linkPartnerToUser(
-      partner: partner,
-      user: user,
-      workspaceId: workspaceId,
-    );
+    await ref
+        .read(partnerRepositoryProvider)
+        .linkPartnerToUser(
+          partner: partner,
+          user: user,
+          workspaceId: workspaceId,
+        );
+    final session = ref.read(authSessionProvider).valueOrNull;
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session?.userId ?? '',
+          actorName: session?.profile?.name ?? 'شريك',
+          action: 'partner_updated',
+          entityType: 'partner',
+          entityId: partner.id,
+          metadata: {
+            'linkedUserId': user.uid,
+            'linkedEmail': user.email,
+            'partnerName': partner.name,
+          },
+          workspaceId: workspaceId,
+        );
     ref.invalidate(partnersStreamProvider);
     ref.invalidate(partnerAccountsStreamProvider);
     ref.invalidate(partnerAccountsProvider);
@@ -596,7 +657,9 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
     final session = ref.read(authSessionProvider).valueOrNull;
     final workspaceId = session?.profile?.workspaceId.trim() ?? '';
     if (workspaceId.isEmpty) {
-      _showInfoSnackBar('لا يمكن ربط هذا الحساب لأن مساحة العمل الحالية غير محددة.');
+      _showInfoSnackBar(
+        'لا يمكن ربط هذا الحساب لأن مساحة العمل الحالية غير محددة.',
+      );
       return;
     }
 
@@ -612,12 +675,14 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
         partnerId.isNotEmpty &&
         summary.user.linkedPartnerId.trim() == partnerId &&
         summary.user.linkedPartnerName.trim() == partnerName;
-    if (alreadyInWorkspace && (partnerId.isEmpty || alreadyLinkedToSamePartner)) {
+    if (alreadyInWorkspace &&
+        (partnerId.isEmpty || alreadyLinkedToSamePartner)) {
       _showInfoSnackBar('هذا الحساب مرتبط بالفعل');
       return;
     }
 
     try {
+      _showInfoSnackBar('جارٍ تنفيذ الربط...');
       await ref
           .read(userProfileRemoteDataSourceProvider)
           .updateAccountLinkage(
@@ -626,6 +691,21 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
             linkedPartnerId: partnerId.isEmpty ? null : partnerId,
             linkedPartnerName: partnerName.isEmpty ? null : partnerName,
             createdBy: session?.userId,
+          );
+      await ref
+          .read(activityRepositoryProvider)
+          .log(
+            actorId: session?.userId ?? '',
+            actorName: session?.profile?.name ?? 'شريك',
+            action: 'partner_updated',
+            entityType: 'partner',
+            entityId: partnerId,
+            metadata: {
+              'linkedUserId': summary.user.uid,
+              'linkedEmail': summary.user.email,
+              'linkedPartnerName': partnerName,
+            },
+            workspaceId: workspaceId,
           );
       ref.invalidate(partnerAccountsStreamProvider);
       ref.invalidate(partnerAccountsProvider);
@@ -641,16 +721,19 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
   }) async {
     final partners = ref.read(partnersStreamProvider).valueOrNull ?? const [];
     for (final partner in partners) {
-      if (partner.id == exceptPartnerId || partner.userId.trim() != userId.trim()) {
+      if (partner.id == exceptPartnerId ||
+          partner.userId.trim() != userId.trim()) {
         continue;
       }
-      await ref.read(partnerRepositoryProvider).upsert(
-        partner.copyWith(
-          userId: '',
-          linkedEmail: '',
-          updatedAt: DateTime.now(),
-        ),
-      );
+      await ref
+          .read(partnerRepositoryProvider)
+          .upsert(
+            partner.copyWith(
+              userId: '',
+              linkedEmail: '',
+              updatedAt: DateTime.now(),
+            ),
+          );
     }
   }
 
@@ -796,8 +879,13 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
   }
 
   Future<void> _backfillMissingProfiles() async {
+    if (_syncingAccounts) {
+      return;
+    }
+
     final session = ref.read(authSessionProvider).valueOrNull;
     final workspaceId = session?.profile?.workspaceId.trim();
+    setState(() => _syncingAccounts = true);
     try {
       final result = await ref
           .read(authRepositoryProvider)
@@ -809,6 +897,10 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
       );
     } catch (_) {
       _showInfoSnackBar('فشل مزامنة الحسابات. حاول مرة أخرى.');
+    } finally {
+      if (mounted) {
+        setState(() => _syncingAccounts = false);
+      }
     }
   }
 }
@@ -901,6 +993,7 @@ class _PartnerToolbar extends StatelessWidget {
     required this.searchController,
     required this.activeFilter,
     required this.pendingCount,
+    required this.linkingAccount,
     required this.onCreatePartner,
     required this.onLinkAccount,
     required this.onFilterChanged,
@@ -910,6 +1003,7 @@ class _PartnerToolbar extends StatelessWidget {
   final TextEditingController searchController;
   final _PartnersFilter activeFilter;
   final int pendingCount;
+  final bool linkingAccount;
   final VoidCallback onCreatePartner;
   final VoidCallback onLinkAccount;
   final ValueChanged<_PartnersFilter> onFilterChanged;
@@ -938,10 +1032,20 @@ class _PartnerToolbar extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: onLinkAccount,
-                  icon: const Icon(Icons.link_rounded),
+                  onPressed: linkingAccount ? null : onLinkAccount,
+                  icon: linkingAccount
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.link_rounded),
                   label: Text(
-                    pendingCount > 0 ? 'ربط حساب ($pendingCount)' : 'ربط حساب',
+                    linkingAccount
+                        ? 'جارٍ تنفيذ الربط...'
+                        : pendingCount > 0
+                        ? 'ربط حساب ($pendingCount)'
+                        : 'ربط حساب',
                   ),
                 ),
               ),
@@ -1039,7 +1143,8 @@ class _PartnerAccountsSection extends StatelessWidget {
   final int linkedCount;
   final int availableLinkCount;
   final ValueChanged<_PartnerAccountsFilter> onFilterChanged;
-  final Future<void> Function(PartnerAccountSummary summary) onLinkToCurrentContext;
+  final Future<void> Function(PartnerAccountSummary summary)
+  onLinkToCurrentContext;
   final VoidCallback onRetry;
 
   @override
@@ -1101,7 +1206,8 @@ class _PartnerAccountsSection extends StatelessWidget {
               _FilterChipButton(
                 label: 'تم إنشاؤهم بواسطتي',
                 selected: activeFilter == _PartnerAccountsFilter.createdByMe,
-                onTap: () => onFilterChanged(_PartnerAccountsFilter.createdByMe),
+                onTap: () =>
+                    onFilterChanged(_PartnerAccountsFilter.createdByMe),
               ),
               _FilterChipButton(
                 label: 'المرتبطون فقط',
@@ -1121,13 +1227,15 @@ class _PartnerAccountsSection extends StatelessWidget {
               ),
               _FilterChipButton(
                 label: 'الذين لهم حساب',
-                selected: activeFilter == _PartnerAccountsFilter.hasLoginAccount,
+                selected:
+                    activeFilter == _PartnerAccountsFilter.hasLoginAccount,
                 onTap: () =>
                     onFilterChanged(_PartnerAccountsFilter.hasLoginAccount),
               ),
               _FilterChipButton(
                 label: 'المتاحون للربط',
-                selected: activeFilter == _PartnerAccountsFilter.availableForLink,
+                selected:
+                    activeFilter == _PartnerAccountsFilter.availableForLink,
                 onTap: () =>
                     onFilterChanged(_PartnerAccountsFilter.availableForLink),
               ),
@@ -1139,7 +1247,8 @@ class _PartnerAccountsSection extends StatelessWidget {
               if (totalAccountsCount == 0) {
                 return const EmptyStateView(
                   title: 'لا توجد حسابات مسجلة داخل النظام',
-                  message: 'تأكد من إنشاء profile للمستخدمين داخل مجموعة users.',
+                  message:
+                      'تأكد من إنشاء profile للمستخدمين داخل مجموعة users.',
                 );
               }
               if (accounts.isEmpty) {
@@ -1156,7 +1265,8 @@ class _PartnerAccountsSection extends StatelessWidget {
                       currentWorkspaceId: currentWorkspaceId,
                       onLinkToCurrentContext: onLinkToCurrentContext,
                     ),
-                    if (index != accounts.length - 1) const SizedBox(height: 10),
+                    if (index != accounts.length - 1)
+                      const SizedBox(height: 10),
                   ],
                 ],
               );
@@ -1186,7 +1296,8 @@ class _PartnerAccountCard extends StatefulWidget {
 
   final PartnerAccountSummary summary;
   final String currentWorkspaceId;
-  final Future<void> Function(PartnerAccountSummary summary) onLinkToCurrentContext;
+  final Future<void> Function(PartnerAccountSummary summary)
+  onLinkToCurrentContext;
 
   @override
   State<_PartnerAccountCard> createState() => _PartnerAccountCardState();
@@ -1297,7 +1408,10 @@ class _PartnerAccountCardState extends State<_PartnerAccountCard> {
             spacing: 18,
             runSpacing: 8,
             children: [
-              _InfoText(label: 'تاريخ الإنشاء', value: user.createdAt.formatShort()),
+              _InfoText(
+                label: 'تاريخ الإنشاء',
+                value: user.createdAt.formatShort(),
+              ),
               _InfoText(label: 'UID مختصر', value: _shortUid(user.uid)),
               _InfoText(
                 label: 'مساحة العمل',
@@ -1307,7 +1421,9 @@ class _PartnerAccountCardState extends State<_PartnerAccountCard> {
               ),
               _InfoText(
                 label: 'الشريك المرتبط',
-                value: linkedPartnerName.isEmpty ? 'غير مرتبط' : linkedPartnerName,
+                value: linkedPartnerName.isEmpty
+                    ? 'غير مرتبط'
+                    : linkedPartnerName,
               ),
               _InfoText(
                 label: 'حالة الحساب',
@@ -1559,21 +1675,113 @@ void _showPendingRequestsSheet(
     showDragHandle: true,
     builder: (_) => _PendingRequestsSheet(
       requests: requests,
-      onAccept: (request) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('تمت مراجعة طلب الربط.')));
+      onAccept: (request) async {
+        await _acceptPendingPartnerRequest(context, ref, request);
       },
     ),
   );
 }
 
-class _PendingRequestsSheet extends StatelessWidget {
+Future<void> _acceptPendingPartnerRequest(
+  BuildContext context,
+  WidgetRef ref,
+  AppNotificationItem request,
+) async {
+  final session = ref.read(authSessionProvider).valueOrNull;
+  if (session == null) {
+    throw StateError('سجل الدخول أولًا قبل تنفيذ الربط.');
+  }
+
+  final metadata = request.metadata;
+  final partnerId = (metadata['partnerId'] as String? ?? '').trim();
+  final workspaceId = request.workspaceId.trim().isNotEmpty
+      ? request.workspaceId.trim()
+      : session.profile?.workspaceId.trim() ?? '';
+  if (partnerId.isEmpty || workspaceId.isEmpty) {
+    throw StateError('بيانات طلب الربط غير مكتملة.');
+  }
+
+  final partners =
+      ref.read(partnersStreamProvider).valueOrNull ?? const <Partner>[];
+  final partner = partners.firstWhereOrNull((item) => item.id == partnerId);
+  final user = await ref
+      .read(userProfileRemoteDataSourceProvider)
+      .fetchProfile(session.userId);
+  if (partner == null || user == null) {
+    throw StateError('تعذر العثور على الشريك أو الحساب المطلوب.');
+  }
+  if (partner.userId.trim().isNotEmpty && partner.userId != session.userId) {
+    throw StateError('هذا الشريك مرتبط بالفعل بحساب آخر.');
+  }
+  if (user.linkedPartnerId.trim().isNotEmpty &&
+      user.linkedPartnerId.trim() != partner.id) {
+    throw StateError('هذا الحساب مرتبط بالفعل بشريك آخر.');
+  }
+
+  await ref.read(partnerRepositoryProvider).linkPartnerToUser(
+    partner: partner,
+    user: user,
+    workspaceId: workspaceId,
+  );
+  await ref
+      .read(activityRepositoryProvider)
+      .log(
+        actorId: session.userId,
+        actorName: session.profile?.name ?? 'شريك',
+        action: 'partner_updated',
+        entityType: 'partner',
+        entityId: partner.id,
+        metadata: {
+          'linkedUserId': user.uid,
+          'linkedEmail': user.email,
+          'partnerName': partner.name,
+          'acceptedRequestId': request.id,
+        },
+        workspaceId: workspaceId,
+      );
+
+  final requesterUserId =
+      (metadata['requesterUserId'] as String? ?? '').trim();
+  if (requesterUserId.isNotEmpty && requesterUserId != session.userId) {
+    await ref
+        .read(notificationRepositoryProvider)
+        .create(
+          userId: requesterUserId,
+          title: 'تم قبول طلب الربط',
+          body: '${session.profile?.name ?? 'شريك'} قبل طلب ربط ${partner.name}.',
+          type: NotificationType.partnerLinkAccepted,
+          route: '/partners',
+          referenceKey: 'partner-link-accepted-${request.id}',
+          workspaceId: workspaceId,
+        );
+  }
+
+  await ref.read(notificationRepositoryProvider).markRead(request.id);
+  ref.invalidate(partnersStreamProvider);
+  ref.invalidate(partnerAccountsStreamProvider);
+  ref.invalidate(partnerAccountsProvider);
+  ref.invalidate(pendingPartnerLinkRequestsProvider);
+
+  if (context.mounted) {
+    Navigator.of(context).pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم قبول طلب الربط بنجاح.')),
+    );
+  }
+}
+
+class _PendingRequestsSheet extends StatefulWidget {
   const _PendingRequestsSheet({required this.requests, required this.onAccept});
 
   final List<AppNotificationItem> requests;
-  final ValueChanged<AppNotificationItem> onAccept;
+  final Future<void> Function(AppNotificationItem request) onAccept;
+
+  @override
+  State<_PendingRequestsSheet> createState() => _PendingRequestsSheetState();
+}
+
+class _PendingRequestsSheetState extends State<_PendingRequestsSheet> {
+  String? _acceptingRequestId;
 
   @override
   Widget build(BuildContext context) {
@@ -1596,13 +1804,13 @@ class _PendingRequestsSheet extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 12),
-            if (requests.isEmpty)
+            if (widget.requests.isEmpty)
               const EmptyStateView(
                 title: 'لا توجد طلبات ربط',
                 message: 'عند وصول طلبات جديدة ستظهر هنا.',
               )
             else
-              ...requests.map(
+              ...widget.requests.map(
                 (request) => Card(
                   margin: const EdgeInsets.only(bottom: 10),
                   child: ListTile(
@@ -1613,8 +1821,16 @@ class _PendingRequestsSheet extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     trailing: FilledButton.tonal(
-                      onPressed: () => onAccept(request),
-                      child: const Text('مراجعة'),
+                      onPressed: _acceptingRequestId == null
+                          ? () => _accept(request)
+                          : null,
+                      child: _acceptingRequestId == request.id
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Text('مراجعة'),
                     ),
                   ),
                 ),
@@ -1623,5 +1839,23 @@ class _PendingRequestsSheet extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _accept(AppNotificationItem request) async {
+    setState(() => _acceptingRequestId = request.id);
+    try {
+      await widget.onAccept(request);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل الربط: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _acceptingRequestId = null);
+      }
+    }
   }
 }

@@ -15,6 +15,7 @@ class UnitExpenseRecord {
     required this.createdAt,
     required this.updatedAt,
     required this.archived,
+    this.workspaceId = '',
   });
 
   final String id;
@@ -30,6 +31,7 @@ class UnitExpenseRecord {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool archived;
+  final String workspaceId;
 
   Map<String, dynamic> toMap() {
     return {
@@ -45,6 +47,7 @@ class UnitExpenseRecord {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'archived': archived,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -64,6 +67,7 @@ class UnitExpenseRecord {
       createdAt: parseDate(data['createdAt']),
       updatedAt: parseDate(data['updatedAt']),
       archived: data['archived'] as bool? ?? false,
+      workspaceId: data['workspaceId'] as String? ?? '',
     );
   }
 
@@ -81,6 +85,7 @@ class UnitExpenseRecord {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? archived,
+    String? workspaceId,
   }) {
     return UnitExpenseRecord(
       id: id ?? this.id,
@@ -96,6 +101,7 @@ class UnitExpenseRecord {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       archived: archived ?? this.archived,
+      workspaceId: workspaceId ?? this.workspaceId,
     );
   }
 }

@@ -178,7 +178,7 @@ class _SupplierOverviewPanel extends StatelessWidget {
                     crossAxisCount: columns,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: columns == 1 ? 1.65 : 1.28,
+                    childAspectRatio: columns == 1 ? 1.12 : 1.04,
                   ),
                   itemBuilder: (context, index) {
                     final supplier = summaries[index];
@@ -257,48 +257,55 @@ class _SupplierSummaryCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Row(
+            Wrap(
+              spacing: 5,
+              runSpacing: 5,
               children: [
-                Wrap(
-                  spacing: 5,
-                  runSpacing: 5,
-                  children: [
-                    _SupplierMetricPill(
-                      label: 'المطلوب',
-                      value: summary.totalPurchased.egp,
-                    ),
-                    _SupplierMetricPill(
-                      label: 'المدفوع',
-                      value: summary.totalPaid.egp,
-                    ),
-                    _SupplierMetricPill(
-                      label: 'المتبقي',
-                      value: summary.totalRemaining.egp,
-                    ),
-                  ],
+                _SupplierMetricPill(
+                  label: 'المطلوب',
+                  value: summary.totalPurchased.egp,
+                ),
+                _SupplierMetricPill(
+                  label: 'المدفوع',
+                  value: summary.totalPaid.egp,
+                ),
+                _SupplierMetricPill(
+                  label: 'المتبقي',
+                  value: summary.totalRemaining.egp,
                 ),
               ],
             ),
-            const Spacer(),
-            Row(
-              children: [
-                if (onAddPayment != null) ...[
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: onAddPayment,
-                      icon: const Icon(Icons.add_card_rounded, size: 18),
-                      label: const Text('إضافة دفعة'),
+            const SizedBox(height: 14),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final hasTwoButtons = onAddPayment != null;
+                final buttonWidth =
+                    hasTwoButtons && constraints.maxWidth >= 320
+                    ? (constraints.maxWidth - 10) / 2
+                    : constraints.maxWidth;
+                return Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    if (onAddPayment != null)
+                      SizedBox(
+                        width: buttonWidth,
+                        child: FilledButton.icon(
+                          onPressed: onAddPayment,
+                          icon: const Icon(Icons.add_card_rounded, size: 18),
+                          label: const Text('إضافة دفعة'),
+                        ),
+                      ),
+                    SizedBox(
+                      width: buttonWidth,
+                      child: FilledButton.tonal(
+                        onPressed: onTap,
+                        child: const Text('فتح كشف المورد'),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                ],
-                Expanded(
-                  child: FilledButton.tonal(
-                    onPressed: onTap,
-                    child: const Text('فتح كشف المورد'),
-                  ),
-                ),
-              ],
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -320,9 +327,7 @@ class _SupplierMetricPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 40,
-      height: 60,
-      constraints: const BoxConstraints(minWidth: 100),
+      constraints: const BoxConstraints(minWidth: 96, minHeight: 60),
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 5),
       decoration: BoxDecoration(
         color: const Color(0xFFF4F6F1),
@@ -339,6 +344,9 @@ class _SupplierMetricPill extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
             style: Theme.of(
               context,
             ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),

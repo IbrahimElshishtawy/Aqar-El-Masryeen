@@ -15,16 +15,24 @@ class ActivityRepository {
   final Uuid _uuid;
   final LocalCacheService _cache;
 
-  Stream<List<ActivityLogEntry>> watchRecent({String? propertyId}) {
+  Stream<List<ActivityLogEntry>> watchRecent({
+    String? propertyId,
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <ActivityLogEntry>[]);
+    }
+
     final source = (() {
       Query<Map<String, dynamic>> query = _firestore
           .collection(FirestorePaths.activityLogs)
-          .orderBy('createdAt', descending: true)
-          .limit(20);
-      if (propertyId != null) {
-        query = query.where('entityId', isEqualTo: propertyId);
+          .where('workspaceId', isEqualTo: normalizedWorkspaceId);
+      final normalizedPropertyId = propertyId?.trim() ?? '';
+      if (normalizedPropertyId.isNotEmpty) {
+        query = query.where('entityId', isEqualTo: normalizedPropertyId);
       }
-      return query.snapshots().map(
+      return query.orderBy('createdAt', descending: true).limit(20).snapshots().map(
         (snapshot) => snapshot.docs
             .map((doc) => ActivityLogEntry.fromMap(doc.id, doc.data()))
             .toList(),
@@ -33,7 +41,10 @@ class ActivityRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.activity(propertyId: propertyId),
+      cacheKey: CacheKeys.activity(
+        propertyId: propertyId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializeActivityLog,
       decode: _deserializeActivityLog,
@@ -48,8 +59,15 @@ class ActivityRepository {
     required String entityId,
     Map<String, dynamic> metadata = const {},
     String? workspaceId,
-  }) {
+  }) async {
     final id = _uuid.v4();
+    final resolvedWorkspaceId = await _resolveWorkspaceId(
+      actorId: actorId,
+      workspaceId: workspaceId,
+    );
+    if (resolvedWorkspaceId.isEmpty) {
+      return;
+    }
     return _firestore.collection(FirestorePaths.activityLogs).doc(id).set({
       'actorId': actorId,
       'actorName': actorName,
@@ -58,8 +76,29 @@ class ActivityRepository {
       'entityId': entityId,
       'createdAt': DateTime.now(),
       'metadata': metadata,
-      'workspaceId': workspaceId ?? '',
+      'workspaceId': resolvedWorkspaceId,
     });
+  }
+
+  Future<String> _resolveWorkspaceId({
+    required String actorId,
+    required String? workspaceId,
+  }) async {
+    final normalizedWorkspaceId = workspaceId?.trim() ?? '';
+    if (normalizedWorkspaceId.isNotEmpty) {
+      return normalizedWorkspaceId;
+    }
+
+    final normalizedActorId = actorId.trim();
+    if (normalizedActorId.isEmpty) {
+      return '';
+    }
+
+    final userSnapshot = await _firestore
+        .collection(FirestorePaths.users)
+        .doc(normalizedActorId)
+        .get();
+    return (userSnapshot.data()?['workspaceId'] as String? ?? '').trim();
   }
 }
 

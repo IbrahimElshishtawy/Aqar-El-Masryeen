@@ -26,14 +26,38 @@ String activityActionLabel(String action) {
       return 'أضاف وحدة';
     case 'unit_updated':
       return 'حدّث الوحدة';
+    case 'unit_deleted':
+      return 'حذف الوحدة';
+    case 'unit_expense_created':
+      return 'أضاف مصروف وحدة';
+    case 'unit_expense_updated':
+      return 'حدّث مصروف الوحدة';
+    case 'material_expense_created':
+      return 'أضاف فاتورة مواد';
+    case 'material_expense_updated':
+      return 'حدّث فاتورة مواد';
+    case 'supplier_payment_recorded':
+      return 'سجل دفعة مورد';
     case 'installment_plan_created':
       return 'أنشأ خطة أقساط';
+    case 'installment_created':
+      return 'أضاف قسطًا';
+    case 'installment_updated':
+      return 'حدّث القسط';
     case 'payment_recorded':
       return 'سجل تحصيلًا';
+    case 'payment_created':
+      return 'سجل تحصيلًا';
+    case 'payment_updated':
+      return 'حدّث التحصيل';
     case 'partner_created':
       return 'أضاف شريكًا';
     case 'partner_updated':
       return 'حدّث بيانات الشريك';
+    case 'partner_ledger_created':
+      return 'أضاف حركة شريك';
+    case 'partner_ledger_updated':
+      return 'حدّث حركة شريك';
     default:
       return action.replaceAll('_', ' ');
   }
@@ -49,12 +73,22 @@ String entityTypeLabel(String entityType) {
       return 'مصروف';
     case 'unit':
       return 'وحدة';
+    case 'unit_expense':
+      return 'مصروف الوحدة';
+    case 'material_supplier':
+      return 'مورد';
+    case 'material_expense':
+      return 'مواد بناء';
     case 'installment_plan':
       return 'خطة أقساط';
+    case 'installment':
+      return 'قسط';
     case 'payment':
       return 'تحصيل';
     case 'partner':
       return 'شريك';
+    case 'partner_ledger':
+      return 'حركة شريك';
     default:
       return entityType;
   }

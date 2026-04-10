@@ -11,6 +11,7 @@ import 'package:aqarelmasryeen/features/partners/domain/partner_ledger_calculato
 import 'package:aqarelmasryeen/features/payments/data/payment_repository.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
+import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,6 +58,13 @@ final dashboardPartnersProvider = StreamProvider.autoDispose(
 final dashboardPartnerLedgerProvider = StreamProvider.autoDispose(
   (ref) => ref.watch(partnerLedgerRepositoryProvider).watchAll(),
 );
+final dashboardActivityProvider = StreamProvider.autoDispose((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+  return ref.watch(activityRepositoryProvider).watchRecent(
+    workspaceId: workspaceId,
+  );
+});
 
 final dashboardViewDataProvider =
     Provider.autoDispose<AsyncValue<DashboardViewData>>((ref) {
@@ -70,6 +78,7 @@ final dashboardViewDataProvider =
         ref.watch(dashboardSupplierPaymentsProvider),
         ref.watch(dashboardPartnersProvider),
         ref.watch(dashboardPartnerLedgerProvider),
+        ref.watch(dashboardActivityProvider),
       ];
 
       final error = values.firstWhereOrNull((value) => value.hasError);
@@ -97,6 +106,8 @@ final dashboardViewDataProvider =
           ref.watch(dashboardSupplierPaymentsProvider).valueOrNull ?? const [];
       final partnerLedgerEntries =
           ref.watch(dashboardPartnerLedgerProvider).valueOrNull ?? const [];
+      final recentActivity =
+          ref.watch(dashboardActivityProvider).valueOrNull ?? const [];
       final session = ref.watch(authSessionProvider).valueOrNull;
       final currentUserId = session?.userId ?? '';
 
@@ -142,6 +153,7 @@ final dashboardViewDataProvider =
             partners: scopedData.partners,
             currentUserId: currentUserId,
             currentPartnerId: currentPartner?.id,
+            recentActivity: recentActivity,
           ),
           partners: scopedData.partners,
           currentPartner: currentPartner,

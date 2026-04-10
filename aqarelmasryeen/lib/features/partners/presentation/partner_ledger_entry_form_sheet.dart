@@ -88,6 +88,7 @@ class _PartnerLedgerEntryFormSheetState
           entityType: 'partner_ledger',
           entityId: savedId,
           metadata: {'partnerId': widget.partner.id, 'amount': entry.amount},
+          workspaceId: session.profile?.workspaceId.trim(),
         );
     await ref
         .read(notificationRepositoryProvider)
@@ -97,6 +98,7 @@ class _PartnerLedgerEntryFormSheetState
           body: '${widget.partner.name} ledger updated',
           type: NotificationType.ledgerUpdated,
           route: '/expenses',
+          workspaceId: session.profile?.workspaceId.trim(),
         );
 
     if (mounted) Navigator.of(context).pop();

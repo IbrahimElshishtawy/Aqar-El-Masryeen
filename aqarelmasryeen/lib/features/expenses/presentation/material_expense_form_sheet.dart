@@ -4,6 +4,7 @@ import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
+import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/partner_models.dart';
@@ -208,7 +209,7 @@ class _MaterialExpenseFormSheetState
     final now = DateTime.now();
 
     setState(() => _saving = true);
-    await ref
+    final savedId = await ref
         .read(materialExpenseRepositoryProvider)
         .save(
           MaterialExpenseEntry(
@@ -241,6 +242,24 @@ class _MaterialExpenseFormSheetState
             archived: false,
             dueDate: _dueDate,
           ),
+        );
+    await ref
+        .read(activityRepositoryProvider)
+        .log(
+          actorId: session.userId,
+          actorName: session.profile?.name ?? 'شريك',
+          action: widget.entry == null
+              ? 'material_expense_created'
+              : 'material_expense_updated',
+          entityType: 'material_expense',
+          entityId: savedId,
+          metadata: {
+            'propertyId': widget.propertyId,
+            'supplierName': _supplierController.text.trim(),
+            'itemName': _itemNameController.text.trim(),
+            'amount': totalPrice,
+          },
+          workspaceId: session.profile?.workspaceId.trim(),
         );
 
     if (mounted) {

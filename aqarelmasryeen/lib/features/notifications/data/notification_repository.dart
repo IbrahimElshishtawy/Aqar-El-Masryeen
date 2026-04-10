@@ -16,10 +16,20 @@ class NotificationRepository {
   final Uuid _uuid;
   final LocalCacheService _cache;
 
-  Stream<List<AppNotificationItem>> watchNotifications(String userId) {
+  Stream<List<AppNotificationItem>> watchNotifications({
+    required String userId,
+    required String workspaceId,
+  }) {
+    final normalizedUserId = userId.trim();
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedUserId.isEmpty || normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <AppNotificationItem>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.notifications)
-        .where('userId', isEqualTo: userId)
+        .where('userId', isEqualTo: normalizedUserId)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .orderBy('createdAt', descending: true)
         .limit(50)
         .snapshots()
@@ -31,7 +41,10 @@ class NotificationRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.notifications(userId),
+      cacheKey: CacheKeys.notifications(
+        normalizedUserId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializeNotification,
       decode: _deserializeNotification,

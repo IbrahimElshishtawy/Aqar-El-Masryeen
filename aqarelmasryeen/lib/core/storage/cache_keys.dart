@@ -9,8 +9,8 @@ class CacheKeys {
   static const expenses = 'cache.expenses.all';
   static String expensesByProperty(String propertyId) =>
       'cache.expenses.$propertyId';
-  static String unitExpensesByUnit(String unitId) =>
-      'cache.unit_expenses.unit.$unitId';
+  static String unitExpensesByUnit(String unitId, {String? workspaceId}) =>
+      'cache.unit_expenses.${workspaceId ?? 'global'}.unit.$unitId';
 
   static const materialExpenses = 'cache.material_expenses.all';
   static String materialExpensesByProperty(String propertyId) =>
@@ -38,7 +38,12 @@ class CacheKeys {
   static String installmentsByUnit(String unitId) =>
       'cache.installments.unit.$unitId';
 
-  static String notifications(String userId) => 'cache.notifications.$userId';
-  static String activity({String? propertyId}) =>
-      propertyId == null ? 'cache.activity.all' : 'cache.activity.$propertyId';
+  static String notifications(String userId, {String? workspaceId}) =>
+      'cache.notifications.${workspaceId ?? 'global'}.$userId';
+  static String activity({String? propertyId, String? workspaceId}) {
+    final scope = workspaceId ?? 'global';
+    return propertyId == null
+        ? 'cache.activity.$scope.all'
+        : 'cache.activity.$scope.$propertyId';
+  }
 }

@@ -692,6 +692,8 @@ class _SupplierMetricCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(
               context,
             ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
@@ -766,24 +768,29 @@ class _SupplierLedgerCompactCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    'المتبقي',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.onSurfaceVariant,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 140),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      'المتبقي',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                  Text(
-                    row.remainingAfter.egp,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF17352F),
+                    Text(
+                      row.remainingAfter.egp,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF17352F),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ],
           ),
@@ -867,17 +874,23 @@ class _LedgerChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-          fontWeight: FontWeight.w700,
-          color: foreground,
+    final maxWidth = MediaQuery.sizeOf(context).width - 72;
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth < 120 ? 120 : maxWidth),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
+        decoration: BoxDecoration(
+          color: background,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: foreground,
+          ),
         ),
       ),
     );
@@ -1171,6 +1184,7 @@ List<_SupplierLedgerRow> _buildLedgerRows({
           sequence: rows.length + 1,
           displayDate: invoice.date,
           isPayment: false,
+          supplierName: invoice.supplierName,
           description: invoice.itemName.trim().isEmpty
               ? 'صنف غير محدد'
               : invoice.itemName.trim(),
@@ -1204,6 +1218,7 @@ List<_SupplierLedgerRow> _buildLedgerRows({
         sequence: rows.length + 1,
         displayDate: payment.paidAt,
         isPayment: true,
+        supplierName: payment.supplierName,
         description: 'دفعة على المورد',
         quantity: null,
         unitPrice: 0,
@@ -1394,6 +1409,7 @@ class _SupplierLedgerRow {
     required this.sequence,
     required this.displayDate,
     required this.isPayment,
+    required this.supplierName,
     required this.description,
     required this.quantity,
     required this.unitPrice,
@@ -1409,6 +1425,7 @@ class _SupplierLedgerRow {
   final int sequence;
   final DateTime displayDate;
   final bool isPayment;
+  final String supplierName;
   final String description;
   final double? quantity;
   final double unitPrice;

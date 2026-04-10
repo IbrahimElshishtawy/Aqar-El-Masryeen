@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/utils/ui_labels.dart';
 import 'package:aqarelmasryeen/features/expenses/domain/materials_ledger_calculator.dart';
 import 'package:aqarelmasryeen/features/unit_sales/domain/unit_sales_calculator.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
@@ -6,7 +7,7 @@ import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:intl/intl.dart';
 
-enum DashboardRecordType { expense, payment }
+enum DashboardRecordType { expense, payment, activity }
 
 class DashboardChartBucket {
   const DashboardChartBucket({
@@ -29,6 +30,7 @@ class DashboardRecentRecord {
     required this.amount,
     required this.date,
     required this.type,
+    this.showAmount = true,
   });
 
   final String id;
@@ -38,6 +40,7 @@ class DashboardRecentRecord {
   final double amount;
   final DateTime date;
   final DashboardRecordType type;
+  final bool showAmount;
 }
 
 class DashboardSnapshot {
@@ -80,6 +83,7 @@ class DashboardSnapshotBuilder {
     required List<MaterialExpenseEntry> materials,
     required List<SupplierPaymentRecord> supplierPayments,
     required List<Partner> partners,
+    required List<ActivityLogEntry> recentActivity,
     String? currentUserId,
     String? currentPartnerId,
   }) {
@@ -158,7 +162,7 @@ class DashboardSnapshotBuilder {
       (sum, partner) => sum + partner.contributionTotal,
     );
 
-    final recentRecords = <DashboardRecentRecord>[
+    final financialRecentRecords = <DashboardRecentRecord>[
       ...expenses.map(
         (record) => DashboardRecentRecord(
           id: record.id,
@@ -218,6 +222,13 @@ class DashboardSnapshotBuilder {
         ),
       ),
     ]..sort((a, b) => b.date.compareTo(a.date));
+    final activityRecentRecords = recentActivity
+        .map(_activityToRecentRecord)
+        .toList(growable: false)
+      ..sort((a, b) => b.date.compareTo(a.date));
+    final recentRecords = activityRecentRecords.isNotEmpty
+        ? activityRecentRecords
+        : financialRecentRecords;
 
     return DashboardSnapshot(
       propertyCount: properties.length,
@@ -290,6 +301,51 @@ class DashboardSnapshotBuilder {
 
     return buckets;
   }
+}
+
+DashboardRecentRecord _activityToRecentRecord(ActivityLogEntry entry) {
+  final metadata = entry.metadata;
+  final amount = _metadataNumber(metadata, 'amount');
+  final entityLabel = entityTypeLabel(entry.entityType);
+  final actorName = entry.actorName.trim().isEmpty ? 'شريك' : entry.actorName;
+  final subtitleParts = [
+    entityLabel,
+    _metadataString(metadata, 'supplierName'),
+    _metadataString(metadata, 'unitId'),
+  ].where((item) => item.trim().isNotEmpty).toList(growable: false);
+
+  return DashboardRecentRecord(
+    id: entry.id,
+    propertyName: actorName,
+    title: activityActionLabel(entry.action),
+    subtitle: subtitleParts.isEmpty ? entityLabel : subtitleParts.join(' - '),
+    amount: amount,
+    date: entry.createdAt,
+    type: _activityRecordType(entry.action),
+    showAmount: amount > 0,
+  );
+}
+
+DashboardRecordType _activityRecordType(String action) {
+  if (action.contains('payment')) {
+    return DashboardRecordType.payment;
+  }
+  if (action.contains('expense') || action.contains('supplier')) {
+    return DashboardRecordType.expense;
+  }
+  return DashboardRecordType.activity;
+}
+
+double _metadataNumber(Map<String, dynamic> metadata, String key) {
+  final value = metadata[key];
+  if (value is num) {
+    return value.toDouble();
+  }
+  return double.tryParse(value?.toString() ?? '') ?? 0;
+}
+
+String _metadataString(Map<String, dynamic> metadata, String key) {
+  return (metadata[key] as String? ?? '').trim();
 }
 
 bool _belongsToCurrentSide({

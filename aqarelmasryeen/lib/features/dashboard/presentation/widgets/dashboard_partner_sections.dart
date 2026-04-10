@@ -598,6 +598,18 @@ class RecentRecordTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isExpense = record.type == DashboardRecordType.expense;
+    final isPayment = record.type == DashboardRecordType.payment;
+    final icon = isPayment
+        ? Icons.south_west_rounded
+        : isExpense
+        ? Icons.north_east_rounded
+        : Icons.history_rounded;
+    final backgroundColor = isPayment
+        ? Colors.black
+        : isExpense
+        ? const Color(0xFFF0F0EA)
+        : const Color(0xFFEAF2EF);
+    final foregroundColor = isPayment ? Colors.white : Colors.black;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -605,12 +617,12 @@ class RecentRecordTile extends StatelessWidget {
           width: 42,
           height: 42,
           decoration: BoxDecoration(
-            color: isExpense ? const Color(0xFFF0F0EA) : Colors.black,
+            color: backgroundColor,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Icon(
-            isExpense ? Icons.north_east_rounded : Icons.south_west_rounded,
-            color: isExpense ? Colors.black : Colors.white,
+            icon,
+            color: foregroundColor,
             size: 18,
           ),
         ),
@@ -632,13 +644,15 @@ class RecentRecordTile extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(width: 12),
-        Text(
-          '${isExpense ? '-' : '+'}${record.amount.egp}',
-          style: Theme.of(
-            context,
-          ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
-        ),
+        if (record.showAmount) ...[
+          const SizedBox(width: 12),
+          Text(
+            '${isExpense ? '-' : '+'}${record.amount.egp}',
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+          ),
+        ],
       ],
     );
   }

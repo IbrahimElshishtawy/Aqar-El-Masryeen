@@ -128,6 +128,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
           body: _descriptionController.text.trim(),
           type: NotificationType.expenseAdded,
           route: '/properties/${widget.propertyId}',
+          workspaceId: session.profile?.workspaceId.trim(),
         );
 
     if (mounted) {

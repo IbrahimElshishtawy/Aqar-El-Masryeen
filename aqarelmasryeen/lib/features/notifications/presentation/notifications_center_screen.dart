@@ -12,9 +12,10 @@ final userNotificationsProvider = StreamProvider.autoDispose((ref) async* {
     yield const [];
     return;
   }
+  final workspaceId = session.profile?.workspaceId.trim() ?? '';
   yield* ref
       .watch(notificationRepositoryProvider)
-      .watchNotifications(session.userId);
+      .watchNotifications(userId: session.userId, workspaceId: workspaceId);
 });
 
 class NotificationsCenterScreen extends ConsumerWidget {

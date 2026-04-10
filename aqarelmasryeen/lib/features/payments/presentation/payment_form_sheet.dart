@@ -168,6 +168,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
               : 'دفعة للوحدة ${widget.unitLabel} - ${widget.customerName}',
           type: NotificationType.paymentReceived,
           route: '/properties/${widget.propertyId}',
+          workspaceId: session.profile?.workspaceId.trim(),
         );
 
     if (mounted) {

@@ -278,6 +278,7 @@ class FirebaseAuthRepository implements AuthRepository {
             body:
                 'ØªÙ… Ø§Ø³ØªØ®Ø¯Ø§Ù… ${deviceInfo.deviceName} Ù„ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„.',
             route: AppRoutes.settings,
+            workspaceId: profile.workspaceId,
           );
         }
       }

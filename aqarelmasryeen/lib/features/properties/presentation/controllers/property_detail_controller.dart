@@ -133,8 +133,11 @@ final propertyPartnersProvider = StreamProvider.autoDispose<List<Partner>>(
 );
 
 final unitExpensesByUnitProvider = StreamProvider.autoDispose
-    .family<List<UnitExpenseRecord>, String>(
-      (ref, unitId) => ref.watch(unitExpenseRepositoryProvider).watchByUnit(unitId),
+    .family<List<UnitExpenseRecord>, UnitExpensesByUnitRequest>(
+      (ref, request) => ref.watch(unitExpenseRepositoryProvider).watchByUnit(
+        unitId: request.unitId,
+        workspaceId: request.workspaceId,
+      ),
     );
 
 final propertyPartnerLedgerProvider =
@@ -211,12 +214,18 @@ final propertyUnitViewDataProvider = Provider.autoDispose
       ref,
       request,
     ) {
+      final session = ref.watch(authSessionProvider).valueOrNull;
+      final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+      final unitExpensesRequest = UnitExpensesByUnitRequest(
+        unitId: request.unitId,
+        workspaceId: workspaceId,
+      );
       final values = <AsyncValue<dynamic>>[
         ref.watch(propertyDetailsProvider(request.propertyId)),
         ref.watch(propertyUnitsProvider(request.propertyId)),
         ref.watch(propertyInstallmentsProvider(request.propertyId)),
         ref.watch(propertyPaymentsProvider(request.propertyId)),
-        ref.watch(unitExpensesByUnitProvider(request.unitId)),
+        ref.watch(unitExpensesByUnitProvider(unitExpensesRequest)),
         ref.watch(propertyPartnersProvider),
       ];
 
@@ -235,7 +244,6 @@ final propertyUnitViewDataProvider = Provider.autoDispose
         return const AsyncData(null);
       }
 
-      final session = ref.watch(authSessionProvider).valueOrNull;
       final composer = const PropertyDetailComposer();
       return AsyncData(
         composer.buildUnitViewData(
@@ -263,7 +271,7 @@ final propertyUnitViewDataProvider = Provider.autoDispose
               const [],
           unitExpenses:
               ref
-                  .watch(unitExpensesByUnitProvider(request.unitId))
+                  .watch(unitExpensesByUnitProvider(unitExpensesRequest))
                   .valueOrNull ??
               const [],
           partners: ref.watch(propertyPartnersProvider).valueOrNull ?? const [],
@@ -286,6 +294,26 @@ class PropertyUnitRequest {
 
   @override
   int get hashCode => Object.hash(propertyId, unitId);
+}
+
+class UnitExpensesByUnitRequest {
+  const UnitExpensesByUnitRequest({
+    required this.unitId,
+    required this.workspaceId,
+  });
+
+  final String unitId;
+  final String workspaceId;
+
+  @override
+  bool operator ==(Object other) {
+    return other is UnitExpensesByUnitRequest &&
+        other.unitId == unitId &&
+        other.workspaceId == workspaceId;
+  }
+
+  @override
+  int get hashCode => Object.hash(unitId, workspaceId);
 }
 
 AsyncValue<List<T>> _filterByProperty<T>(

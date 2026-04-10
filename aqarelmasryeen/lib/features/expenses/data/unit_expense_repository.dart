@@ -15,9 +15,18 @@ class UnitExpenseRepository {
   final Uuid _uuid;
   final LocalCacheService _cache;
 
-  Stream<List<UnitExpenseRecord>> watchByUnit(String unitId) {
+  Stream<List<UnitExpenseRecord>> watchByUnit({
+    required String unitId,
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <UnitExpenseRecord>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.unitExpenses)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .where('unitId', isEqualTo: unitId)
         .where('archived', isEqualTo: false)
         .orderBy('date', descending: true)
@@ -30,7 +39,10 @@ class UnitExpenseRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.unitExpensesByUnit(unitId),
+      cacheKey: CacheKeys.unitExpensesByUnit(
+        unitId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializeUnitExpense,
       decode: _deserializeUnitExpense,

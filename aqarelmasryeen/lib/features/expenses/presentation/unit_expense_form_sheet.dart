@@ -111,6 +111,7 @@ class _UnitExpenseFormSheetState extends ConsumerState<UnitExpenseFormSheet> {
                 DateTime.fromMillisecondsSinceEpoch(0),
             updatedAt: DateTime.now(),
             archived: false,
+            workspaceId: session.profile?.workspaceId.trim() ?? '',
           ),
         );
 
@@ -140,6 +141,7 @@ class _UnitExpenseFormSheetState extends ConsumerState<UnitExpenseFormSheet> {
             widget.propertyId,
             widget.unitId,
           ),
+          workspaceId: session.profile?.workspaceId.trim(),
         );
 
     if (mounted) {
