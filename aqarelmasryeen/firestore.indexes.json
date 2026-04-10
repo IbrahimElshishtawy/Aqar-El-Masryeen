@@ -26,6 +26,15 @@
       ]
     },
     {
+      "collectionGroup": "unit_expenses",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "unitId", "order": "ASCENDING" },
+        { "fieldPath": "archived", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "units",
       "queryScope": "COLLECTION",
       "fields": [

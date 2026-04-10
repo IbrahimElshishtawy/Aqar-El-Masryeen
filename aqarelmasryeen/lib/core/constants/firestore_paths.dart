@@ -6,6 +6,7 @@ class FirestorePaths {
   static const partners = 'partners';
   static const properties = 'properties';
   static const expenses = 'expenses';
+  static const unitExpenses = 'unit_expenses';
   static const units = 'units';
   static const installmentPlans = 'installment_plans';
   static const installments = 'installments';

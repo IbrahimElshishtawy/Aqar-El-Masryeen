@@ -109,19 +109,83 @@ class PropertyUnitViewData {
     required this.property,
     required this.summary,
     required this.payments,
+    required this.unitExpenses,
     required this.planId,
     required this.currentUserId,
     required this.currentUserDisplayName,
+    required this.currentPartner,
     required this.partners,
   });
 
   final PropertyProject property;
   final UnitSaleComputedSummary summary;
   final List<PaymentRecord> payments;
+  final List<UnitExpenseRecord> unitExpenses;
   final String planId;
   final String? currentUserId;
   final String currentUserDisplayName;
+  final Partner? currentPartner;
   final List<Partner> partners;
+
+  String get currentColumnLabel =>
+      resolveCurrentPartyLabel(currentPartner, fallback: 'المستخدم');
+
+  List<Partner> get counterpartPartners {
+    if (currentPartner == null) {
+      return partners;
+    }
+    return partners
+        .where((partner) => partner.id != currentPartner!.id)
+        .toList(growable: false);
+  }
+
+  String get counterpartColumnLabel => resolveCounterpartPartyLabel(
+    partners: partners,
+    currentPartner: currentPartner,
+    fallback: 'الشريك',
+    maxVisibleNames: 1,
+  );
+
+  bool isCurrentUserUnitExpense(UnitExpenseRecord expense) {
+    if (currentPartner != null &&
+        expense.paidByPartnerId == currentPartner!.id) {
+      return true;
+    }
+    return expense.paidByPartnerId.trim().isEmpty &&
+        currentUserId != null &&
+        expense.createdBy == currentUserId;
+  }
+
+  double get currentUserUnitExpensesTotal => unitExpenses.fold<double>(
+    0,
+    (sum, expense) =>
+        sum + (isCurrentUserUnitExpense(expense) ? expense.amount : 0),
+  );
+
+  double get counterpartUnitExpensesTotal => unitExpenses.fold<double>(
+    0,
+    (sum, expense) =>
+        sum + (isCurrentUserUnitExpense(expense) ? 0 : expense.amount),
+  );
+
+  int get unitExpensesCount => unitExpenses.length;
+
+  String payerLabelForUnitExpense(UnitExpenseRecord expense) {
+    if (isCurrentUserUnitExpense(expense)) {
+      return currentColumnLabel;
+    }
+
+    for (final partner in counterpartPartners) {
+      if (partner.id == expense.paidByPartnerId) {
+        final name = partner.name.trim();
+        if (name.isNotEmpty) {
+          return name;
+        }
+      }
+    }
+
+    return counterpartColumnLabel;
+  }
 }
 
 class PropertyExpenseLedgerRow {

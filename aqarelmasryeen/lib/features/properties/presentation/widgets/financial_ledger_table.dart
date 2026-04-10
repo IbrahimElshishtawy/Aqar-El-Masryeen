@@ -48,6 +48,7 @@ class FinancialLedgerTable<T> extends StatelessWidget {
     this.showRowNumbers = true,
     this.forceTableLayout = false,
     this.compactCardBuilder,
+    this.headerTrailing,
   });
 
   final String title;
@@ -67,19 +68,14 @@ class FinancialLedgerTable<T> extends StatelessWidget {
   final bool showRowNumbers;
   final bool forceTableLayout;
   final CompactLedgerCardBuilder<T>? compactCardBuilder;
+  final Widget? headerTrailing;
 
   @override
   Widget build(BuildContext context) {
     return AppPanel(
       title: title,
       subtitle: subtitle,
-      trailing: onAdd == null
-          ? null
-          : FilledButton.icon(
-              onPressed: onAdd,
-              icon: const Icon(Icons.add),
-              label: Text(addLabel),
-            ),
+      trailing: _buildPanelTrailing(),
       child: LayoutBuilder(
         builder: (context, constraints) {
           if (rows.isEmpty) {
@@ -256,6 +252,32 @@ class FinancialLedgerTable<T> extends StatelessWidget {
   }
 
   bool get _hasActions => onEdit != null || onDelete != null || onView != null;
+
+  Widget? _buildPanelTrailing() {
+    final trailingWidgets = <Widget>[
+      ?headerTrailing,
+      if (onAdd != null)
+        FilledButton.icon(
+          onPressed: onAdd,
+          icon: const Icon(Icons.add),
+          label: Text(addLabel),
+        ),
+    ];
+
+    if (trailingWidgets.isEmpty) {
+      return null;
+    }
+    if (trailingWidgets.length == 1) {
+      return trailingWidgets.single;
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.end,
+      children: trailingWidgets,
+    );
+  }
 
   Widget? _buildActions(T row) {
     if (!_hasActions) {

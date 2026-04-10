@@ -16,6 +16,7 @@ import 'package:aqarelmasryeen/features/properties/presentation/property_expense
 import 'package:aqarelmasryeen/features/properties/presentation/property_form_screen.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/property_materials_screen.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/property_material_supplier_screen.dart';
+import 'package:aqarelmasryeen/features/properties/presentation/property_unit_expenses_screen.dart';
 import 'package:aqarelmasryeen/features/security/presentation/screens/unlock_screen.dart';
 import 'package:aqarelmasryeen/features/settings/presentation/settings_screen.dart';
 import 'package:aqarelmasryeen/features/splash/presentation/screens/splash_screen.dart';
@@ -155,6 +156,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     unitId: state.pathParameters['unitId'] ?? '',
                   ),
                 ),
+                routes: [
+                  GoRoute(
+                    path: 'expenses',
+                    pageBuilder: (context, state) => _buildAppPage(
+                      state: state,
+                      child: PropertyUnitExpensesScreen(
+                        propertyId: state.pathParameters['propertyId'] ?? '',
+                        unitId: state.pathParameters['unitId'] ?? '',
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -273,10 +286,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-bool _shouldRefreshRouter(
-  SessionLockState? previous,
-  SessionLockState next,
-) {
+bool _shouldRefreshRouter(SessionLockState? previous, SessionLockState next) {
   if (previous == null) {
     return true;
   }

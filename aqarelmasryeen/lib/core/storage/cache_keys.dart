@@ -9,6 +9,8 @@ class CacheKeys {
   static const expenses = 'cache.expenses.all';
   static String expensesByProperty(String propertyId) =>
       'cache.expenses.$propertyId';
+  static String unitExpensesByUnit(String unitId) =>
+      'cache.unit_expenses.unit.$unitId';
 
   static const materialExpenses = 'cache.material_expenses.all';
   static String materialExpensesByProperty(String propertyId) =>

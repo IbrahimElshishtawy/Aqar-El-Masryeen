@@ -2,6 +2,7 @@ import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/data/supplier_payment_repository.dart';
+import 'package:aqarelmasryeen/features/expenses/data/unit_expense_repository.dart';
 import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_ledger_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
@@ -141,6 +142,13 @@ final propertyPartnersProvider = StreamProvider.autoDispose<List<Partner>>(
       _fallbackToEmpty(ref.watch(partnerRepositoryProvider).watchPartners()),
 );
 
+final unitExpensesByUnitProvider = StreamProvider.autoDispose
+    .family<List<UnitExpenseRecord>, String>(
+      (ref, unitId) => _fallbackToEmpty(
+        ref.watch(unitExpenseRepositoryProvider).watchByUnit(unitId),
+      ),
+    );
+
 final propertyPartnerLedgerProvider =
     StreamProvider.autoDispose<List<PartnerLedgerEntry>>(
       (ref) => _fallbackToEmpty(
@@ -222,6 +230,7 @@ final propertyUnitViewDataProvider = Provider.autoDispose
         ref.watch(propertyUnitsProvider(request.propertyId)),
         ref.watch(propertyInstallmentsProvider(request.propertyId)),
         ref.watch(propertyPaymentsProvider(request.propertyId)),
+        ref.watch(unitExpensesByUnitProvider(request.unitId)),
         ref.watch(propertyPartnersProvider),
       ];
 
@@ -264,6 +273,11 @@ final propertyUnitViewDataProvider = Provider.autoDispose
           payments:
               ref
                   .watch(propertyPaymentsProvider(request.propertyId))
+                  .valueOrNull ??
+              const [],
+          unitExpenses:
+              ref
+                  .watch(unitExpensesByUnitProvider(request.unitId))
                   .valueOrNull ??
               const [],
           partners: ref.watch(propertyPartnersProvider).valueOrNull ?? const [],

@@ -100,6 +100,7 @@ service cloud.firestore {
           'partners',
           'properties',
           'expenses',
+          'unit_expenses',
           'material_expenses',
           'supplier_payments',
           'units',

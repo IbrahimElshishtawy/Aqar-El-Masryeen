@@ -159,6 +159,7 @@ class PropertyDetailComposer {
     required List<UnitSale> units,
     required List<Installment> installments,
     required List<PaymentRecord> payments,
+    required List<UnitExpenseRecord> unitExpenses,
     required List<Partner> partners,
   }) {
     final summaries = const UnitSalesCalculator().build(
@@ -181,14 +182,22 @@ class PropertyDetailComposer {
     final unitPayments = payments
         .where((payment) => payment.unitId == unitId)
         .sorted((a, b) => b.receivedAt.compareTo(a.receivedAt));
+    final activeUnitExpenses = unitExpenses
+        .where((expense) => !expense.archived && expense.unitId == unitId)
+        .sorted((a, b) => b.date.compareTo(a.date));
+    final currentPartner = partners.firstWhereOrNull(
+      (partner) => partner.userId == currentUserId,
+    );
 
     return PropertyUnitViewData(
       property: property,
       summary: summary,
       payments: unitPayments,
+      unitExpenses: activeUnitExpenses,
       planId: planId,
       currentUserId: currentUserId,
       currentUserDisplayName: currentUserDisplayName,
+      currentPartner: currentPartner,
       partners: partners,
     );
   }

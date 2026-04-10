@@ -17,28 +17,38 @@ class PropertyExpensesWorkspace extends StatelessWidget {
     required this.data,
     this.onOpenMaterials,
     this.onOpenDetailedExpenses,
+    this.detailedButtonLabel =
+        '\u0627\u0644\u0623\u064a\u0627\u0645 \u0627\u0644\u0633\u0627\u0628\u0642\u0629',
     this.onAddExpense,
     required this.onEditExpense,
     required this.onDeleteExpense,
     this.showSummaryPanel = false,
     this.showDetailedButton = true,
+    this.showSplitTable = true,
     this.scope = ExpenseTableScope.all,
+    this.showDetailedLedger = false,
+    this.maxVisibleRows,
   });
 
   final PropertyProjectViewData data;
   final VoidCallback? onOpenMaterials;
   final VoidCallback? onOpenDetailedExpenses;
+  final String detailedButtonLabel;
   final VoidCallback? onAddExpense;
   final ValueChanged<ExpenseRecord> onEditExpense;
   final ValueChanged<ExpenseRecord> onDeleteExpense;
   final bool showSummaryPanel;
   final bool showDetailedButton;
+  final bool showSplitTable;
   final ExpenseTableScope scope;
+  final bool showDetailedLedger;
+  final int? maxVisibleRows;
 
   @override
   Widget build(BuildContext context) {
-    final rows = _buildRows();
-    final splitRows = rows
+    final allRows = _buildRows(applyLimit: false);
+    final visibleRows = _buildRows();
+    final splitRows = visibleRows
         .map(
           (row) => ExpenseSplitLedgerRow(
             dateLabel: row.row.expense.date.formatShort(),
@@ -48,13 +58,13 @@ class PropertyExpensesWorkspace extends StatelessWidget {
           ),
         )
         .toList(growable: false);
-    final currentTotal = rows
+    final currentTotal = allRows
         .where((row) => row.isCurrentSide)
         .fold<double>(0, (sum, row) => sum + row.row.expense.amount);
-    final counterpartTotal = rows
+    final counterpartTotal = allRows
         .where((row) => !row.isCurrentSide)
         .fold<double>(0, (sum, row) => sum + row.row.expense.amount);
-    final overallTotal = rows.fold<double>(
+    final overallTotal = allRows.fold<double>(
       0,
       (sum, row) => sum + row.row.expense.amount,
     );
@@ -69,7 +79,7 @@ class PropertyExpensesWorkspace extends StatelessWidget {
             currentTotal: currentTotal,
             counterpartTotal: counterpartTotal,
             overallTotal: overallTotal,
-            entriesCount: rows.length,
+            entriesCount: allRows.length,
           ),
           const SizedBox(height: 16),
         ],
@@ -82,167 +92,218 @@ class PropertyExpensesWorkspace extends StatelessWidget {
                 FilledButton.tonalIcon(
                   onPressed: onOpenMaterials,
                   icon: const Icon(Icons.inventory_2_outlined),
-                  label: const Text('مواد البناء'),
-                ),
-              if (showDetailedButton && onOpenDetailedExpenses != null)
-                OutlinedButton.icon(
-                  onPressed: onOpenDetailedExpenses,
-                  icon: const Icon(Icons.history_rounded),
-                  label: const Text('الأيام السابقة'),
+                  label: const Text(
+                    '\u0645\u0648\u0627\u062f \u0627\u0644\u0628\u0646\u0627\u0621',
+                  ),
                 ),
             ],
           ),
           const SizedBox(height: 12),
         ],
-        ExpenseSplitLedgerTable(
-          rows: splitRows,
-          currentColumnLabel: data.currentColumnLabel,
-          counterpartColumnLabel: data.counterpartColumnLabel,
-          emptyTitle: _emptyTitle,
-          emptyMessage: _emptyMessage,
-        ),
-        const SizedBox(height: 12),
-        FinancialLedgerTable<_ExpenseTableRow>(
-          title: _tableTitle,
-          subtitle: _tableSubtitle,
-          rows: rows,
-          forceTableLayout: true,
-          onAdd: onAddExpense,
-          addLabel: 'إضافة مصروف',
-          emptyTitle: _emptyTitle,
-          emptyMessage: _emptyMessage,
-          sheetLabel: 'جدول مصروفات المشروع',
-          onEdit: (row) => onEditExpense(row.row.expense),
-          onDelete: (row) => onDeleteExpense(row.row.expense),
-          compactCardBuilder: (context, row, rowNumber, actions) {
-            return _ExpenseCompactCard(
-              row: row,
-              rowNumber: rowNumber,
-              actions: actions,
-            );
-          },
-          columns: [
-            LedgerColumn(
-              label: 'التاريخ',
-              valueBuilder: (row) => Text(row.row.expense.date.formatShort()),
-              minWidth: 120,
-            ),
-            LedgerColumn(
-              label: 'البيان / الوصف',
-              valueBuilder: (row) => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    row.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    row.row.expense.category.label,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Theme.of(context).colorScheme.secondary,
+        if (showSplitTable)
+          ExpenseSplitLedgerTable(
+            rows: splitRows,
+            currentColumnLabel: data.currentColumnLabel,
+            counterpartColumnLabel: data.counterpartColumnLabel,
+            title: _splitTableTitle,
+            subtitle: _splitTableSubtitle,
+            emptyTitle: _emptyTitle,
+            emptyMessage: _emptyMessage,
+            trailing: _buildSplitTableTrailing(),
+            currentTotalLabel: currentTotal.egp,
+            counterpartTotalLabel: counterpartTotal.egp,
+          ),
+        if (showDetailedLedger) ...[
+          if (showSplitTable) const SizedBox(height: 12),
+          FinancialLedgerTable<_ExpenseTableRow>(
+            title: _tableTitle,
+            subtitle: _tableSubtitle,
+            rows: allRows,
+            forceTableLayout: true,
+            onAdd: onAddExpense,
+            addLabel:
+                '\u0625\u0636\u0627\u0641\u0629 \u0645\u0635\u0631\u0648\u0641',
+            emptyTitle: _emptyTitle,
+            emptyMessage: _emptyMessage,
+            sheetLabel:
+                '\u062c\u062f\u0648\u0644 \u0645\u0635\u0631\u0648\u0641\u0627\u062a \u0627\u0644\u0645\u0634\u0631\u0648\u0639',
+            onEdit: (row) => onEditExpense(row.row.expense),
+            onDelete: (row) => onDeleteExpense(row.row.expense),
+            compactCardBuilder: (context, row, rowNumber, actions) {
+              return _ExpenseCompactCard(
+                row: row,
+                rowNumber: rowNumber,
+                actions: actions,
+              );
+            },
+            columns: [
+              LedgerColumn(
+                label: '\u0627\u0644\u062a\u0627\u0631\u064a\u062e',
+                valueBuilder: (row) => Text(row.row.expense.date.formatShort()),
+                minWidth: 120,
+              ),
+              LedgerColumn(
+                label:
+                    '\u0627\u0644\u0628\u064a\u0627\u0646 / \u0627\u0644\u0648\u0635\u0641',
+                valueBuilder: (row) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      row.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(
+                      row.row.expense.category.label,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.secondary,
+                      ),
+                    ),
+                  ],
+                ),
+                minWidth: 220,
               ),
-              minWidth: 220,
-            ),
-            LedgerColumn(
-              label: 'المبلغ',
-              valueBuilder: (row) => Text(row.row.expense.amount.egp),
-              minWidth: 120,
-              numeric: true,
-            ),
-            LedgerColumn(
-              label: 'من الذي دفع',
-              valueBuilder: (row) => Text(row.paidByLabel),
-              minWidth: 150,
-            ),
-            LedgerColumn(
-              label: 'ملاحظات',
-              valueBuilder: (row) => Text(
-                row.row.expense.notes.trim().isEmpty
-                    ? '-'
-                    : row.row.expense.notes.trim(),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+              LedgerColumn(
+                label: '\u0627\u0644\u0645\u0628\u0644\u063a',
+                valueBuilder: (row) => Text(row.row.expense.amount.egp),
+                minWidth: 120,
+                numeric: true,
               ),
-              minWidth: 180,
-            ),
-          ],
-          totalsFooter: LedgerTotalsFooter(
-            children: [
-              LedgerFooterValue(
-                label: 'Total ${data.currentColumnLabel}',
-                value: currentTotal.egp,
+              LedgerColumn(
+                label:
+                    '\u0645\u0646 \u0627\u0644\u0630\u064a \u062f\u0641\u0639',
+                valueBuilder: (row) => Text(row.paidByLabel),
+                minWidth: 150,
               ),
-              LedgerFooterValue(
-                label: 'Total ${data.counterpartColumnLabel}',
-                value: counterpartTotal.egp,
-              ),
-              LedgerFooterValue(
-                label: 'الإجمالي الكلي',
-                value: overallTotal.egp,
+              LedgerColumn(
+                label: '\u0645\u0644\u0627\u062d\u0638\u0627\u062a',
+                valueBuilder: (row) => Text(
+                  row.row.expense.notes.trim().isEmpty
+                      ? '-'
+                      : row.row.expense.notes.trim(),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                minWidth: 180,
               ),
             ],
+            totalsFooter: LedgerTotalsFooter(
+              children: [
+                LedgerFooterValue(
+                  label: 'Total ${data.currentColumnLabel}',
+                  value: currentTotal.egp,
+                ),
+                LedgerFooterValue(
+                  label: 'Total ${data.counterpartColumnLabel}',
+                  value: counterpartTotal.egp,
+                ),
+                LedgerFooterValue(
+                  label:
+                      '\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0643\u0644\u064a',
+                  value: overallTotal.egp,
+                ),
+              ],
+            ),
           ),
-        ),
+        ],
       ],
     );
   }
 
   bool get _shouldShowActionStrip {
-    return onOpenMaterials != null ||
-        (showDetailedButton && onOpenDetailedExpenses != null);
+    return onOpenMaterials != null;
+  }
+
+  Widget? _buildSplitTableTrailing() {
+    final actions = <Widget>[
+      if (!showDetailedLedger && onAddExpense != null)
+        FilledButton.icon(
+          onPressed: onAddExpense,
+          icon: const Icon(Icons.add),
+          label: const Text(
+            '\u0625\u0636\u0627\u0641\u0629 \u0645\u0635\u0631\u0648\u0641',
+          ),
+        ),
+      if (showDetailedButton && onOpenDetailedExpenses != null)
+        OutlinedButton.icon(
+          onPressed: onOpenDetailedExpenses,
+          icon: const Icon(Icons.history_rounded),
+          label: Text(detailedButtonLabel),
+        ),
+    ];
+    if (actions.isEmpty) {
+      return null;
+    }
+    return Wrap(spacing: 8, runSpacing: 8, children: actions);
   }
 
   String get _tableTitle {
     switch (scope) {
       case ExpenseTableScope.recent24Hours:
-        return 'مصروفات اليوم';
+        return '\u0645\u0635\u0631\u0648\u0641\u0627\u062a \u0627\u0644\u064a\u0648\u0645';
       case ExpenseTableScope.olderThan24Hours:
-        return 'مصروفات الأيام السابقة';
+        return '\u0645\u0635\u0631\u0648\u0641\u0627\u062a \u0627\u0644\u0623\u064a\u0627\u0645 \u0627\u0644\u0633\u0627\u0628\u0642\u0629';
       case ExpenseTableScope.all:
-        return 'سجل المصروفات';
+        return '\u0633\u062c\u0644 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a';
     }
   }
 
   String get _tableSubtitle {
     switch (scope) {
       case ExpenseTableScope.recent24Hours:
-        return 'كل مصروف يظهر كسطر مستقل مع تحديد التاريخ والوصف والمبلغ ومن الذي دفع.';
+        return '\u0643\u0644 \u0645\u0635\u0631\u0648\u0641 \u064a\u0638\u0647\u0631 \u0643\u0633\u0637\u0631 \u0645\u0633\u062a\u0642\u0644 \u0645\u0639 \u062a\u062d\u062f\u064a\u062f \u0627\u0644\u062a\u0627\u0631\u064a\u062e \u0648\u0627\u0644\u0648\u0635\u0641 \u0648\u0627\u0644\u0645\u0628\u0644\u063a \u0648\u0645\u0646 \u0627\u0644\u0630\u064a \u062f\u0641\u0639.';
       case ExpenseTableScope.olderThan24Hours:
-        return 'عرض حركات الأيام السابقة بنفس الجدول الموحد وبدون إجماليات يومية.';
+        return '\u0639\u0631\u0636 \u062d\u0631\u0643\u0627\u062a \u0627\u0644\u0623\u064a\u0627\u0645 \u0627\u0644\u0633\u0627\u0628\u0642\u0629 \u0628\u0646\u0641\u0633 \u0627\u0644\u062c\u062f\u0648\u0644 \u0627\u0644\u0645\u0648\u062d\u062f \u0648\u0628\u062f\u0648\u0646 \u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u064a\u0648\u0645\u064a\u0629.';
       case ExpenseTableScope.all:
-        return 'جدول يومي موحد يعرض كل المصروفات المسجلة داخل المشروع مع Totals فقط لكل طرف.';
+        return '\u062c\u062f\u0648\u0644 \u064a\u0648\u0645\u064a \u0645\u0648\u062d\u062f \u064a\u0639\u0631\u0636 \u0643\u0644 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a \u0627\u0644\u0645\u0633\u062c\u0644\u0629 \u062f\u0627\u062e\u0644 \u0627\u0644\u0645\u0634\u0631\u0648\u0639 \u0645\u0639 Totals \u0641\u0642\u0637 \u0644\u0643\u0644 \u0637\u0631\u0641.';
     }
   }
 
   String get _emptyTitle {
     switch (scope) {
       case ExpenseTableScope.recent24Hours:
-        return 'لا توجد مصروفات اليوم';
+        return '\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0635\u0631\u0648\u0641\u0627\u062a \u0627\u0644\u064a\u0648\u0645';
       case ExpenseTableScope.olderThan24Hours:
-        return 'لا توجد مصروفات للأيام السابقة';
+        return '\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0635\u0631\u0648\u0641\u0627\u062a \u0644\u0644\u0623\u064a\u0627\u0645 \u0627\u0644\u0633\u0627\u0628\u0642\u0629';
       case ExpenseTableScope.all:
-        return 'لا توجد مصروفات بعد';
+        return '\u0644\u0627 \u062a\u0648\u062c\u062f \u0645\u0635\u0631\u0648\u0641\u0627\u062a \u0628\u0639\u062f';
     }
   }
 
   String get _emptyMessage {
     switch (scope) {
       case ExpenseTableScope.recent24Hours:
-        return 'بمجرد تسجيل أول مصروف بتاريخ اليوم سيظهر هنا داخل الجدول.';
+        return '\u0628\u0645\u062c\u0631\u062f \u062a\u0633\u062c\u064a\u0644 \u0623\u0648\u0644 \u0645\u0635\u0631\u0648\u0641 \u0628\u062a\u0627\u0631\u064a\u062e \u0627\u0644\u064a\u0648\u0645 \u0633\u064a\u0638\u0647\u0631 \u0647\u0646\u0627 \u062f\u0627\u062e\u0644 \u0627\u0644\u062c\u062f\u0648\u0644.';
       case ExpenseTableScope.olderThan24Hours:
-        return 'عند وجود مصروفات بتواريخ أقدم من اليوم ستظهر هنا تلقائيًا.';
+        return '\u0639\u0646\u062f \u0648\u062c\u0648\u062f \u0645\u0635\u0631\u0648\u0641\u0627\u062a \u0628\u062a\u0648\u0627\u0631\u064a\u062e \u0623\u0642\u062f\u0645 \u0645\u0646 \u0627\u0644\u064a\u0648\u0645 \u0633\u062a\u0638\u0647\u0631 \u0647\u0646\u0627 \u062a\u0644\u0642\u0627\u0626\u064a\u064b\u0627.';
       case ExpenseTableScope.all:
-        return 'أضف أول مصروف ليبدأ الجدول اليومي وتظهر Totals للمستخدم والشريك.';
+        return '\u0623\u0636\u0641 \u0623\u0648\u0644 \u0645\u0635\u0631\u0648\u0641 \u0644\u064a\u0628\u062f\u0623 \u0627\u0644\u062c\u062f\u0648\u0644 \u0627\u0644\u064a\u0648\u0645\u064a \u0648\u062a\u0638\u0647\u0631 Totals \u0644\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0648\u0627\u0644\u0634\u0631\u064a\u0643.';
     }
   }
 
-  List<_ExpenseTableRow> _buildRows() {
+  String get _splitTableTitle {
+    if (_isPreviewMode) {
+      return '\u0622\u062e\u0631 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a';
+    }
+    return '\u062c\u062f\u0648\u0644 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a';
+  }
+
+  String? get _splitTableSubtitle {
+    if (_isPreviewMode) {
+      return '\u064a\u0639\u0631\u0636 \u0622\u062e\u0631 $maxVisibleRows \u0645\u0635\u0627\u0631\u064a\u0641 \u0641\u0642\u0637. \u0627\u0641\u062a\u062d \u0639\u0631\u0636 \u0643\u0644 \u0627\u0644\u0645\u0635\u0627\u0631\u064a\u0641 \u0644\u0631\u0624\u064a\u0629 \u0627\u0644\u0633\u062c\u0644 \u0628\u0627\u0644\u0643\u0627\u0645\u0644.';
+    }
+    return null;
+  }
+
+  bool get _isPreviewMode {
+    return !showDetailedLedger &&
+        scope == ExpenseTableScope.all &&
+        maxVisibleRows != null;
+  }
+
+  List<_ExpenseTableRow> _buildRows({bool applyLimit = true}) {
     final rows =
         data.expenseLedgerRows
             .where(_matchesScope)
@@ -255,7 +316,11 @@ class PropertyExpensesWorkspace extends StatelessWidget {
             )
             .toList()
           ..sort((a, b) => b.row.expense.date.compareTo(a.row.expense.date));
-    return rows;
+    final limit = applyLimit ? maxVisibleRows : null;
+    if (limit == null || rows.length <= limit) {
+      return rows;
+    }
+    return rows.take(limit).toList(growable: false);
   }
 
   bool _matchesScope(PropertyExpenseLedgerRow row) {
@@ -285,7 +350,8 @@ class PropertyExpensesWorkspace extends StatelessWidget {
     }
     return _isCurrentSide(row)
         ? data.currentUserDisplayName
-        : (data.linkedPartnerName ?? 'الشريك المرتبط');
+        : (data.linkedPartnerName ??
+              '\u0627\u0644\u0634\u0631\u064a\u0643 \u0627\u0644\u0645\u0631\u062a\u0628\u0637');
   }
 }
 
@@ -309,9 +375,10 @@ class _ExpenseTotalsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppPanel(
-      title: 'ملخص المصروفات',
+      title:
+          '\u0645\u0644\u062e\u0635 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062a',
       subtitle:
-          'Totals فقط للمستخدم والشريك والإجمالي الكلي بدون أي إجماليات يومية.',
+          'Totals \u0641\u0642\u0637 \u0644\u0644\u0645\u0633\u062a\u062e\u062f\u0645 \u0648\u0627\u0644\u0634\u0631\u064a\u0643 \u0648\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0643\u0644\u064a \u0628\u062f\u0648\u0646 \u0623\u064a \u0625\u062c\u0645\u0627\u0644\u064a\u0627\u062a \u064a\u0648\u0645\u064a\u0629.',
       child: Wrap(
         spacing: 10,
         runSpacing: 10,
@@ -324,8 +391,16 @@ class _ExpenseTotalsPanel extends StatelessWidget {
             label: 'Total $counterpartLabel',
             value: counterpartTotal.egp,
           ),
-          _ExpenseMetricPill(label: 'الإجمالي الكلي', value: overallTotal.egp),
-          _ExpenseMetricPill(label: 'عدد الحركات', value: '$entriesCount'),
+          _ExpenseMetricPill(
+            label:
+                '\u0627\u0644\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0643\u0644\u064a',
+            value: overallTotal.egp,
+          ),
+          _ExpenseMetricPill(
+            label:
+                '\u0639\u062f\u062f \u0627\u0644\u062d\u0631\u0643\u0627\u062a',
+            value: '$entriesCount',
+          ),
         ],
       ),
     );
@@ -404,7 +479,7 @@ class _ExpenseCompactCard extends StatelessWidget {
                   children: [
                     if (rowNumber != null)
                       Text(
-                        'مصروف #$rowNumber',
+                        '\u0645\u0635\u0631\u0648\u0641 #$rowNumber',
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                           color: const Color(0xFF2E6B3F),

@@ -46,6 +46,9 @@ class AppRoutes {
   static String propertyUnitDetails(String propertyId, String unitId) =>
       '/properties/$propertyId/units/$unitId';
 
+  static String propertyUnitExpenses(String propertyId, String unitId) =>
+      '/properties/$propertyId/units/$unitId/expenses';
+
   static String editProperty(String propertyId) =>
       '/properties/$propertyId/edit';
 }

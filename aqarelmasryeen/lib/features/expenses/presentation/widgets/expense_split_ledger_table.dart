@@ -26,6 +26,13 @@ class ExpenseSplitLedgerTable extends StatelessWidget {
     required this.emptyMessage,
     this.title = 'جدول المصروفات',
     this.subtitle,
+    this.onAdd,
+    this.trailing,
+    this.addLabel =
+        '\u0625\u0636\u0627\u0641\u0629 \u0645\u0635\u0631\u0648\u0641',
+    this.currentTotalLabel,
+    this.counterpartTotalLabel,
+    this.totalsDateLabel = 'الإجمالي',
   });
 
   final List<ExpenseSplitLedgerRow> rows;
@@ -35,6 +42,12 @@ class ExpenseSplitLedgerTable extends StatelessWidget {
   final String emptyMessage;
   final String title;
   final String? subtitle;
+  final VoidCallback? onAdd;
+  final Widget? trailing;
+  final String addLabel;
+  final String? currentTotalLabel;
+  final String? counterpartTotalLabel;
+  final String totalsDateLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +56,15 @@ class ExpenseSplitLedgerTable extends StatelessWidget {
       subtitle:
           subtitle ??
           'ثلاثة أعمدة فقط: التاريخ، $currentColumnLabel، $counterpartColumnLabel.',
+      trailing:
+          trailing ??
+          (onAdd == null
+              ? null
+              : FilledButton.icon(
+                  onPressed: onAdd,
+                  icon: const Icon(Icons.add),
+                  label: Text(addLabel),
+                )),
       child: rows.isEmpty
           ? EmptyStateView(title: emptyTitle, message: emptyMessage)
           : LayoutBuilder(
@@ -77,6 +99,16 @@ class ExpenseSplitLedgerTable extends StatelessWidget {
                             dateColumnWidth: dateColumnWidth,
                             sideColumnWidth: sideColumnWidth,
                           ),
+                        if (_hasTotals)
+                          _ExpenseTotalsTableRow(
+                            dateLabel: totalsDateLabel,
+                            currentColumnLabel: currentColumnLabel,
+                            counterpartColumnLabel: counterpartColumnLabel,
+                            currentTotalLabel: currentTotalLabel!,
+                            counterpartTotalLabel: counterpartTotalLabel!,
+                            dateColumnWidth: dateColumnWidth,
+                            sideColumnWidth: sideColumnWidth,
+                          ),
                       ],
                     ),
                   ),
@@ -85,6 +117,9 @@ class ExpenseSplitLedgerTable extends StatelessWidget {
             ),
     );
   }
+
+  bool get _hasTotals =>
+      currentTotalLabel != null && counterpartTotalLabel != null;
 }
 
 class _ExpenseTableHeader extends StatelessWidget {
@@ -289,6 +324,116 @@ class _ExpenseEntryCard extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ExpenseTotalsTableRow extends StatelessWidget {
+  const _ExpenseTotalsTableRow({
+    required this.dateLabel,
+    required this.currentColumnLabel,
+    required this.counterpartColumnLabel,
+    required this.currentTotalLabel,
+    required this.counterpartTotalLabel,
+    required this.dateColumnWidth,
+    required this.sideColumnWidth,
+  });
+
+  final String dateLabel;
+  final String currentColumnLabel;
+  final String counterpartColumnLabel;
+  final String currentTotalLabel;
+  final String counterpartTotalLabel;
+  final double dateColumnWidth;
+  final double sideColumnWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Color(0xFFD9DED6))),
+        color: Color(0xFFF1F5EE),
+      ),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ExpenseDateCell(width: dateColumnWidth, dateLabel: dateLabel),
+            _ExpenseTotalCell(
+              width: sideColumnWidth,
+              amountLabel: currentTotalLabel,
+              description: currentColumnLabel,
+              tint: const Color(0xFFE2F0E7),
+            ),
+            _ExpenseTotalCell(
+              width: sideColumnWidth,
+              amountLabel: counterpartTotalLabel,
+              description: counterpartColumnLabel,
+              tint: const Color(0xFFF0ECE2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpenseTotalCell extends StatelessWidget {
+  const _ExpenseTotalCell({
+    required this.width,
+    required this.amountLabel,
+    required this.description,
+    required this.tint,
+  });
+
+  final double width;
+  final String amountLabel;
+  final String description;
+  final Color tint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(4),
+      decoration: const BoxDecoration(
+        border: Border(left: BorderSide(color: Color(0xFFD9DED6))),
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        decoration: BoxDecoration(
+          color: tint,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFD5DDD5)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              amountLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                color: const Color(0xFF17352F),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF40564F),
+                height: 1.25,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
