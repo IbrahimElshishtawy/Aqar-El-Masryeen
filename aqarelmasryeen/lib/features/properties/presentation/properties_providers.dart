@@ -12,7 +12,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 
 final propertiesStreamProvider = StreamProvider.autoDispose<List<PropertyProject>>(
-  (ref) => ref.watch(propertyRepositoryProvider).watchProperties(),
+  (ref) {
+    final session = ref.watch(authSessionProvider).valueOrNull;
+    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+    final allPartners = ref.watch(partnersStreamProvider).valueOrNull ?? const [];
+    final accountUserIds = {
+      session?.userId ?? '',
+      ...allPartners
+          .map((partner) => partner.userId.trim())
+          .where((userId) => userId.isNotEmpty),
+    }..removeWhere((userId) => userId.trim().isEmpty);
+    return ref.watch(propertyRepositoryProvider).watchProperties(
+      workspaceId: workspaceId,
+      accountUserIds: accountUserIds,
+    );
+  },
 );
 final propertyExpensesStreamProvider = StreamProvider.autoDispose<List<ExpenseRecord>>(
   (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
@@ -49,7 +63,9 @@ final propertiesViewDataProvider =
       final workspaceId = session?.profile?.workspaceId.trim() ?? '';
       final allPartners = ref.watch(partnersStreamProvider).valueOrNull ?? const [];
       final scopedPartners = workspaceId.isEmpty
-          ? const <Partner>[]
+          ? allPartners
+                .where((partner) => partner.createdBy.trim() == session?.userId)
+                .toList(growable: false)
           : allPartners
                 .where((partner) => partner.workspaceId.trim() == workspaceId)
                 .toList(growable: false);
@@ -60,12 +76,17 @@ final propertiesViewDataProvider =
             .where((userId) => userId.isNotEmpty),
       }..removeWhere((userId) => userId.trim().isEmpty);
 
-      final scopedProperties = workspaceId.isEmpty
-          ? const <PropertyProject>[]
-          : (ref.watch(propertiesStreamProvider).valueOrNull ??
-                const <PropertyProject>[])
-                .where((property) => accountUserIds.contains(property.createdBy.trim()))
-                .toList(growable: false);
+      final scopedProperties =
+          (ref.watch(propertiesStreamProvider).valueOrNull ??
+                  const <PropertyProject>[])
+              .where((property) {
+                if (workspaceId.isNotEmpty &&
+                    property.workspaceId.trim() == workspaceId) {
+                  return true;
+                }
+                return accountUserIds.contains(property.createdBy.trim());
+              })
+              .toList(growable: false);
       final propertyIds = scopedProperties
           .map((property) => property.id)
           .toSet();

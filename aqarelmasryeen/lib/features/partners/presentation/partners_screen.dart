@@ -22,7 +22,13 @@ final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>(
     final workspaceId = session?.profile?.workspaceId.trim() ?? '';
     return ref.watch(partnerRepositoryProvider).watchPartners().map(
       (partners) => workspaceId.isEmpty
-          ? const <Partner>[]
+          ? partners
+                .where(
+                  (partner) =>
+                      partner.createdBy.trim() == (session?.userId ?? '') ||
+                      partner.userId.trim() == (session?.userId ?? ''),
+                )
+                .toList(growable: false)
           : partners
                 .where((partner) => partner.workspaceId.trim() == workspaceId)
                 .toList(growable: false),
@@ -438,7 +444,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
         .where((account) => !account.isLinked && account.user.isActive)
         .toList(growable: false);
     if (availableUsers.isEmpty) {
-      _showInfoSnackBar('لا توجد حسابات متاحة');
+      _showInfoSnackBar('لا توجد حسابات متاحة للربط');
       return;
     }
 
@@ -583,7 +589,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
     ref.invalidate(partnersStreamProvider);
     ref.invalidate(partnerAccountsStreamProvider);
     ref.invalidate(partnerAccountsProvider);
-    _showInfoSnackBar('تم تحديث بيانات الربط بنجاح');
+    _showInfoSnackBar('تم ربط الحساب بنجاح');
   }
 
   Future<void> _linkUserToCurrentContext(PartnerAccountSummary summary) async {
@@ -623,7 +629,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
           );
       ref.invalidate(partnerAccountsStreamProvider);
       ref.invalidate(partnerAccountsProvider);
-      _showInfoSnackBar('تم ربط هذا المستخدم بالحساب الحالي');
+      _showInfoSnackBar('تم ربط الحساب بنجاح');
     } catch (_) {
       _showInfoSnackBar('فشل الربط');
     }

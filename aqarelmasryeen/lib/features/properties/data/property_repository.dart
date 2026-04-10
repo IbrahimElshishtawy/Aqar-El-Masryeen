@@ -15,17 +15,39 @@ class PropertyRepository {
   final Uuid _uuid;
   final LocalCacheService _cache;
 
-  Stream<List<PropertyProject>> watchProperties() {
+  Stream<List<PropertyProject>> watchProperties({
+    String workspaceId = '',
+    Set<String> accountUserIds = const <String>{},
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    final normalizedAccountUserIds = accountUserIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet();
     final source = _firestore
         .collection(FirestorePaths.properties)
         .where('archived', isEqualTo: false)
         .orderBy('updatedAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
+        .map((snapshot) {
+          final items = snapshot.docs
               .map((doc) => PropertyProject.fromMap(doc.id, doc.data()))
-              .toList(),
-        );
+              .where((property) {
+                final propertyWorkspace = property.workspaceId.trim();
+                if (normalizedWorkspaceId.isNotEmpty &&
+                    propertyWorkspace == normalizedWorkspaceId) {
+                  return true;
+                }
+                if (normalizedAccountUserIds.isEmpty) {
+                  return normalizedWorkspaceId.isEmpty;
+                }
+                return normalizedAccountUserIds.contains(
+                  property.createdBy.trim(),
+                );
+              })
+              .toList(growable: false);
+          return items;
+        });
 
     return CachePolicy.watchList(
       cache: _cache,
@@ -66,6 +88,7 @@ class PropertyRepository {
                 property.createdAt == DateTime.fromMillisecondsSinceEpoch(0)
                 ? DateTime.now()
                 : property.createdAt
+            ..['workspaceId'] = property.workspaceId.trim()
             ..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );

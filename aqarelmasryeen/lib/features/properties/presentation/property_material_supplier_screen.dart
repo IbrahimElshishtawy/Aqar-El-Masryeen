@@ -717,14 +717,19 @@ class _SupplierLedgerCompactCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isPayment = row.isPayment;
+    final accentColor = isPayment
+        ? const Color(0xFF9A4F42)
+        : const Color(0xFF2E6B3F);
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFFDFDF9),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFD8D8D2)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE3E7DE)),
       ),
-      padding: const EdgeInsets.all(4),
+      padding: const EdgeInsets.all(14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -735,21 +740,24 @@ class _SupplierLedgerCompactCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      rowNumber == null
-                          ? row.typeLabel
-                          : '${row.typeLabel} #$rowNumber',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                        color: row.isPayment
-                            ? const Color(0xFF9A4F42)
-                            : const Color(0xFF2E6B3F),
-                      ),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _LedgerChip(
+                          label: rowNumber == null
+                              ? row.typeLabel
+                              : '${row.typeLabel} #$rowNumber',
+                          background: accentColor.withOpacity(0.12),
+                          foreground: accentColor,
+                        ),
+                        _LedgerChip(label: row.displayDate.formatShort()),
+                      ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     Text(
                       row.description,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w800,
                         color: const Color(0xFF17352F),
                       ),
@@ -758,12 +766,24 @@ class _SupplierLedgerCompactCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Text(
-                row.remainingAfter.egp,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF17352F),
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'المتبقي',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  Text(
+                    row.remainingAfter.egp,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF17352F),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -772,20 +792,24 @@ class _SupplierLedgerCompactCard extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              _LedgerChip(label: row.displayDate.formatShort()),
-              _LedgerChip(label: 'النوع: ${row.typeLabel}'),
+              _LedgerChip(label: 'المورد: ${row.supplierName}'),
               _LedgerChip(label: 'الكمية: ${row.quantityLabel}'),
               _LedgerChip(label: 'من دفع: ${row.paidByLabel}'),
             ],
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
+          Row(
             children: [
-              _LedgerValue(label: 'السعر', value: row.priceLabel),
-              _LedgerValue(label: 'المدفوع', value: row.paidValue.egp),
-              _LedgerValue(label: 'المتبقي', value: row.remainingAfter.egp),
+              Expanded(
+                child: _LedgerValue(
+                  label: isPayment ? 'قيمة الدفعة' : 'إجمالي الفاتورة',
+                  value: row.priceLabel,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(child: _LedgerValue(label: 'المدفوع', value: row.paidValue.egp)),
+              const SizedBox(width: 8),
+              Expanded(child: _LedgerValue(label: 'المتبقي', value: row.remainingAfter.egp)),
             ],
           ),
           if (row.notes.trim().isNotEmpty) ...[
@@ -824,23 +848,29 @@ class _SupplierLedgerCompactCard extends StatelessWidget {
 }
 
 class _LedgerChip extends StatelessWidget {
-  const _LedgerChip({required this.label});
+  const _LedgerChip({
+    required this.label,
+    this.background = const Color(0xFFF3F5F0),
+    this.foreground = const Color(0xFF465145),
+  });
 
   final String label;
+  final Color background;
+  final Color foreground;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
       decoration: BoxDecoration(
-        color: const Color(0xFFF3F5F0),
+        color: background,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelMedium?.copyWith(
           fontWeight: FontWeight.w700,
-          color: const Color(0xFF465145),
+          color: foreground,
         ),
       ),
     );
@@ -855,8 +885,13 @@ class _LedgerValue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 130,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF7F9F5),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE3E9DF)),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -870,6 +905,8 @@ class _LedgerValue extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
               color: const Color(0xFF17352F),

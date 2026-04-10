@@ -15,6 +15,7 @@ class PropertyProject {
     required this.updatedAt,
     required this.createdBy,
     required this.updatedBy,
+    required this.workspaceId,
     required this.archived,
   }) : _apartmentCount = apartmentCount;
 
@@ -30,6 +31,7 @@ class PropertyProject {
   final DateTime updatedAt;
   final String createdBy;
   final String updatedBy;
+  final String workspaceId;
   final bool archived;
 
   int get apartmentCount => _apartmentCount ?? 0;
@@ -47,6 +49,7 @@ class PropertyProject {
       'updatedAt': updatedAt,
       'createdBy': createdBy,
       'updatedBy': updatedBy,
+      'workspaceId': workspaceId,
       'archived': archived,
     };
   }
@@ -69,6 +72,7 @@ class PropertyProject {
       updatedAt: parseDate(data['updatedAt']),
       createdBy: data['createdBy'] as String? ?? '',
       updatedBy: data['updatedBy'] as String? ?? '',
+      workspaceId: data['workspaceId'] as String? ?? '',
       archived: data['archived'] as bool? ?? false,
     );
   }
@@ -86,6 +90,7 @@ class PropertyProject {
     DateTime? updatedAt,
     String? createdBy,
     String? updatedBy,
+    String? workspaceId,
     bool? archived,
   }) {
     return PropertyProject(
@@ -101,6 +106,7 @@ class PropertyProject {
       updatedAt: updatedAt ?? this.updatedAt,
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
+      workspaceId: workspaceId ?? this.workspaceId,
       archived: archived ?? this.archived,
     );
   }

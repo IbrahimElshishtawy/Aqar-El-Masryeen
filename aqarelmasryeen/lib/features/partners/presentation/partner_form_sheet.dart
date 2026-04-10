@@ -220,13 +220,13 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
 
       _showMessage(
         accountCreated
-            ? 'تم إنشاء الحساب وربطه بنجاح'
+            ? 'تم إنشاء الحساب بنجاح'
             : requestSent
             ? 'تم حفظ الشريك وإرسال طلب ربط الحساب.'
             : linkedUserId == session.userId
             ? 'تم حفظ الشريك وربطه بالحساب الحالي.'
             : linkedUserId.isNotEmpty
-            ? 'تم ربط الحساب بالشريك بنجاح'
+            ? 'تم ربط الحساب بنجاح'
             : 'تم إنشاء الشريك بنجاح',
       );
       Navigator.of(context).pop();

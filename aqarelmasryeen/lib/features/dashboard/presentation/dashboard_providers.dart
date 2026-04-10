@@ -16,7 +16,22 @@ import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final dashboardPropertiesProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(propertyRepositoryProvider).watchProperties(),
+  (ref) {
+    final session = ref.watch(authSessionProvider).valueOrNull;
+    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+    final scopedPartners =
+        ref.watch(dashboardPartnersProvider).valueOrNull ?? const <Partner>[];
+    final accountUserIds = {
+      session?.userId ?? '',
+      ...scopedPartners
+          .map((partner) => partner.userId.trim())
+          .where((userId) => userId.isNotEmpty),
+    }..removeWhere((userId) => userId.trim().isEmpty);
+    return ref.watch(propertyRepositoryProvider).watchProperties(
+      workspaceId: workspaceId,
+      accountUserIds: accountUserIds,
+    );
+  },
 );
 final dashboardUnitsProvider = StreamProvider.autoDispose(
   (ref) => ref.watch(salesRepositoryProvider).watchAll(),
