@@ -17,11 +17,31 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>(
-  (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
+  (ref) {
+    final session = ref.watch(authSessionProvider).valueOrNull;
+    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+    return ref.watch(partnerRepositoryProvider).watchPartners().map(
+      (partners) => workspaceId.isEmpty
+          ? const <Partner>[]
+          : partners
+                .where((partner) => partner.workspaceId.trim() == workspaceId)
+                .toList(growable: false),
+    );
+  },
 );
 
 final partnerAccountsStreamProvider = StreamProvider.autoDispose<List<AppUser>>(
-  (ref) => ref.watch(userProfileRemoteDataSourceProvider).watchAllProfiles(),
+  (ref) {
+    final session = ref.watch(authSessionProvider).valueOrNull;
+    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+    return ref.watch(userProfileRemoteDataSourceProvider).watchAllProfiles().map(
+      (users) => workspaceId.isEmpty
+          ? const <AppUser>[]
+          : users
+                .where((user) => user.workspaceId.trim() == workspaceId)
+                .toList(growable: false),
+    );
+  },
 );
 
 final partnerAccountsProvider =
@@ -172,12 +192,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                   activeFilter: _activeFilter,
                   pendingCount: pendingCount,
                   onCreatePartner: _openPartnerForm,
-                  onLinkAccount: () => _openLinkingOptionsSheet(
-                    context: context,
-                    ref: ref,
-                    pendingRequests:
-                        pendingRequestsAsync.valueOrNull ?? const [],
-                  ),
+                  onLinkAccount: _openLinkAccountFlow,
                   onFilterChanged: (filter) {
                     setState(() => _activeFilter = filter);
                   },
@@ -206,8 +221,12 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                 const SizedBox(height: 12),
                 if (partnerItems.isEmpty)
                   EmptyStateView(
-                    title: 'لا يوجد شركاء حاليًا',
-                    message: 'ابدأ بإضافة شريك جديد أو ربط حساب موجود',
+                    title: session?.profile?.workspaceId.trim().isEmpty == true
+                        ? 'لا توجد بيانات شركاء'
+                        : 'لا يوجد شركاء حاليًا',
+                    message: session?.profile?.workspaceId.trim().isEmpty == true
+                        ? 'هذا الحساب غير مرتبط بأي مساحة عمل حاليًا.'
+                        : 'ابدأ بإضافة شريك جديد أو ربط حساب موجود',
                     actionLabel: 'إنشاء شريك',
                     onAction: _openPartnerForm,
                   )
@@ -345,6 +364,158 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
     );
   }
 
+  Future<void> _openLinkAccountFlow() async {
+    final session = ref.read(authSessionProvider).valueOrNull;
+    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+    if (workspaceId.isEmpty) {
+      _showInfoSnackBar('هذا الحساب غير مرتبط بأي مساحة عمل حاليًا.');
+      return;
+    }
+
+    final partners = ref.read(partnersStreamProvider).valueOrNull ?? const [];
+    final accounts = ref.read(partnerAccountsProvider).valueOrNull ?? const [];
+    if (partners.isEmpty) {
+      _showInfoSnackBar('لا يوجد شركاء متاحون للربط حاليًا.');
+      return;
+    }
+
+    final availableUsers = accounts
+        .where((account) => !account.isLinked)
+        .toList(growable: false);
+    if (availableUsers.isEmpty) {
+      _showInfoSnackBar('لا يوجد مستخدمون متاحون للربط حاليًا');
+      return;
+    }
+
+    String? selectedPartnerId = partners.first.id;
+    String? selectedUserId = availableUsers.first.user.uid;
+
+    final approved = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setLocalState) {
+          return AlertDialog(
+            title: const Text('ربط حساب'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: selectedPartnerId,
+                  decoration: const InputDecoration(labelText: 'اختيار شريك'),
+                  items: [
+                    for (final partner in partners)
+                      DropdownMenuItem(
+                        value: partner.id,
+                        child: Text(partner.name),
+                      ),
+                  ],
+                  onChanged: (value) => setLocalState(() {
+                    selectedPartnerId = value;
+                  }),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: selectedUserId,
+                  decoration: const InputDecoration(labelText: 'اختيار مستخدم'),
+                  items: [
+                    for (final account in availableUsers)
+                      DropdownMenuItem(
+                        value: account.user.uid,
+                        child: Text(
+                          '${account.user.fullName} - ${account.user.email}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                  ],
+                  onChanged: (value) => setLocalState(() {
+                    selectedUserId = value;
+                  }),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('إلغاء'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('تنفيذ الربط'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    if (approved != true || selectedPartnerId == null || selectedUserId == null) {
+      return;
+    }
+    final selectedPartner = partners.firstWhereOrNull(
+      (partner) => partner.id == selectedPartnerId,
+    );
+    final selectedAccount = accounts.firstWhereOrNull(
+      (account) => account.user.uid == selectedUserId,
+    );
+    if (selectedPartner == null || selectedAccount == null) {
+      _showInfoSnackBar('تعذر العثور على بيانات الربط المطلوبة.');
+      return;
+    }
+    await _linkPartnerToUser(
+      partner: selectedPartner,
+      user: selectedAccount.user,
+      workspaceId: workspaceId,
+    );
+  }
+
+  Future<void> _linkPartnerToUser({
+    required Partner partner,
+    required AppUser user,
+    required String workspaceId,
+  }) async {
+    await _unlinkUserFromOtherPartners(user.uid, exceptPartnerId: partner.id);
+    if (partner.userId.trim().isNotEmpty && partner.userId != user.uid) {
+      await ref
+          .read(userProfileRemoteDataSourceProvider)
+          .clearPartnerLink(partner.userId, expectedPartnerId: partner.id);
+    }
+
+    await ref.read(partnerRepositoryProvider).upsert(
+      partner.copyWith(
+        userId: user.uid,
+        linkedEmail: user.email.trim().toLowerCase(),
+        workspaceId: workspaceId,
+        updatedAt: DateTime.now(),
+      ),
+    );
+    await ref.read(userProfileRemoteDataSourceProvider).setPartnerLink(
+      uid: user.uid,
+      partnerId: partner.id,
+      partnerName: partner.name,
+      workspaceId: workspaceId,
+    );
+    _showInfoSnackBar('تم ربط المستخدم بالشريك بنجاح.');
+  }
+
+  Future<void> _unlinkUserFromOtherPartners(
+    String userId, {
+    required String exceptPartnerId,
+  }) async {
+    final partners = ref.read(partnersStreamProvider).valueOrNull ?? const [];
+    for (final partner in partners) {
+      if (partner.id == exceptPartnerId || partner.userId.trim() != userId.trim()) {
+        continue;
+      }
+      await ref.read(partnerRepositoryProvider).upsert(
+        partner.copyWith(
+          userId: '',
+          linkedEmail: '',
+          updatedAt: DateTime.now(),
+        ),
+      );
+    }
+  }
+
   Future<void> _showManageAccountSheet(Partner partner) async {
     final hasAccount = _hasAccount(partner);
 
@@ -406,7 +577,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                   label: 'إنشاء حساب دخول',
                   onTap: () {
                     Navigator.of(context).pop();
-                    _showInfoSnackBar('يتم تجهيز إنشاء حساب دخول لهذا الشريك.');
+                    _openPartnerForm(partner: partner);
                   },
                 ),
                 _ActionTile(
@@ -414,7 +585,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                   label: 'ربط بحساب موجود',
                   onTap: () {
                     Navigator.of(context).pop();
-                    _showInfoSnackBar('اختر حسابًا موجودًا لربطه بهذا الشريك.');
+                    _openLinkAccountFlow();
                   },
                 ),
               ],

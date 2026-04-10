@@ -35,9 +35,13 @@ class PropertiesScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(6, 4, 6, 14),
           children: [
             if (viewData.summaries.isEmpty)
-              const EmptyStateView(
-                title: 'لا توجد مشروعات بعد',
-                message: 'ستظهر المشروعات هنا بعد إضافة البيانات إلى مساحة العمل.',
+              EmptyStateView(
+                title: viewData.isWorkspaceLinked
+                    ? 'لا توجد مشروعات بعد'
+                    : 'لا توجد مشاريع بعد',
+                message: viewData.isWorkspaceLinked
+                    ? 'ستظهر المشروعات هنا بعد إضافة البيانات إلى مساحة العمل.'
+                    : 'هذا الحساب غير مرتبط بأي مساحة عمل حاليًا.',
               )
             else
               LayoutBuilder(
