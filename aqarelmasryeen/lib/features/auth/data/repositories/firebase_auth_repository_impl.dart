@@ -12,6 +12,7 @@ import 'package:aqarelmasryeen/features/auth/data/datasources/user_profile_remot
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
+import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/models/app_user.dart';
 import 'package:aqarelmasryeen/shared/models/auth_device_info.dart';
@@ -28,6 +29,7 @@ class FirebaseAuthRepository implements AuthRepository {
     this._activityRepository,
     this._notificationRepository,
     this._secureStorage,
+    this._cacheService,
     this._deviceInfoService,
     this._analytics,
     this._crashlytics,
@@ -40,6 +42,7 @@ class FirebaseAuthRepository implements AuthRepository {
   final ActivityRepository _activityRepository;
   final NotificationRepository _notificationRepository;
   final SecureStorageService _secureStorage;
+  final LocalCacheService _cacheService;
   final DeviceInfoService _deviceInfoService;
   final FirebaseAnalytics _analytics;
   final FirebaseCrashlytics _crashlytics;
@@ -49,6 +52,7 @@ class FirebaseAuthRepository implements AuthRepository {
     await for (final user in _authDataSource.authStateChanges()) {
       if (user == null) {
         await _secureStorage.clearSessionData();
+        await _cacheService.clearByPrefix('cache.');
         yield null;
         continue;
       }
@@ -472,6 +476,7 @@ class FirebaseAuthRepository implements AuthRepository {
       await _localDataSource.clearProfile(user.uid);
     }
     await _secureStorage.clearSessionData();
+    await _cacheService.clearByPrefix('cache.');
     await _authDataSource.signOut();
   }
 
