@@ -43,13 +43,22 @@ class DashboardScopeResolver {
     required List<SupplierPaymentRecord> supplierPayments,
   }) {
     final workspaceId = profile?.workspaceId.trim() ?? '';
+    if (workspaceId.isEmpty) {
+      return const DashboardScopedData(
+        partners: [],
+        properties: [],
+        units: [],
+        installments: [],
+        payments: [],
+        expenses: [],
+        materials: [],
+        supplierPayments: [],
+      );
+    }
     final visiblePartners = partners
         .where((partner) {
           final partnerWorkspace = partner.workspaceId.trim();
-          if (workspaceId.isEmpty || workspaceId == partnerWorkspace) {
-            return true;
-          }
-          return partner.userId.trim() == currentUserId;
+          return workspaceId == partnerWorkspace;
         })
         .toList(growable: false);
 
@@ -109,59 +118,6 @@ class DashboardScopeResolver {
     final visibleSupplierPayments = supplierPayments
         .where((payment) => propertyIds.contains(payment.propertyId))
         .toList(growable: false);
-
-    final hasAnyScopeData =
-        visiblePartners.isNotEmpty ||
-        visibleProperties.isNotEmpty ||
-        visibleUnits.isNotEmpty ||
-        visibleInstallments.isNotEmpty;
-
-    if (!hasAnyScopeData && currentUserId.trim().isNotEmpty) {
-      final ownProperties = properties
-          .where((property) => property.createdBy.trim() == currentUserId)
-          .toList(growable: false);
-      final ownPropertyIds = ownProperties
-          .map((property) => property.id)
-          .toSet();
-      final ownUnits = units
-          .where((unit) => ownPropertyIds.contains(unit.propertyId))
-          .toList(growable: false);
-      final ownUnitIds = ownUnits.map((unit) => unit.id).toSet();
-      final ownInstallments = installments
-          .where(
-            (installment) =>
-                ownUnitIds.contains(installment.unitId) ||
-                ownPropertyIds.contains(installment.propertyId),
-          )
-          .toList(growable: false);
-      final ownInstallmentIds = ownInstallments
-          .map((installment) => installment.id)
-          .toSet();
-
-      return DashboardScopedData(
-        partners: visiblePartners,
-        properties: ownProperties,
-        units: ownUnits,
-        installments: ownInstallments,
-        payments: payments
-            .where(
-              (payment) =>
-                  ownPropertyIds.contains(payment.propertyId) ||
-                  ownUnitIds.contains(payment.unitId) ||
-                  ownInstallmentIds.contains(payment.installmentId?.trim()),
-            )
-            .toList(growable: false),
-        expenses: expenses
-            .where((expense) => ownPropertyIds.contains(expense.propertyId))
-            .toList(growable: false),
-        materials: materials
-            .where((item) => ownPropertyIds.contains(item.propertyId))
-            .toList(growable: false),
-        supplierPayments: supplierPayments
-            .where((item) => ownPropertyIds.contains(item.propertyId))
-            .toList(growable: false),
-      );
-    }
 
     return DashboardScopedData(
       partners: visiblePartners,

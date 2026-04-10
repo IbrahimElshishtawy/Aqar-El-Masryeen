@@ -24,6 +24,35 @@ service cloud.firestore {
         && currentUserDoc().data.isActive == true;
     }
 
+    function currentWorkspaceId() {
+      return currentUserDoc().data.workspaceId;
+    }
+
+    function hasWorkspace() {
+      return isActivePartner()
+        && currentWorkspaceId() is string
+        && currentWorkspaceId() != '';
+    }
+
+    function matchesWorkspace(data) {
+      return hasWorkspace()
+        && data.workspaceId is string
+        && data.workspaceId != ''
+        && data.workspaceId == currentWorkspaceId();
+    }
+
+    function creatorInWorkspace(data) {
+      return hasWorkspace()
+        && data.createdBy is string
+        && data.createdBy != ''
+        && exists(/databases/$(database)/documents/users/$(data.createdBy))
+        && get(/databases/$(database)/documents/users/$(data.createdBy)).data.workspaceId == currentWorkspaceId();
+    }
+
+    function matchesWorkspaceOrCreator(data) {
+      return matchesWorkspace(data) || creatorInWorkspace(data);
+    }
+
     function immutableUserCore(userId) {
       return request.resource.data.uid == userId
         && request.resource.data.role == resource.data.role
@@ -50,11 +79,13 @@ service cloud.firestore {
         && validUserProfile(userId)
         && request.resource.data.isActive == true;
 
-      allow read: if isOwner(userId);
+      allow read: if isOwner(userId)
+        || (hasWorkspace() && matchesWorkspace(resource.data));
 
-      allow update: if isOwner(userId)
+      allow update: if (isOwner(userId) || (hasWorkspace() && matchesWorkspace(resource.data)))
         && immutableUserCore(userId)
-        && validUserProfile(userId);
+        && validUserProfile(userId)
+        && matchesWorkspace(request.resource.data);
 
       allow delete: if false;
     }
@@ -70,14 +101,16 @@ service cloud.firestore {
     }
 
     match /notifications/{notificationId} {
-      allow create: if isActivePartner();
-      allow read, update: if isActivePartner()
-        && resource.data.userId == request.auth.uid;
+      allow create: if hasWorkspace() && matchesWorkspace(request.resource.data);
+      allow read, update: if hasWorkspace()
+        && resource.data.userId == request.auth.uid
+        && matchesWorkspace(resource.data);
       allow delete: if false;
     }
 
     match /activity_logs/{logId} {
-      allow create, read: if isActivePartner();
+      allow create: if hasWorkspace() && matchesWorkspace(request.resource.data);
+      allow read: if hasWorkspace() && matchesWorkspace(resource.data);
       allow update, delete: if false;
     }
 
@@ -86,7 +119,7 @@ service cloud.firestore {
     }
 
     match /{collection}/{documentId} {
-      allow read, write: if isActivePartner()
+      allow read: if hasWorkspace()
         && collection in [
           'partners',
           'properties',
@@ -99,7 +132,38 @@ service cloud.firestore {
           'installments',
           'payments',
           'partner_ledgers'
-        ];
+        ]
+        && matchesWorkspaceOrCreator(resource.data);
+      allow create, update: if hasWorkspace()
+        && collection in [
+          'partners',
+          'properties',
+          'expenses',
+          'unit_expenses',
+          'material_expenses',
+          'supplier_payments',
+          'units',
+          'installment_plans',
+          'installments',
+          'payments',
+          'partner_ledgers'
+        ]
+        && matchesWorkspaceOrCreator(request.resource.data);
+      allow delete: if hasWorkspace()
+        && collection in [
+          'partners',
+          'properties',
+          'expenses',
+          'unit_expenses',
+          'material_expenses',
+          'supplier_payments',
+          'units',
+          'installment_plans',
+          'installments',
+          'payments',
+          'partner_ledgers'
+        ]
+        && matchesWorkspaceOrCreator(resource.data);
     }
   }
 }

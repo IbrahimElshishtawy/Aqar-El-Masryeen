@@ -149,7 +149,7 @@ class UserProfileRemoteDataSource {
     return _users.doc(uid).set({
       'linkedPartnerId': partnerId,
       'linkedPartnerName': partnerName,
-      'workspaceId': workspaceId ?? AppConfig.defaultWorkspaceId,
+      'workspaceId': workspaceId?.trim() ?? '',
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -207,7 +207,7 @@ class UserProfileRemoteDataSource {
         'createdByName': existing?.createdByName.isNotEmpty == true
             ? existing!.createdByName
             : fullName,
-        'workspaceId': existing?.workspaceId ?? AppConfig.defaultWorkspaceId,
+        'workspaceId': existing?.workspaceId ?? '',
         'linkedPartnerId': existing?.linkedPartnerId ?? '',
         'linkedPartnerName': existing?.linkedPartnerName ?? '',
       },
@@ -306,7 +306,7 @@ class UserProfileRemoteDataSource {
     if (normalizedExisting.isNotEmpty) {
       return normalizedExisting;
     }
-    return AppConfig.defaultWorkspaceId;
+    return '';
   }
 
   String _resolveCreatedBy({

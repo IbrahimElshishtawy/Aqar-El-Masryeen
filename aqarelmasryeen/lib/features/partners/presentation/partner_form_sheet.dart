@@ -35,7 +35,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
   bool _obscureConfirmPassword = true;
 
   bool get _canCreateLinkedAccount =>
-      widget.partner == null || widget.partner!.userId.isEmpty;
+      widget.partner?.userId.isEmpty ?? true;
 
   @override
   void initState() {
@@ -67,6 +67,10 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
 
     final currentEmail = _resolveSessionEmail(session);
     final workspaceId = _resolveWorkspaceId(session);
+    if (workspaceId.isEmpty) {
+      _showMessage('هذا الحساب غير مرتبط بأي مساحة عمل حاليًا.');
+      return;
+    }
     final normalizedEmail = _linkToCurrentAccount
         ? currentEmail
         : _emailController.text.trim().toLowerCase();
@@ -407,6 +411,8 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
                       ? 'إنشاء الحساب وربط الشريك'
                       : _linkToCurrentAccount
                       ? 'حفظ وربط بالحساب الحالي'
+                      : _emailController.text.trim().isEmpty
+                      ? 'حفظ الشريك فقط'
                       : 'حفظ وإرسال طلب ربط',
                 ),
               ),
@@ -428,8 +434,5 @@ String _resolveSessionEmail(AppSession? session) {
 
 String _resolveWorkspaceId(AppSession? session) {
   final workspaceId = session?.profile?.workspaceId.trim() ?? '';
-  if (workspaceId.isNotEmpty) {
-    return workspaceId;
-  }
-  return 'workspace_main';
+  return workspaceId;
 }
