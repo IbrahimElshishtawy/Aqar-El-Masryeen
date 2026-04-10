@@ -400,7 +400,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: selectedPartnerId,
+                  initialValue: selectedPartnerId,
                   decoration: const InputDecoration(labelText: 'اختيار شريك'),
                   items: [
                     for (final partner in partners)
@@ -415,7 +415,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
-                  value: selectedUserId,
+                  initialValue: selectedUserId,
                   decoration: const InputDecoration(labelText: 'اختيار مستخدم'),
                   items: [
                     for (final account in availableUsers)
@@ -1291,76 +1291,6 @@ String _shortUid(String uid) {
     return normalized;
   }
   return '${normalized.substring(0, 8)}...';
-}
-
-void _openLinkingOptionsSheet({
-  required BuildContext context,
-  required WidgetRef ref,
-  required List<AppNotificationItem> pendingRequests,
-}) {
-  showModalBottomSheet<void>(
-    context: context,
-    useSafeArea: true,
-    showDragHandle: true,
-    builder: (_) => SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'ربط حساب',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              pendingRequests.isEmpty
-                  ? 'يمكنك بدء ربط حساب شريك جديد أو استخدام حساب موجود.'
-                  : 'لديك ${pendingRequests.length} طلب ربط بانتظار المراجعة.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            _ActionTile(
-              icon: Icons.person_add_rounded,
-              label: 'إنشاء حساب لشريك',
-              onTap: () {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('اختر الشريك ثم أكمل إنشاء الحساب.'),
-                  ),
-                );
-              },
-            ),
-            _ActionTile(
-              icon: Icons.link_rounded,
-              label: 'ربط بحساب موجود',
-              onTap: () {
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('اختر الحساب الموجود لإتمام الربط.'),
-                  ),
-                );
-              },
-            ),
-            if (pendingRequests.isNotEmpty)
-              _ActionTile(
-                icon: Icons.mark_email_read_outlined,
-                label: 'مراجعة طلبات الربط',
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _showPendingRequestsSheet(context, ref, pendingRequests);
-                },
-              ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
 
 void _showPendingRequestsSheet(
