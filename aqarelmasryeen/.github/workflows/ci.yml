@@ -43,7 +43,7 @@ jobs:
   functions:
     name: Firebase Functions Checks
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('aqarelmasryeen/functions/package.json') != '' }}
+  
 
     defaults:
       run:

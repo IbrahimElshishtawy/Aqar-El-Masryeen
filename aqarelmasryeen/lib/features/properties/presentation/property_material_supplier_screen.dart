@@ -1,4 +1,4 @@
-// ignore_for_file: unused_element
+// ignore_for_file: deprecated_member_use, unused_element
 
 import 'dart:math' as math;
 
@@ -807,9 +807,16 @@ class _SupplierLedgerCompactCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Expanded(child: _LedgerValue(label: 'المدفوع', value: row.paidValue.egp)),
+              Expanded(
+                child: _LedgerValue(label: 'المدفوع', value: row.paidValue.egp),
+              ),
               const SizedBox(width: 8),
-              Expanded(child: _LedgerValue(label: 'المتبقي', value: row.remainingAfter.egp)),
+              Expanded(
+                child: _LedgerValue(
+                  label: 'المتبقي',
+                  value: row.remainingAfter.egp,
+                ),
+              ),
             ],
           ),
           if (row.notes.trim().isNotEmpty) ...[
