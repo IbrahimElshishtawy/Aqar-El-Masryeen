@@ -30,6 +30,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
   late final TextEditingController _confirmPasswordController;
   bool _linkToCurrentAccount = false;
   bool _createPartnerAccount = false;
+  bool _autoLinkToWorkspace = true;
   bool _saving = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -97,7 +98,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
               password: _passwordController.text,
               createdBy: session.userId,
               createdByName: session.profile?.name ?? 'شريك',
-              workspaceId: workspaceId,
+              workspaceId: _autoLinkToWorkspace ? workspaceId : null,
             );
         linkedUserId = createdProfile.uid;
         accountCreated = true;
@@ -152,11 +153,12 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
         );
         await ref
             .read(userProfileRemoteDataSourceProvider)
-            .setPartnerLink(
+            .updateAccountLinkage(
               uid: linkedUserId,
-              partnerId: partnerId,
-              partnerName: partner.name,
               workspaceId: workspaceId,
+              linkedPartnerId: partnerId,
+              linkedPartnerName: partner.name,
+              createdBy: session.userId,
             );
       }
 
@@ -218,7 +220,7 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
 
       _showMessage(
         accountCreated
-            ? 'تم إنشاء حساب الدخول وربطه بنجاح'
+            ? 'تم إنشاء الحساب وربطه بنجاح'
             : requestSent
             ? 'تم حفظ الشريك وإرسال طلب ربط الحساب.'
             : linkedUserId == session.userId
@@ -299,11 +301,26 @@ class _PartnerFormSheetState extends ConsumerState<PartnerFormSheet> {
                         _createPartnerAccount = value;
                         if (value) {
                           _linkToCurrentAccount = false;
+                          _autoLinkToWorkspace = true;
                         }
                       }),
                 title: const Text('إنشاء حساب دخول للشريك'),
                 subtitle: const Text(
                   'اكتب اسم الشريك وإيميله وكلمة المرور، وبعد أول تسجيل دخول هيظهر له نفس المشروعات والحسابات.',
+                ),
+              ),
+            ],
+            if (_createPartnerAccount) ...[
+              const SizedBox(height: 4),
+              SwitchListTile.adaptive(
+                contentPadding: EdgeInsets.zero,
+                value: _autoLinkToWorkspace,
+                onChanged: (value) {
+                  setState(() => _autoLinkToWorkspace = value);
+                },
+                title: const Text('ربط الحساب تلقائيًا بمساحة عملي'),
+                subtitle: const Text(
+                  'عند التفعيل سيتم تعيين مساحة العمل وربط الحساب فور إنشائه بدون خطوات إضافية.',
                 ),
               ),
             ],

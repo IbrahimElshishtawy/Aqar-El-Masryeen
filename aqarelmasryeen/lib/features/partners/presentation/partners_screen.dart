@@ -125,6 +125,7 @@ enum _PartnerAccountsFilter {
   createdByMe,
   linkedOnly,
   unlinked,
+  sameWorkspace,
   hasLoginAccount,
   availableForLink,
 }
@@ -174,9 +175,11 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
             final pendingCount = pendingRequestsAsync.valueOrNull?.length ?? 0;
             final accountItems =
                 accountsAsync.valueOrNull ?? const <PartnerAccountSummary>[];
+            final currentWorkspaceId = session?.profile?.workspaceId.trim() ?? '';
             final filteredAccounts = _applyAccountFilters(
               accountItems,
               currentUserId,
+              currentWorkspaceId,
             );
             final availableLinkCount = accountItems
                 .where((item) => !item.isLinked && item.user.isActive)
@@ -207,6 +210,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                   accountsAsync: accountsAsync,
                   accounts: filteredAccounts,
                   activeFilter: _activeAccountFilter,
+                  currentWorkspaceId: currentWorkspaceId,
                   totalAccountsCount: accountItems.length,
                   createdByMeCount: currentUserId.isEmpty
                       ? 0
@@ -218,6 +222,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                   onFilterChanged: (filter) {
                     setState(() => _activeAccountFilter = filter);
                   },
+                  onLinkToCurrentContext: _linkUserToCurrentContext,
                   onRetry: () {
                     ref.invalidate(partnerAccountsStreamProvider);
                     ref.invalidate(partnerAccountsProvider);
@@ -331,6 +336,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
   List<PartnerAccountSummary> _applyAccountFilters(
     List<PartnerAccountSummary> source,
     String currentUserId,
+    String currentWorkspaceId,
   ) {
     final query = _searchController.text.trim().toLowerCase();
 
@@ -341,6 +347,9 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
           currentUserId.isNotEmpty && item.createdByCurrentUser,
         _PartnerAccountsFilter.linkedOnly => item.isLinked,
         _PartnerAccountsFilter.unlinked => !item.isLinked,
+        _PartnerAccountsFilter.sameWorkspace =>
+          currentWorkspaceId.isNotEmpty &&
+          item.user.workspaceId.trim() == currentWorkspaceId,
         _PartnerAccountsFilter.hasLoginAccount =>
           item.user.email.trim().isNotEmpty,
         _PartnerAccountsFilter.availableForLink =>
@@ -400,7 +409,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
         .where((account) => !account.isLinked && account.user.isActive)
         .toList(growable: false);
     if (availableUsers.isEmpty) {
-      _showInfoSnackBar('لا يوجد مستخدمون متاحون للربط');
+      _showInfoSnackBar('لا توجد حسابات متاحة');
       return;
     }
 
@@ -551,7 +560,48 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
       partnerName: partner.name,
       workspaceId: workspaceId,
     );
-    _showInfoSnackBar('تم ربط الحساب بالشريك بنجاح');
+    _showInfoSnackBar('تم تحديث بيانات الربط بنجاح');
+  }
+
+  Future<void> _linkUserToCurrentContext(PartnerAccountSummary summary) async {
+    final session = ref.read(authSessionProvider).valueOrNull;
+    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+    if (workspaceId.isEmpty) {
+      _showInfoSnackBar('لا يمكن ربط هذا الحساب لأن مساحة العمل الحالية غير محددة.');
+      return;
+    }
+
+    if (summary.user.uid == session?.userId) {
+      _showInfoSnackBar('هذا الحساب مرتبط بالفعل');
+      return;
+    }
+
+    final partnerId = session?.profile?.linkedPartnerId.trim() ?? '';
+    final partnerName = session?.profile?.linkedPartnerName.trim() ?? '';
+    final alreadyInWorkspace = summary.user.workspaceId.trim() == workspaceId;
+    final alreadyLinkedToSamePartner =
+        partnerId.isNotEmpty &&
+        summary.user.linkedPartnerId.trim() == partnerId &&
+        summary.user.linkedPartnerName.trim() == partnerName;
+    if (alreadyInWorkspace && (partnerId.isEmpty || alreadyLinkedToSamePartner)) {
+      _showInfoSnackBar('هذا الحساب مرتبط بالفعل');
+      return;
+    }
+
+    try {
+      await ref
+          .read(userProfileRemoteDataSourceProvider)
+          .updateAccountLinkage(
+            uid: summary.user.uid,
+            workspaceId: workspaceId,
+            linkedPartnerId: partnerId.isEmpty ? null : partnerId,
+            linkedPartnerName: partnerName.isEmpty ? null : partnerName,
+            createdBy: session?.userId,
+          );
+      _showInfoSnackBar('تم ربط هذا المستخدم بالحساب الحالي');
+    } catch (_) {
+      _showInfoSnackBar('فشل الربط');
+    }
   }
 
   Future<void> _unlinkUserFromOtherPartners(
@@ -916,22 +966,26 @@ class _PartnerAccountsSection extends StatelessWidget {
     required this.accountsAsync,
     required this.accounts,
     required this.activeFilter,
+    required this.currentWorkspaceId,
     required this.totalAccountsCount,
     required this.createdByMeCount,
     required this.linkedCount,
     required this.availableLinkCount,
     required this.onFilterChanged,
+    required this.onLinkToCurrentContext,
     required this.onRetry,
   });
 
   final AsyncValue<List<PartnerAccountSummary>> accountsAsync;
   final List<PartnerAccountSummary> accounts;
   final _PartnerAccountsFilter activeFilter;
+  final String currentWorkspaceId;
   final int totalAccountsCount;
   final int createdByMeCount;
   final int linkedCount;
   final int availableLinkCount;
   final ValueChanged<_PartnerAccountsFilter> onFilterChanged;
+  final Future<void> Function(PartnerAccountSummary summary) onLinkToCurrentContext;
   final VoidCallback onRetry;
 
   @override
@@ -1006,6 +1060,12 @@ class _PartnerAccountsSection extends StatelessWidget {
                 onTap: () => onFilterChanged(_PartnerAccountsFilter.unlinked),
               ),
               _FilterChipButton(
+                label: 'ضمن نفس مساحة العمل',
+                selected: activeFilter == _PartnerAccountsFilter.sameWorkspace,
+                onTap: () =>
+                    onFilterChanged(_PartnerAccountsFilter.sameWorkspace),
+              ),
+              _FilterChipButton(
                 label: 'الذين لهم حساب',
                 selected: activeFilter == _PartnerAccountsFilter.hasLoginAccount,
                 onTap: () =>
@@ -1030,14 +1090,18 @@ class _PartnerAccountsSection extends StatelessWidget {
               }
               if (accounts.isEmpty) {
                 return const EmptyStateView(
-                  title: 'لا توجد نتائج مطابقة',
+                  title: 'لا توجد حسابات متاحة للربط',
                   message: 'جرّب تغيير فلتر الحسابات أو تعديل عبارة البحث.',
                 );
               }
               return Column(
                 children: [
                   for (var index = 0; index < accounts.length; index++) ...[
-                    _PartnerAccountCard(summary: accounts[index]),
+                    _PartnerAccountCard(
+                      summary: accounts[index],
+                      currentWorkspaceId: currentWorkspaceId,
+                      onLinkToCurrentContext: onLinkToCurrentContext,
+                    ),
                     if (index != accounts.length - 1) const SizedBox(height: 10),
                   ],
                 ],
@@ -1059,19 +1123,37 @@ class _PartnerAccountsSection extends StatelessWidget {
   }
 }
 
-class _PartnerAccountCard extends StatelessWidget {
-  const _PartnerAccountCard({required this.summary});
+class _PartnerAccountCard extends StatefulWidget {
+  const _PartnerAccountCard({
+    required this.summary,
+    required this.currentWorkspaceId,
+    required this.onLinkToCurrentContext,
+  });
 
   final PartnerAccountSummary summary;
+  final String currentWorkspaceId;
+  final Future<void> Function(PartnerAccountSummary summary) onLinkToCurrentContext;
+
+  @override
+  State<_PartnerAccountCard> createState() => _PartnerAccountCardState();
+}
+
+class _PartnerAccountCardState extends State<_PartnerAccountCard> {
+  bool _linking = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final summary = widget.summary;
     final user = summary.user;
+    final sameWorkspace =
+        widget.currentWorkspaceId.isNotEmpty &&
+        user.workspaceId.trim() == widget.currentWorkspaceId;
     final linkedPartnerName =
         summary.linkedPartner?.name.trim().isNotEmpty == true
         ? summary.linkedPartner!.name.trim()
         : user.linkedPartnerName.trim();
+    final isAlreadyLinked = summary.isLinked && sameWorkspace;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1144,7 +1226,15 @@ class _PartnerAccountCard extends StatelessWidget {
                     : Icons.link_off_rounded,
                 label: summary.isLinked
                     ? 'مرتبط: ${linkedPartnerName.isEmpty ? 'نعم' : linkedPartnerName}'
-                    : 'غير مرتبط',
+                    : 'بدون ربط',
+              ),
+              _TagPill(
+                icon: sameWorkspace
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.travel_explore_rounded,
+                label: sameWorkspace
+                    ? 'ضمن مساحة العمل الحالية'
+                    : 'خارج مساحة العمل الحالية',
               ),
             ],
           ),
@@ -1162,10 +1252,40 @@ class _PartnerAccountCard extends StatelessWidget {
                     : user.workspaceId.trim(),
               ),
               _InfoText(
+                label: 'الشريك المرتبط',
+                value: linkedPartnerName.isEmpty ? 'غير مرتبط' : linkedPartnerName,
+              ),
+              _InfoText(
                 label: 'حالة الحساب',
                 value: user.isActive ? 'نشط' : 'معطل',
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: FilledButton.tonalIcon(
+              onPressed: isAlreadyLinked || _linking
+                  ? null
+                  : () async {
+                      setState(() => _linking = true);
+                      try {
+                        await widget.onLinkToCurrentContext(summary);
+                      } finally {
+                        if (mounted) {
+                          setState(() => _linking = false);
+                        }
+                      }
+                    },
+              icon: Icon(isAlreadyLinked ? Icons.check_circle : Icons.link),
+              label: Text(
+                isAlreadyLinked
+                    ? 'مربوط بالحساب الحالي'
+                    : _linking
+                    ? 'جارٍ تنفيذ الربط...'
+                    : 'ربط بالحساب الحالي',
+              ),
+            ),
           ),
         ],
       ),
