@@ -10,7 +10,7 @@ const db = admin.firestore();
 const messaging = admin.messaging();
 
 const DEFAULT_ROUTE = '/notifications';
-const DEFAULT_CHANNEL_ID = 'finance_alerts';
+const DEFAULT_CHANNEL_ID = 'activity_alerts';
 const DEFAULT_WORKSPACE_ID = '';
 const REMINDER_LEAD_DAYS = [7, 3, 1];
 const MAX_TOKENS_PER_BATCH = 500;
@@ -144,6 +144,69 @@ exports.sendNotificationPush = onDocumentCreated(
         errors: [error instanceof Error ? error.message : String(error)],
       });
     }
+  },
+);
+
+exports.fanOutActivityNotifications = onDocumentCreated(
+  {
+    document: 'activity_logs/{activityId}',
+    retry: false,
+  },
+  async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) {
+      return;
+    }
+
+    const activityId = snapshot.id;
+    const data = snapshot.data() || {};
+    const workspaceId = resolveWorkspaceId(data.workspaceId);
+    if (!workspaceId) {
+      logger.info('Skipping activity notification fan-out because workspaceId is missing.', {
+        activityId,
+      });
+      return;
+    }
+
+    const activeUsers = await loadActiveUsers();
+    const workspaceUserIds = resolveWorkspaceUserIds(activeUsers, workspaceId);
+    const recipientUserIds = filterActivityRecipientUserIds(workspaceUserIds, data);
+    if (recipientUserIds.length === 0) {
+      return;
+    }
+
+    const activityNotification = buildActivityNotificationPayload({
+      activityId,
+      data,
+      workspaceId,
+    });
+    if (!activityNotification) {
+      return;
+    }
+
+    const batch = db.batch();
+    for (const userId of recipientUserIds) {
+      const notificationId = `activity-${activityId}-${userId}`;
+      batch.set(
+        db.collection('notifications').doc(notificationId),
+        buildNotificationPayload({
+          userId,
+          workspaceId,
+          title: activityNotification.title,
+          body: activityNotification.body,
+          type: activityNotification.type,
+          route: activityNotification.route,
+          referenceKey: notificationId,
+          metadata: {
+            ...activityNotification.metadata,
+            activityId,
+          },
+        }),
+        { merge: true },
+      );
+    }
+
+    await batch.commit();
   },
 );
 
@@ -609,6 +672,310 @@ function resolveWorkspaceUserIds(activeUsers, workspaceId) {
 
 function resolveWorkspaceId(workspaceId) {
   return asNonEmptyString(workspaceId) || DEFAULT_WORKSPACE_ID;
+}
+
+function filterActivityRecipientUserIds(userIds, activityData) {
+  const actorId = asNonEmptyString(activityData.actorId);
+  if (!actorId) {
+    return userIds;
+  }
+
+  const action = asNonEmptyString(activityData.action);
+  if (!shouldSkipActorActivityNotification(action)) {
+    return userIds;
+  }
+
+  return userIds.filter((userId) => userId !== actorId);
+}
+
+function shouldSkipActorActivityNotification(action) {
+  return new Set([
+    'expense_created',
+    'expense_updated',
+    'unit_expense_created',
+    'unit_expense_updated',
+    'payment_created',
+    'payment_updated',
+    'partner_ledger_created',
+    'partner_ledger_updated',
+  ]).has(action);
+}
+
+function buildActivityNotificationPayload({
+  activityId,
+  data,
+  workspaceId,
+}) {
+  const action = asNonEmptyString(data.action);
+  const entityType = asNonEmptyString(data.entityType);
+  const entityId = asNonEmptyString(data.entityId);
+  const actorId = asNonEmptyString(data.actorId);
+  const actorName = asNonEmptyString(data.actorName) || 'أحد أعضاء الفريق';
+  const metadata = isObject(data.metadata) ? data.metadata : {};
+
+  const title = resolveActivityNotificationTitle(action);
+  const body = buildActivityNotificationBody({
+    actorName,
+    action,
+    entityType,
+    entityId,
+    metadata,
+  });
+  if (!title || !body) {
+    return null;
+  }
+
+  return {
+    title,
+    body,
+    type: resolveActivityNotificationType(action, entityType),
+    route: resolveActivityRoute(entityType, entityId, metadata),
+    metadata: {
+      source: 'activity_log',
+      workspaceId,
+      actorId,
+      actorName,
+      action,
+      entityType,
+      entityId,
+      ...metadata,
+    },
+  };
+}
+
+function resolveActivityNotificationTitle(action) {
+  switch (action) {
+    case 'register':
+      return 'تم إنشاء حساب جديد';
+    case 'login':
+      return 'تم تسجيل دخول جديد';
+    case 'logout':
+      return 'تم تسجيل خروج';
+    case 'profile_completed':
+      return 'تم استكمال الملف الشخصي';
+    case 'security_preferences_updated':
+      return 'تم تحديث إعدادات الأمان';
+    case 'property_created':
+      return 'تم إنشاء مشروع جديد';
+    case 'property_updated':
+      return 'تم تحديث مشروع';
+    case 'property_archived':
+      return 'تمت أرشفة مشروع';
+    case 'expense_created':
+      return 'تم تسجيل مصروف جديد';
+    case 'expense_updated':
+      return 'تم تحديث مصروف';
+    case 'unit_created':
+      return 'تمت إضافة وحدة جديدة';
+    case 'unit_updated':
+      return 'تم تحديث بيانات الوحدة';
+    case 'unit_expense_created':
+      return 'تم تسجيل مصروف وحدة';
+    case 'unit_expense_updated':
+      return 'تم تحديث مصروف الوحدة';
+    case 'material_expense_created':
+      return 'تمت إضافة فاتورة مواد';
+    case 'material_expense_updated':
+      return 'تم تحديث فاتورة مواد';
+    case 'supplier_payment_recorded':
+      return 'تم تسجيل دفعة مورد';
+    case 'installment_plan_created':
+      return 'تم إنشاء خطة أقساط';
+    case 'installment_created':
+      return 'تمت إضافة قسط جديد';
+    case 'installment_updated':
+      return 'تم تحديث القسط';
+    case 'payment_recorded':
+    case 'payment_created':
+      return 'تم تسجيل تحصيل جديد';
+    case 'payment_updated':
+      return 'تم تحديث التحصيل';
+    case 'partner_created':
+      return 'تمت إضافة شريك';
+    case 'partner_updated':
+      return 'تم تحديث بيانات الشريك';
+    case 'partner_ledger_created':
+      return 'تم تسجيل حركة شريك';
+    case 'partner_ledger_updated':
+      return 'تم تحديث حركة شريك';
+    default:
+      return 'نشاط جديد في مساحة العمل';
+  }
+}
+
+function buildActivityNotificationBody({
+  actorName,
+  action,
+  entityType,
+  entityId,
+  metadata,
+}) {
+  const detailParts = [];
+
+  const primaryLabel =
+    asNonEmptyString(metadata.name) ||
+    asNonEmptyString(metadata.partnerName) ||
+    asNonEmptyString(metadata.itemName) ||
+    asNonEmptyString(metadata.supplierName) ||
+    asNonEmptyString(metadata.linkedEmail) ||
+    resolveActivityEntityLabel(action, entityType, entityId, metadata);
+  if (primaryLabel) {
+    detailParts.push(primaryLabel);
+  }
+
+  const unitId = asNonEmptyString(metadata.unitId);
+  if (unitId) {
+    detailParts.push(`الوحدة ${unitId}`);
+  }
+
+  const count = asNumber(metadata.count);
+  if (count > 0 && action === 'installment_plan_created') {
+    detailParts.push(`${count} قسط`);
+  }
+
+  const amount = asNumber(
+    metadata.amount ?? metadata.apartmentPrice ?? metadata.contributionTotal,
+  );
+  if (amount > 0) {
+    detailParts.push(`بقيمة ${formatAmount(amount)} ج.م`);
+  }
+
+  return detailParts.length === 0
+    ? `بواسطة ${actorName}`
+    : `بواسطة ${actorName} - ${detailParts.join(' - ')}`;
+}
+
+function resolveActivityEntityLabel(action, entityType, entityId, metadata) {
+  switch (entityType) {
+    case 'property':
+      return asNonEmptyString(metadata.name) || 'مشروع عقاري';
+    case 'expense':
+      return 'مصروف';
+    case 'unit':
+      return 'وحدة';
+    case 'unit_expense':
+      return 'مصروف وحدة';
+    case 'material_expense':
+      return asNonEmptyString(metadata.itemName) || 'فاتورة مواد';
+    case 'material_supplier':
+      return asNonEmptyString(metadata.supplierName) || 'دفعة مورد';
+    case 'installment_plan':
+      return 'خطة أقساط';
+    case 'installment':
+      return 'قسط';
+    case 'payment':
+      return asNonEmptyString(metadata.paymentType) || 'تحصيل';
+    case 'partner':
+      return asNonEmptyString(metadata.partnerName) || 'شريك';
+    case 'partner_ledger':
+      return 'حركة شريك';
+    case 'user':
+      return resolveUserActivityLabel(action);
+    default:
+      return entityId ? `مرجع ${entityId}` : '';
+  }
+}
+
+function resolveUserActivityLabel(action) {
+  switch (action) {
+    case 'register':
+      return 'حساب مستخدم';
+    case 'login':
+      return 'تسجيل دخول';
+    case 'logout':
+      return 'تسجيل خروج';
+    case 'profile_completed':
+      return 'الملف الشخصي';
+    case 'security_preferences_updated':
+      return 'إعدادات الأمان';
+    default:
+      return 'حساب مستخدم';
+  }
+}
+
+function resolveActivityNotificationType(action, entityType) {
+  if (
+    action === 'expense_created' ||
+    action === 'expense_updated' ||
+    action === 'unit_expense_created' ||
+    action === 'unit_expense_updated' ||
+    action === 'material_expense_created' ||
+    action === 'material_expense_updated' ||
+    entityType === 'expense' ||
+    entityType === 'unit_expense' ||
+    entityType === 'material_expense'
+  ) {
+    return 'expenseAdded';
+  }
+
+  if (
+    action === 'payment_created' ||
+    action === 'payment_recorded' ||
+    action === 'payment_updated' ||
+    entityType === 'payment'
+  ) {
+    return 'paymentReceived';
+  }
+
+  if (entityType === 'partner_ledger') {
+    return 'ledgerUpdated';
+  }
+
+  if (action === 'login') {
+    return 'newDeviceLogin';
+  }
+
+  return 'systemAlert';
+}
+
+function resolveActivityRoute(entityType, entityId, metadata) {
+  const propertyId = asNonEmptyString(metadata.propertyId);
+  const unitId = asNonEmptyString(metadata.unitId);
+  const supplierName = asNonEmptyString(metadata.supplierName);
+
+  switch (entityType) {
+    case 'property':
+      return entityId ? `/properties/${entityId}` : '/properties';
+    case 'unit':
+      if (propertyId && entityId) {
+        return `/properties/${propertyId}/units/${entityId}`;
+      }
+      return propertyId ? `/properties/${propertyId}` : '/properties';
+    case 'expense':
+    case 'installment':
+    case 'installment_plan':
+    case 'payment':
+      return propertyId ? `/properties/${propertyId}` : DEFAULT_ROUTE;
+    case 'unit_expense':
+      if (propertyId && unitId) {
+        return `/properties/${propertyId}/units/${unitId}`;
+      }
+      return propertyId ? `/properties/${propertyId}` : DEFAULT_ROUTE;
+    case 'material_expense':
+      return propertyId ? `/properties/${propertyId}/materials` : '/expenses';
+    case 'material_supplier':
+      if (propertyId && supplierName) {
+        const encodedSupplier = encodeURIComponent(supplierName);
+        return `/properties/${propertyId}/materials/supplier?name=${encodedSupplier}`;
+      }
+      return propertyId ? `/properties/${propertyId}/materials` : '/expenses';
+    case 'partner':
+    case 'partner_ledger':
+      return '/partners';
+    case 'user':
+      return '/settings';
+    default:
+      return DEFAULT_ROUTE;
+  }
+}
+
+function formatAmount(amount) {
+  const normalizedAmount = asNumber(amount);
+  const hasFraction = normalizedAmount % 1 !== 0;
+  return normalizedAmount.toLocaleString('ar-EG', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: hasFraction ? 2 : 0,
+  });
 }
 
 function buildNotificationPayload({

@@ -3,7 +3,6 @@ import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_controller.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/property_detail_presenters.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/widgets/financial_ledger_table.dart';
-import 'package:aqarelmasryeen/features/properties/presentation/widgets/property_unit_expenses_section.dart';
 import 'package:aqarelmasryeen/features/unit_sales/domain/unit_sales_calculator.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
@@ -20,10 +19,6 @@ class PropertyUnitDetailView extends StatelessWidget {
     required this.onDeleteInstallment,
     required this.onViewInstallmentPayments,
     required this.onAddPayment,
-    required this.onAddUnitExpense,
-    required this.onEditUnitExpense,
-    required this.onDeleteUnitExpense,
-    required this.onOpenUnitExpenses,
     required this.onEditPayment,
     required this.onDeletePayment,
   });
@@ -36,10 +31,6 @@ class PropertyUnitDetailView extends StatelessWidget {
   final ValueChanged<Installment> onDeleteInstallment;
   final ValueChanged<InstallmentComputedRow> onViewInstallmentPayments;
   final ValueChanged<String> onAddPayment;
-  final VoidCallback onAddUnitExpense;
-  final ValueChanged<UnitExpenseRecord> onEditUnitExpense;
-  final ValueChanged<UnitExpenseRecord> onDeleteUnitExpense;
-  final VoidCallback onOpenUnitExpenses;
   final ValueChanged<PaymentRecord> onEditPayment;
   final ValueChanged<PaymentRecord> onDeletePayment;
 
@@ -157,21 +148,6 @@ class PropertyUnitDetailView extends StatelessWidget {
                 'تم اكتشاف تكرار أو صفوف أقساط إضافية داخل الشيت الحالي. راجع الصفوف الحالية وتأكد من بقاء كل قسط مرة واحدة فقط.',
           ),
         ],
-        const SizedBox(height: 18),
-        const _SectionHeading(
-          title: 'مصاريف الوحدة',
-          subtitle:
-              'جزء مستقل لتسجيل ومراجعة كل المصروفات الخاصة بهذه الوحدة فقط بين المستخدم والشريك.',
-        ),
-        const SizedBox(height: 10),
-        PropertyUnitExpensesSection(
-          data: data,
-          previewLimit: 5,
-          onShowMore: onOpenUnitExpenses,
-          onAddExpense: onAddUnitExpense,
-          onEditExpense: onEditUnitExpense,
-          onDeleteExpense: onDeleteUnitExpense,
-        ),
         const SizedBox(height: 18),
         const _SectionHeading(
           title: 'سجل الدفعات',

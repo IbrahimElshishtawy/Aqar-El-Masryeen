@@ -5,9 +5,9 @@ class AppConfig {
   static const defaultWorkspaceId = '';
   static const defaultInactivityTimeoutSeconds = 90;
   static const minPasswordLength = 10;
-  static const notificationChannelId = 'finance_alerts';
-  static const notificationChannelName = 'تنبيهات مالية';
+  static const notificationChannelId = 'activity_alerts';
+  static const notificationChannelName = 'تنبيهات النشاط';
   static const notificationChannelDescription =
-      'تنبيهات الأقساط والتحصيلات والمصروفات والأمان.';
+      'إشعارات الأنشطة والتحديثات المهمة داخل مساحة العمل.';
   static const reminderLeadDays = <int>[7, 3, 1];
 }

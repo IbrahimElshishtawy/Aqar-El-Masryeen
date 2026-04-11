@@ -74,5 +74,6 @@ final notificationServiceProvider = Provider<FirebaseMessagingService>((ref) {
     ref.watch(messagingProvider),
     ref.watch(localNotificationsProvider),
     ref.watch(analyticsProvider),
+    ref.watch(secureStorageProvider),
   );
 });

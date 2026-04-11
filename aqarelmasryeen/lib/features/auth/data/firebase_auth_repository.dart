@@ -48,5 +48,6 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     ref.watch(deviceInfoServiceProvider),
     ref.watch(analyticsProvider),
     ref.watch(crashlyticsProvider),
+    ref.watch(notificationServiceProvider),
   );
 });

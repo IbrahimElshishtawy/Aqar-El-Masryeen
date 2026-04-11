@@ -11,4 +11,5 @@ class SecureStorageKeys {
   static const lastActivityAt = 'security.last_activity_at';
   static const lastBackgroundAt = 'security.last_background_at';
   static const isLocked = 'security.is_locked';
+  static const notificationsEnabled = 'notifications.enabled';
 }

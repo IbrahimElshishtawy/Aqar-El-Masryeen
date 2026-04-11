@@ -4,7 +4,9 @@ import 'dart:convert';
 
 import 'package:aqarelmasryeen/core/config/app_config.dart';
 import 'package:aqarelmasryeen/core/constants/firestore_paths.dart';
+import 'package:aqarelmasryeen/core/constants/secure_storage_keys.dart';
 import 'package:aqarelmasryeen/core/services/firebase_initializer.dart';
+import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -86,11 +88,13 @@ class FirebaseMessagingService {
     this._messaging,
     this._localNotifications,
     this._analytics,
+    this._secureStorage,
   );
 
   final FirebaseMessaging _messaging;
   final FlutterLocalNotificationsPlugin _localNotifications;
   final FirebaseAnalytics _analytics;
+  final SecureStorageService _secureStorage;
 
   static bool _backgroundHandlerRegistered = false;
 
@@ -112,24 +116,33 @@ class FirebaseMessagingService {
     required void Function(NotificationRoutePayload payload) onNotificationTap,
   }) async {
     await initializeFirebase();
-    await _messaging.setAutoInitEnabled(true);
-    _initializationFuture ??= _initializeCore(onNotificationTap);
+    final enabled = await areNotificationsEnabled();
+    await _messaging.setAutoInitEnabled(enabled);
+    _initializationFuture ??= _initializeCore(
+      onNotificationTap,
+      notificationsEnabled: enabled,
+    );
     await _initializationFuture;
-    unawaited(_warmUpToken());
+    if (enabled) {
+      unawaited(_warmUpToken());
+    }
   }
 
   Future<void> _initializeCore(
-    void Function(NotificationRoutePayload payload) onNotificationTap,
-  ) async {
-    await _requestPermissions();
+    void Function(NotificationRoutePayload payload) onNotificationTap, {
+    required bool notificationsEnabled,
+  }) async {
     await _initializeLocalNotifications(onNotificationTap: onNotificationTap);
     await _handleLocalNotificationLaunch(onNotificationTap);
 
-    await _messaging.setForegroundNotificationPresentationOptions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+    if (notificationsEnabled) {
+      await _requestPermissions();
+      await _messaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+    }
 
     _onMessageSubscription ??= FirebaseMessaging.onMessage.listen(
       _showForegroundNotification,
@@ -184,6 +197,9 @@ class FirebaseMessagingService {
   }
 
   Future<void> _warmUpToken() async {
+    if (!await areNotificationsEnabled()) {
+      return;
+    }
     try {
       await _syncApnsTokenIfAvailable();
       final token = await _resolveFcmToken();
@@ -199,6 +215,10 @@ class FirebaseMessagingService {
   }
 
   Future<void> _syncCurrentToken(String? token) async {
+    if (!await areNotificationsEnabled()) {
+      return;
+    }
+
     final currentUser = FirebaseAuth.instance.currentUser;
     final resolvedToken = token?.trim();
     if (currentUser == null || resolvedToken == null || resolvedToken.isEmpty) {
@@ -301,10 +321,70 @@ class FirebaseMessagingService {
   }
 
   Future<void> _showForegroundNotification(RemoteMessage message) async {
+    if (!await areNotificationsEnabled()) {
+      return;
+    }
     if (_shouldDeferForegroundPresentationToSystem(message)) {
       return;
     }
     await _showMessageAsLocalNotification(_localNotifications, message);
+  }
+
+  Future<bool> areNotificationsEnabled() async {
+    return await _secureStorage.readBool(
+          SecureStorageKeys.notificationsEnabled,
+        ) ??
+        true;
+  }
+
+  Future<void> setNotificationsEnabled(bool enabled) async {
+    await _secureStorage.writeBool(
+      SecureStorageKeys.notificationsEnabled,
+      enabled,
+    );
+
+    if (!enabled) {
+      await unregisterCurrentDeviceToken();
+      await _messaging.setAutoInitEnabled(false);
+      try {
+        await _messaging.deleteToken();
+      } catch (_) {
+        // Best effort; local preference should still disable future syncs.
+      }
+      await _analytics.logEvent(name: 'notifications_disabled');
+      return;
+    }
+
+    await _messaging.setAutoInitEnabled(true);
+    await _requestPermissions();
+    await _warmUpToken();
+    await _analytics.logEvent(name: 'notifications_enabled');
+  }
+
+  Future<void> unregisterCurrentDeviceToken() async {
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      return;
+    }
+
+    try {
+      final token = (await _messaging.getToken())?.trim();
+      if (token == null || token.isEmpty) {
+        return;
+      }
+
+      await FirebaseFirestore.instance
+          .collection(FirestorePaths.users)
+          .doc(currentUser.uid)
+          .set({
+            'fcmTokens': FieldValue.arrayRemove([token]),
+            'lastFcmToken': FieldValue.delete(),
+            'lastFcmTokenUpdatedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+    } catch (error, stackTrace) {
+      debugPrint('Failed to unregister FCM token: $error');
+      reportToCrashlytics(error, stackTrace);
+    }
   }
 
   Future<void> showLocalAlert({

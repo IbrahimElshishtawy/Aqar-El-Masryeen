@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/app/providers.dart';
 import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/security/session_lock_controller.dart';
@@ -17,6 +18,68 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _signingOut = false;
+  bool _notificationsEnabled = true;
+  bool _loadingNotificationPreference = true;
+  bool _updatingNotifications = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotificationPreference();
+  }
+
+  Future<void> _loadNotificationPreference() async {
+    try {
+      final enabled = await ref
+          .read(notificationServiceProvider)
+          .areNotificationsEnabled();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _notificationsEnabled = enabled;
+        _loadingNotificationPreference = false;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _loadingNotificationPreference = false);
+    }
+  }
+
+  Future<void> _toggleNotifications(bool enabled) async {
+    setState(() => _updatingNotifications = true);
+    try {
+      await ref
+          .read(notificationServiceProvider)
+          .setNotificationsEnabled(enabled);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _notificationsEnabled = enabled);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            enabled
+                ? 'تم تشغيل الإشعارات على هذا الجهاز.'
+                : 'تم إيقاف الإشعارات على هذا الجهاز.',
+          ),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(mapException(error).message)));
+    } finally {
+      if (mounted) {
+        setState(() => _updatingNotifications = false);
+      }
+    }
+  }
 
   Future<void> _signOut() async {
     setState(() => _signingOut = true);
@@ -74,6 +137,31 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => context.go(AppRoutes.securitySetup),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Card(
+            child: SwitchListTile.adaptive(
+              value: _notificationsEnabled,
+              onChanged:
+                  _loadingNotificationPreference || _updatingNotifications
+                  ? null
+                  : _toggleNotifications,
+              secondary: _updatingNotifications
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.notifications_active_outlined),
+              title: const Text('تشغيل الإشعارات'),
+              subtitle: Text(
+                _loadingNotificationPreference
+                    ? 'جارٍ تحميل حالة الإشعارات...'
+                    : _notificationsEnabled
+                    ? 'استقبال التنبيهات على هذا الجهاز مفعل.'
+                    : 'التنبيهات متوقفة على هذا الجهاز.',
+              ),
             ),
           ),
           const SizedBox(height: 12),

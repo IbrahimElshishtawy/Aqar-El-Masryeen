@@ -4,6 +4,7 @@ import 'package:aqarelmasryeen/core/constants/secure_storage_keys.dart';
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/services/device_info_service.dart';
+import 'package:aqarelmasryeen/core/services/notification_service.dart';
 import 'package:aqarelmasryeen/core/services/secure_storage_service.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:aqarelmasryeen/features/auth/data/datasources/firebase_auth_remote_data_source.dart';
@@ -33,6 +34,7 @@ class FirebaseAuthRepository implements AuthRepository {
     this._deviceInfoService,
     this._analytics,
     this._crashlytics,
+    this._messagingService,
   );
 
   final FirebaseAuthRemoteDataSource _authDataSource;
@@ -47,6 +49,7 @@ class FirebaseAuthRepository implements AuthRepository {
   final DeviceInfoService _deviceInfoService;
   final FirebaseAnalytics _analytics;
   final FirebaseCrashlytics _crashlytics;
+  final FirebaseMessagingService _messagingService;
   String _lastSessionUid = '';
 
   @override
@@ -489,6 +492,7 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<void> signOut() async {
     final user = _authDataSource.currentUser;
     if (user != null) {
+      await _messagingService.unregisterCurrentDeviceToken();
       await _logSecurityEvent(
         actorId: user.uid,
         actorName: user.displayName ?? user.email ?? 'Ø´Ø±ÙŠÙƒ',

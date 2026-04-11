@@ -405,6 +405,9 @@ class PropertySummaryCard extends ConsumerWidget {
                             const OpenProjectBadge(),
                             const SizedBox(width: 8),
                             _PropertyCardMenu(
+                              onEdit: () => context.push(
+                                AppRoutes.editProperty(summary.property.id),
+                              ),
                               onArchive: () => _archiveProperty(context, ref),
                             ),
                           ],
@@ -470,8 +473,9 @@ class PropertySummaryCard extends ConsumerWidget {
 }
 
 class _PropertyCardMenu extends StatelessWidget {
-  const _PropertyCardMenu({required this.onArchive});
+  const _PropertyCardMenu({required this.onEdit, required this.onArchive});
 
+  final VoidCallback onEdit;
   final Future<void> Function() onArchive;
 
   @override
@@ -479,11 +483,19 @@ class _PropertyCardMenu extends StatelessWidget {
     return PopupMenuButton<_PropertyCardAction>(
       tooltip: 'إجراءات العقار',
       onSelected: (value) async {
+        if (value == _PropertyCardAction.edit) {
+          onEdit();
+          return;
+        }
         if (value == _PropertyCardAction.archive) {
           await onArchive();
         }
       },
       itemBuilder: (context) => const [
+        PopupMenuItem<_PropertyCardAction>(
+          value: _PropertyCardAction.edit,
+          child: Text('تعديل البيانات'),
+        ),
         PopupMenuItem<_PropertyCardAction>(
           value: _PropertyCardAction.archive,
           child: Text('أرشفة العقار'),
@@ -503,7 +515,7 @@ class _PropertyCardMenu extends StatelessWidget {
   }
 }
 
-enum _PropertyCardAction { archive }
+enum _PropertyCardAction { edit, archive }
 
 class OpenProjectBadge extends StatelessWidget {
   const OpenProjectBadge({super.key});

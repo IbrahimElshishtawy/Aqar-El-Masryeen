@@ -6,9 +6,7 @@ import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/core/widgets/load_failure_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
-import 'package:aqarelmasryeen/features/expenses/data/unit_expense_repository.dart';
 import 'package:aqarelmasryeen/features/expenses/presentation/expense_form_sheet.dart';
-import 'package:aqarelmasryeen/features/expenses/presentation/unit_expense_form_sheet.dart';
 import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
 import 'package:aqarelmasryeen/features/installments/presentation/installment_form_sheet.dart';
 import 'package:aqarelmasryeen/features/notifications/data/financial_notification_coordinator.dart';
@@ -115,24 +113,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
     );
   }
 
-  Future<void> _showUnitExpenseSheet({
-    required PropertyUnitViewData data,
-    UnitExpenseRecord? expense,
-  }) {
-    return showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (_) => UnitExpenseFormSheet(
-        propertyId: widget.propertyId,
-        unitId: data.summary.unit.id,
-        unitLabel: data.summary.unit.unitNumber,
-        partners: data.partners,
-        expense: expense,
-      ),
-    );
-  }
-
   Future<bool> _confirm(String title, String message) async {
     return await showDialog<bool>(
           context: context,
@@ -207,17 +187,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
       return;
     }
     await ref.read(paymentRepositoryProvider).delete(payment.id);
-  }
-
-  Future<void> _deleteUnitExpense(UnitExpenseRecord expense) async {
-    final confirmed = await _confirm(
-      'حذف المصروف',
-      'سيتم حذف هذا المصروف من سجل الوحدة.',
-    );
-    if (!confirmed) {
-      return;
-    }
-    await ref.read(unitExpenseRepositoryProvider).softDelete(expense.id);
   }
 
   Future<void> _deleteExpense(ExpenseRecord expense) async {
@@ -366,16 +335,6 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
                   ? null
                   : installmentId,
             ),
-            onAddUnitExpense: () => _showUnitExpenseSheet(data: data),
-            onEditUnitExpense: (expense) =>
-                _showUnitExpenseSheet(data: data, expense: expense),
-            onDeleteUnitExpense: _deleteUnitExpense,
-            onOpenUnitExpenses: () => context.push(
-              AppRoutes.propertyUnitExpenses(
-                widget.propertyId,
-                data.summary.unit.id,
-              ),
-            ),
             onEditPayment: (payment) =>
                 _showPaymentSheet(data: data, payment: payment),
             onDeletePayment: _deletePayment,
@@ -442,6 +401,12 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
           currentIndex: 1,
           actions: [
             IconButton(
+              tooltip: 'تعديل بيانات العقار',
+              onPressed: () =>
+                  context.push(AppRoutes.editProperty(widget.propertyId)),
+              icon: const Icon(Icons.edit_outlined),
+            ),
+            IconButton(
               tooltip: 'إضافة وحدة',
               onPressed: () => _showUnitSheet(),
               icon: const Icon(Icons.add_business_outlined),
@@ -458,6 +423,8 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
             children: [
               _PropertyHeroCard(
                 data: data,
+                onEditProperty: () =>
+                    context.push(AppRoutes.editProperty(widget.propertyId)),
                 onAddUnit: () => _showUnitSheet(),
                 onOpenMaterials: () => context.push(
                   AppRoutes.propertyMaterials(widget.propertyId),
@@ -511,11 +478,13 @@ class _PropertyDetailScreenState extends ConsumerState<PropertyDetailScreen> {
 class _PropertyHeroCard extends StatelessWidget {
   const _PropertyHeroCard({
     required this.data,
+    required this.onEditProperty,
     required this.onAddUnit,
     this.onOpenMaterials,
   });
 
   final PropertyProjectViewData data;
+  final VoidCallback onEditProperty;
   final VoidCallback onAddUnit;
   final VoidCallback? onOpenMaterials;
 
@@ -601,6 +570,11 @@ class _PropertyHeroCard extends StatelessWidget {
           const SizedBox(height: 18),
           LayoutBuilder(
             builder: (context, constraints) {
+              final editButton = FilledButton.tonalIcon(
+                onPressed: onEditProperty,
+                icon: const Icon(Icons.edit_outlined),
+                label: const Text('تعديل البيانات'),
+              );
               final addUnitButton = FilledButton.tonalIcon(
                 onPressed: onAddUnit,
                 icon: const Icon(Icons.add_business_outlined),
@@ -613,13 +587,32 @@ class _PropertyHeroCard extends StatelessWidget {
               );
 
               if (onOpenMaterials == null) {
-                return addUnitButton;
+                if (constraints.maxWidth < 320) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      editButton,
+                      const SizedBox(height: 10),
+                      addUnitButton,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: editButton),
+                    const SizedBox(width: 10),
+                    Expanded(child: addUnitButton),
+                  ],
+                );
               }
 
-              if (constraints.maxWidth < 320) {
+              if (constraints.maxWidth < 420) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    editButton,
+                    const SizedBox(height: 10),
                     addUnitButton,
                     const SizedBox(height: 10),
                     materialsButton,
@@ -629,6 +622,8 @@ class _PropertyHeroCard extends StatelessWidget {
 
               return Row(
                 children: [
+                  Expanded(child: editButton),
+                  const SizedBox(width: 10),
                   Expanded(child: addUnitButton),
                   const SizedBox(width: 10),
                   Expanded(child: materialsButton),
