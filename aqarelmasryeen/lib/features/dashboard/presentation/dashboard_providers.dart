@@ -16,54 +16,80 @@ import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final dashboardPropertiesProvider = StreamProvider.autoDispose(
-  (ref) {
-    final session = ref.watch(authSessionProvider).valueOrNull;
-    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
-    final scopedPartners =
-        ref.watch(dashboardPartnersProvider).valueOrNull ?? const <Partner>[];
-    final accountUserIds = {
-      session?.userId ?? '',
-      ...scopedPartners
-          .map((partner) => partner.userId.trim())
-          .where((userId) => userId.isNotEmpty),
-    }..removeWhere((userId) => userId.trim().isEmpty);
-    return ref.watch(propertyRepositoryProvider).watchProperties(
-      workspaceId: workspaceId,
-      accountUserIds: accountUserIds,
-    );
-  },
-);
-final dashboardUnitsProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(salesRepositoryProvider).watchAll(),
-);
-final dashboardPaymentsProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
-);
-final dashboardInstallmentsProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(installmentRepositoryProvider).watchAllInstallments(),
-);
-final dashboardExpensesProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
-);
-final dashboardMaterialsProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(materialExpenseRepositoryProvider).watchAll(),
-);
-final dashboardSupplierPaymentsProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(supplierPaymentRepositoryProvider).watchAll(),
-);
-final dashboardPartnersProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
-);
-final dashboardPartnerLedgerProvider = StreamProvider.autoDispose(
-  (ref) => ref.watch(partnerLedgerRepositoryProvider).watchAll(),
-);
+final dashboardPropertiesProvider = StreamProvider.autoDispose((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+  final scopedPartners =
+      ref.watch(dashboardPartnersProvider).valueOrNull ?? const <Partner>[];
+  final accountUserIds = {
+    session?.userId ?? '',
+    ...scopedPartners
+        .map((partner) => partner.userId.trim())
+        .where((userId) => userId.isNotEmpty),
+  }..removeWhere((userId) => userId.trim().isEmpty);
+  return ref
+      .watch(propertyRepositoryProvider)
+      .watchProperties(
+        workspaceId: workspaceId,
+        accountUserIds: accountUserIds,
+      );
+});
+final dashboardUnitsProvider = StreamProvider.autoDispose((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(salesRepositoryProvider)
+      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
+final dashboardPaymentsProvider = StreamProvider.autoDispose((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(paymentRepositoryProvider)
+      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
+final dashboardInstallmentsProvider = StreamProvider.autoDispose((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(installmentRepositoryProvider)
+      .watchAllInstallments(
+        workspaceId: session?.profile?.workspaceId.trim() ?? '',
+      );
+});
+final dashboardExpensesProvider = StreamProvider.autoDispose((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(expenseRepositoryProvider)
+      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
+final dashboardMaterialsProvider = StreamProvider.autoDispose((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(materialExpenseRepositoryProvider)
+      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
+final dashboardSupplierPaymentsProvider = StreamProvider.autoDispose((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(supplierPaymentRepositoryProvider)
+      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
+final dashboardPartnersProvider = StreamProvider.autoDispose((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(partnerRepositoryProvider)
+      .watchPartners(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
+final dashboardPartnerLedgerProvider = StreamProvider.autoDispose((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(partnerLedgerRepositoryProvider)
+      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
 final dashboardActivityProvider = StreamProvider.autoDispose((ref) {
   final session = ref.watch(authSessionProvider).valueOrNull;
   final workspaceId = session?.profile?.workspaceId.trim() ?? '';
-  return ref.watch(activityRepositoryProvider).watchRecent(
-    workspaceId: workspaceId,
-  );
+  return ref
+      .watch(activityRepositoryProvider)
+      .watchRecent(workspaceId: workspaceId);
 });
 
 final dashboardViewDataProvider =
@@ -93,7 +119,8 @@ final dashboardViewDataProvider =
           ref.watch(dashboardPartnersProvider).valueOrNull ?? const [];
       final allProperties =
           ref.watch(dashboardPropertiesProvider).valueOrNull ?? const [];
-      final allUnits = ref.watch(dashboardUnitsProvider).valueOrNull ?? const [];
+      final allUnits =
+          ref.watch(dashboardUnitsProvider).valueOrNull ?? const [];
       final allInstallments =
           ref.watch(dashboardInstallmentsProvider).valueOrNull ?? const [];
       final allPayments =

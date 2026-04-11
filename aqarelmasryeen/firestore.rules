@@ -74,8 +74,22 @@ service cloud.firestore {
         && request.resource.data.inactivityTimeoutSeconds <= 300;
     }
 
+    function hasValidRequestedWorkspace() {
+      return request.resource.data.workspaceId is string
+        && request.resource.data.workspaceId != '';
+    }
+
+    function canBootstrapOwnWorkspace(userId) {
+      return isOwner(userId)
+        && (!('workspaceId' in resource.data)
+          || !(resource.data.workspaceId is string)
+          || resource.data.workspaceId == '')
+        && hasValidRequestedWorkspace();
+    }
+
     match /users/{userId} {
-      allow create: if (isOwner(userId) || isActivePartner())
+      allow create: if ((isOwner(userId) && hasValidRequestedWorkspace())
+        || (isActivePartner() && matchesWorkspace(request.resource.data)))
         && validUserProfile(userId)
         && request.resource.data.isActive == true;
 
@@ -86,7 +100,7 @@ service cloud.firestore {
       allow update: if (isOwner(userId) || (hasWorkspace() && matchesWorkspace(resource.data)))
         && immutableUserCore(userId)
         && validUserProfile(userId)
-        && matchesWorkspace(request.resource.data);
+        && (matchesWorkspace(request.resource.data) || canBootstrapOwnWorkspace(userId));
 
       allow delete: if false;
     }

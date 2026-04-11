@@ -28,6 +28,7 @@ class InstallmentPlanGenerator {
         updatedAt: DateTime.now(),
         createdBy: actorId,
         updatedBy: actorId,
+        workspaceId: plan.workspaceId,
       );
     });
   }

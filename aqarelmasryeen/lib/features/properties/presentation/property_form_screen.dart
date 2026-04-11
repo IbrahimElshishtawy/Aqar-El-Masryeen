@@ -115,6 +115,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
               'status': property.status.label,
               'workspaceId': property.workspaceId,
             },
+            workspaceId: property.workspaceId,
           );
       ref.invalidate(propertiesStreamProvider);
       ref.invalidate(propertiesViewDataProvider);
@@ -154,11 +155,15 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
     final propertyAsync = widget.propertyId == null
         ? const AsyncData<PropertyProject?>(null)
         : ref.watch(
-            StreamProvider.autoDispose<PropertyProject?>(
-              (ref) => ref
+            StreamProvider.autoDispose<PropertyProject?>((ref) {
+              final session = ref.watch(authSessionProvider).valueOrNull;
+              return ref
                   .watch(propertyRepositoryProvider)
-                  .watchProperty(widget.propertyId!),
-            ),
+                  .watchProperty(
+                    widget.propertyId!,
+                    workspaceId: session?.profile?.workspaceId.trim() ?? '',
+                  );
+            }),
           );
 
     return Scaffold(

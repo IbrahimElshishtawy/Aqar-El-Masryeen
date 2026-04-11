@@ -36,7 +36,8 @@ class FirebaseAuthRepository implements AuthRepository {
   );
 
   final FirebaseAuthRemoteDataSource _authDataSource;
-  final PartnerAccountProvisionRemoteDataSource _partnerAccountProvisionDataSource;
+  final PartnerAccountProvisionRemoteDataSource
+  _partnerAccountProvisionDataSource;
   final UserProfileRemoteDataSource _profileDataSource;
   final AuthLocalDataSource _localDataSource;
   final ActivityRepository _activityRepository;

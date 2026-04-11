@@ -112,14 +112,16 @@ class UnitSalesCalculator {
         if (installmentId == null || installmentId.isEmpty) {
           continue;
         }
-        paymentsByInstallmentId.putIfAbsent(installmentId, () => []).add(payment);
+        paymentsByInstallmentId
+            .putIfAbsent(installmentId, () => [])
+            .add(payment);
       }
 
       final installmentsBySequence = <int, List<Installment>>{};
       for (final installment in unitInstallments) {
-        installmentsBySequence.putIfAbsent(installment.sequence, () => []).add(
-          installment,
-        );
+        installmentsBySequence
+            .putIfAbsent(installment.sequence, () => [])
+            .add(installment);
       }
 
       final configuredScheduleCount = unit.installmentScheduleCount > 0
@@ -129,7 +131,10 @@ class UnitSalesCalculator {
           ? configuredScheduleCount
           : installmentsBySequence.length;
       final displaySequences = installmentsBySequence.keys
-          .where((sequence) => visibleSequenceLimit == 0 || sequence <= visibleSequenceLimit)
+          .where(
+            (sequence) =>
+                visibleSequenceLimit == 0 || sequence <= visibleSequenceLimit,
+          )
           .sorted((a, b) => a.compareTo(b));
 
       final rows = displaySequences.map((sequence) {
@@ -139,7 +144,8 @@ class UnitSalesCalculator {
         final rowPayments = groupedInstallments
             .expand(
               (installment) =>
-                  paymentsByInstallmentId[installment.id] ?? const <PaymentRecord>[],
+                  paymentsByInstallmentId[installment.id] ??
+                  const <PaymentRecord>[],
             )
             .sorted((a, b) => a.receivedAt.compareTo(b.receivedAt))
             .toList();
@@ -168,12 +174,12 @@ class UnitSalesCalculator {
         );
       }).toList();
 
-      final duplicateInstallmentsCount = unitInstallments.length -
-          installmentsBySequence.length;
+      final duplicateInstallmentsCount =
+          unitInstallments.length - installmentsBySequence.length;
       final extraInstallmentsCount = configuredScheduleCount > 0
           ? installmentsBySequence.keys
-              .where((sequence) => sequence > configuredScheduleCount)
-              .length
+                .where((sequence) => sequence > configuredScheduleCount)
+                .length
           : 0;
       final missingInstallmentsCount = configuredScheduleCount > rows.length
           ? configuredScheduleCount - rows.length
@@ -188,9 +194,8 @@ class UnitSalesCalculator {
       final overdueInstallmentsCount = rows
           .where((row) => row.status == InstallmentStatus.overdue)
           .length;
-      final unpaidInstallmentsCount = rows
-          .where((row) => row.status == InstallmentStatus.pending)
-          .length +
+      final unpaidInstallmentsCount =
+          rows.where((row) => row.status == InstallmentStatus.pending).length +
           missingInstallmentsCount;
       final totalPaidInstallmentsAmount = rows.fold<double>(
         0,
@@ -200,12 +205,11 @@ class UnitSalesCalculator {
         0,
         (sum, row) => sum + row.remainingAmount,
       );
-      final trackedUnitPayments = unitPayments.where((payment) {
-        return !payment.isDownPayment;
-      }).fold<double>(
-        0,
-        (sum, payment) => sum + payment.amount,
-      );
+      final trackedUnitPayments = unitPayments
+          .where((payment) {
+            return !payment.isDownPayment;
+          })
+          .fold<double>(0, (sum, payment) => sum + payment.amount);
       final totalPaidSoFar = unit.downPayment + trackedUnitPayments;
       final totalContractAmount = unit.contractAmount;
       final totalRemaining = (totalContractAmount - totalPaidSoFar)
@@ -222,8 +226,9 @@ class UnitSalesCalculator {
         totalContractAmount: totalContractAmount,
         totalPaidSoFar: totalPaidSoFar,
         totalRemaining: totalRemaining,
-        totalInstallmentsCount:
-            configuredScheduleCount == 0 ? rows.length : configuredScheduleCount,
+        totalInstallmentsCount: configuredScheduleCount == 0
+            ? rows.length
+            : configuredScheduleCount,
         actualInstallmentsCount: unitInstallments.length,
         installmentScheduleCount: configuredScheduleCount,
         missingInstallmentsCount: missingInstallmentsCount,

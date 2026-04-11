@@ -27,9 +27,17 @@ class InstallmentRepository {
   final InstallmentPlanGenerator _generator;
   final LocalCacheService _cache;
 
-  Stream<List<Installment>> watchAllInstallments() {
+  Stream<List<Installment>> watchAllInstallments({
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <Installment>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.installments)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .orderBy('dueDate')
         .snapshots()
         .map(
@@ -40,16 +48,25 @@ class InstallmentRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.installments,
+      cacheKey: CacheKeys.installments(workspaceId: normalizedWorkspaceId),
       source: source,
       encode: _serializeInstallment,
       decode: _deserializeInstallment,
     );
   }
 
-  Stream<List<InstallmentPlan>> watchPlansByProperty(String propertyId) {
+  Stream<List<InstallmentPlan>> watchPlansByProperty(
+    String propertyId, {
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <InstallmentPlan>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.installmentPlans)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .where('propertyId', isEqualTo: propertyId)
         .orderBy('updatedAt', descending: true)
         .snapshots()
@@ -61,16 +78,28 @@ class InstallmentRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.installmentPlansByProperty(propertyId),
+      cacheKey: CacheKeys.installmentPlansByProperty(
+        propertyId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializeInstallmentPlan,
       decode: _deserializeInstallmentPlan,
     );
   }
 
-  Stream<List<Installment>> watchInstallmentsByProperty(String propertyId) {
+  Stream<List<Installment>> watchInstallmentsByProperty(
+    String propertyId, {
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <Installment>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.installments)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .where('propertyId', isEqualTo: propertyId)
         .orderBy('dueDate')
         .snapshots()
@@ -82,16 +111,28 @@ class InstallmentRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.installmentsByProperty(propertyId),
+      cacheKey: CacheKeys.installmentsByProperty(
+        propertyId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializeInstallment,
       decode: _deserializeInstallment,
     );
   }
 
-  Stream<List<Installment>> watchInstallmentsByUnit(String unitId) {
+  Stream<List<Installment>> watchInstallmentsByUnit(
+    String unitId, {
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <Installment>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.installments)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .where('unitId', isEqualTo: unitId)
         .orderBy('dueDate')
         .snapshots()
@@ -103,7 +144,10 @@ class InstallmentRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.installmentsByUnit(unitId),
+      cacheKey: CacheKeys.installmentsByUnit(
+        unitId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializeInstallment,
       decode: _deserializeInstallment,
@@ -128,6 +172,7 @@ class InstallmentRepository {
       updatedAt: DateTime.now(),
       createdBy: plan.createdBy,
       updatedBy: actorId,
+      workspaceId: plan.workspaceId,
     );
 
     final batch = _firestore.batch();
@@ -190,14 +235,17 @@ class InstallmentRepository {
     final installmentsSnapshot = await _firestore
         .collection(FirestorePaths.installments)
         .where('unitId', isEqualTo: unit.id)
+        .where('workspaceId', isEqualTo: unit.workspaceId)
         .get();
     final paymentsSnapshot = await _firestore
         .collection(FirestorePaths.payments)
         .where('unitId', isEqualTo: unit.id)
+        .where('workspaceId', isEqualTo: unit.workspaceId)
         .get();
     final plansSnapshot = await _firestore
         .collection(FirestorePaths.installmentPlans)
         .where('unitId', isEqualTo: unit.id)
+        .where('workspaceId', isEqualTo: unit.workspaceId)
         .limit(1)
         .get();
 
@@ -269,6 +317,7 @@ class InstallmentRepository {
         updatedAt: now,
         createdBy: existingPlan?.createdBy ?? actorId,
         updatedBy: actorId,
+        workspaceId: unit.workspaceId,
       ).toMap(),
       SetOptions(merge: true),
     );
@@ -299,6 +348,7 @@ class InstallmentRepository {
           updatedAt: now,
           createdBy: actorId,
           updatedBy: actorId,
+          workspaceId: unit.workspaceId,
         );
         batch.set(
           _firestore.collection(FirestorePaths.installments).doc(installmentId),
@@ -392,6 +442,7 @@ class InstallmentRepository {
         .set(
           installment.toMap()
             ..['updatedAt'] = DateTime.now()
+            ..['workspaceId'] = installment.workspaceId.trim()
             ..['status'] = status.name
             ..['paidAmount'] = installment.paidAmount,
           SetOptions(merge: true),
@@ -399,10 +450,27 @@ class InstallmentRepository {
   }
 
   Future<void> deleteInstallment(String installmentId) async {
-    final paymentsSnapshot = await _firestore
-        .collection(FirestorePaths.payments)
-        .where('installmentId', isEqualTo: installmentId)
+    final installmentSnapshot = await _firestore
+        .collection(FirestorePaths.installments)
+        .doc(installmentId)
         .get();
+    final installment = installmentSnapshot.exists
+        ? Installment.fromMap(
+            installmentSnapshot.id,
+            installmentSnapshot.data(),
+          )
+        : null;
+    Query<Map<String, dynamic>> paymentsQuery = _firestore
+        .collection(FirestorePaths.payments)
+        .where('installmentId', isEqualTo: installmentId);
+    final workspaceId = installment?.workspaceId.trim() ?? '';
+    if (workspaceId.isNotEmpty) {
+      paymentsQuery = paymentsQuery.where(
+        'workspaceId',
+        isEqualTo: workspaceId,
+      );
+    }
+    final paymentsSnapshot = await paymentsQuery.get();
     final batch = _firestore.batch();
     batch.delete(
       _firestore.collection(FirestorePaths.installments).doc(installmentId),

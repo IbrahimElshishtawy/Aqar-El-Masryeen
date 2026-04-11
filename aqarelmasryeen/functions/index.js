@@ -158,7 +158,7 @@ exports.provisionPartnerAccount = onCall(async (request) => {
   const createdBy = asNonEmptyString(request.data?.createdBy) || request.auth.uid;
   const createdByName =
     asNonEmptyString(request.data?.createdByName) || fullName;
-  const workspaceId = asNonEmptyString(request.data?.workspaceId);
+  let workspaceId = asNonEmptyString(request.data?.workspaceId);
 
   if (!fullName || !email || !password) {
     throw new HttpsError(
@@ -171,6 +171,18 @@ exports.provisionPartnerAccount = onCall(async (request) => {
     throw new HttpsError(
       'invalid-argument',
       'يجب أن تكون كلمة المرور 10 أحرف على الأقل.',
+    );
+  }
+
+  if (!workspaceId) {
+    const callerSnapshot = await db.collection('users').doc(request.auth.uid).get();
+    workspaceId = asNonEmptyString(callerSnapshot.get('workspaceId'));
+  }
+
+  if (!workspaceId) {
+    throw new HttpsError(
+      'failed-precondition',
+      'لا يمكن إنشاء حساب شريك قبل ربط الحساب الحالي بمساحة عمل.',
     );
   }
 
@@ -297,7 +309,9 @@ exports.backfillAuthProfiles = onCall(async (request) => {
     );
   }
 
-  const defaultWorkspaceId = asNonEmptyString(request.data?.workspaceId);
+  const defaultWorkspaceId =
+    asNonEmptyString(request.data?.workspaceId) ||
+    asNonEmptyString(callerDoc.get('workspaceId'));
   let nextPageToken;
   let createdCount = 0;
   let updatedLookupCount = 0;

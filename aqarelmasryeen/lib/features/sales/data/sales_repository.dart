@@ -15,9 +15,15 @@ class SalesRepository {
   final Uuid _uuid;
   final LocalCacheService _cache;
 
-  Stream<List<UnitSale>> watchAll() {
+  Stream<List<UnitSale>> watchAll({required String workspaceId}) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <UnitSale>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.units)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .orderBy('updatedAt', descending: true)
         .snapshots()
         .map(
@@ -28,16 +34,25 @@ class SalesRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.units,
+      cacheKey: CacheKeys.units(workspaceId: normalizedWorkspaceId),
       source: source,
       encode: _serializeUnit,
       decode: _deserializeUnit,
     );
   }
 
-  Stream<List<UnitSale>> watchByProperty(String propertyId) {
+  Stream<List<UnitSale>> watchByProperty(
+    String propertyId, {
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <UnitSale>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.units)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .where('propertyId', isEqualTo: propertyId)
         .orderBy('updatedAt', descending: true)
         .snapshots()
@@ -49,7 +64,10 @@ class SalesRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.unitsByProperty(propertyId),
+      cacheKey: CacheKeys.unitsByProperty(
+        propertyId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializeUnit,
       decode: _deserializeUnit,
@@ -62,7 +80,9 @@ class SalesRepository {
         .collection(FirestorePaths.units)
         .doc(id)
         .set(
-          unit.toMap()..['updatedAt'] = DateTime.now(),
+          unit.toMap()
+            ..['workspaceId'] = unit.workspaceId.trim()
+            ..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );
     return id;

@@ -32,11 +32,15 @@ class ActivityRepository {
       if (normalizedPropertyId.isNotEmpty) {
         query = query.where('entityId', isEqualTo: normalizedPropertyId);
       }
-      return query.orderBy('createdAt', descending: true).limit(20).snapshots().map(
-        (snapshot) => snapshot.docs
-            .map((doc) => ActivityLogEntry.fromMap(doc.id, doc.data()))
-            .toList(),
-      );
+      return query
+          .orderBy('createdAt', descending: true)
+          .limit(20)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => ActivityLogEntry.fromMap(doc.id, doc.data()))
+                .toList(),
+          );
     })();
 
     return CachePolicy.watchList(

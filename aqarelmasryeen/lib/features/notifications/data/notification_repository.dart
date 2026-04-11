@@ -106,22 +106,26 @@ class NotificationRepository {
       final referenceKey = referenceKeyPrefix?.trim().isNotEmpty == true
           ? '${referenceKeyPrefix!.trim()}-$userId'
           : _uuid.v4();
-      batch.set(_firestore.collection(FirestorePaths.notifications).doc(referenceKey), {
-        'userId': userId,
-        'title': title,
-        'body': body,
-        'type': type.name,
-        'route': route,
-        'isRead': false,
-        'createdAt': DateTime.now(),
-        'referenceKey': referenceKey,
-        'metadata': metadata ?? const {},
-        'workspaceId': workspaceId ?? '',
-        'pushDelivery': const {
-          'status': 'queued',
-          'reason': 'awaiting_function_dispatch',
+      batch.set(
+        _firestore.collection(FirestorePaths.notifications).doc(referenceKey),
+        {
+          'userId': userId,
+          'title': title,
+          'body': body,
+          'type': type.name,
+          'route': route,
+          'isRead': false,
+          'createdAt': DateTime.now(),
+          'referenceKey': referenceKey,
+          'metadata': metadata ?? const {},
+          'workspaceId': workspaceId ?? '',
+          'pushDelivery': const {
+            'status': 'queued',
+            'reason': 'awaiting_function_dispatch',
+          },
         },
-      }, SetOptions(merge: true));
+        SetOptions(merge: true),
+      );
     }
     await batch.commit();
   }

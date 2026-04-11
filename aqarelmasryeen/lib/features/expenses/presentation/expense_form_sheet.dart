@@ -79,6 +79,10 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     if (session == null) {
       return;
     }
+    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    if (workspaceId.isEmpty) {
+      return;
+    }
 
     setState(() => _saving = true);
     final savedId = await ref
@@ -103,6 +107,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
                 DateTime.fromMillisecondsSinceEpoch(0),
             updatedAt: DateTime.now(),
             archived: false,
+            workspaceId: widget.expense?.workspaceId ?? workspaceId,
           ),
         );
 
@@ -117,6 +122,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
           entityType: 'expense',
           entityId: savedId,
           metadata: {'propertyId': widget.propertyId},
+          workspaceId: workspaceId,
         );
     await ref
         .read(notificationRepositoryProvider)
@@ -128,7 +134,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
           body: _descriptionController.text.trim(),
           type: NotificationType.expenseAdded,
           route: '/properties/${widget.propertyId}',
-          workspaceId: session.profile?.workspaceId.trim(),
+          workspaceId: workspaceId,
         );
 
     if (mounted) {

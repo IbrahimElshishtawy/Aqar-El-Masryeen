@@ -135,10 +135,7 @@ AppException mapException(Object error) {
       }
     }
 
-    return AppException(
-      error.message ?? 'فشل طلب Firebase.',
-      code: error.code,
-    );
+    return AppException(error.message ?? 'فشل طلب Firebase.', code: error.code);
   }
 
   return AppException(error.toString());

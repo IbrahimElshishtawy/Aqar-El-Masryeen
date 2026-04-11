@@ -20,9 +20,15 @@ class PaymentRepository {
   final Uuid _uuid;
   final LocalCacheService _cache;
 
-  Stream<List<PaymentRecord>> watchAll() {
+  Stream<List<PaymentRecord>> watchAll({required String workspaceId}) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <PaymentRecord>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.payments)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .orderBy('receivedAt', descending: true)
         .snapshots()
         .map(
@@ -33,16 +39,25 @@ class PaymentRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.payments,
+      cacheKey: CacheKeys.payments(workspaceId: normalizedWorkspaceId),
       source: source,
       encode: _serializePayment,
       decode: _deserializePayment,
     );
   }
 
-  Stream<List<PaymentRecord>> watchByProperty(String propertyId) {
+  Stream<List<PaymentRecord>> watchByProperty(
+    String propertyId, {
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <PaymentRecord>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.payments)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .where('propertyId', isEqualTo: propertyId)
         .orderBy('receivedAt', descending: true)
         .snapshots()
@@ -54,16 +69,28 @@ class PaymentRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.paymentsByProperty(propertyId),
+      cacheKey: CacheKeys.paymentsByProperty(
+        propertyId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializePayment,
       decode: _deserializePayment,
     );
   }
 
-  Stream<List<PaymentRecord>> watchByUnit(String unitId) {
+  Stream<List<PaymentRecord>> watchByUnit(
+    String unitId, {
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <PaymentRecord>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.payments)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .where('unitId', isEqualTo: unitId)
         .orderBy('receivedAt', descending: true)
         .snapshots()
@@ -75,7 +102,10 @@ class PaymentRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.paymentsByUnit(unitId),
+      cacheKey: CacheKeys.paymentsByUnit(
+        unitId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializePayment,
       decode: _deserializePayment,
@@ -101,6 +131,7 @@ class PaymentRepository {
                 payment.createdAt == DateTime.fromMillisecondsSinceEpoch(0)
                 ? DateTime.now()
                 : payment.createdAt
+            ..['workspaceId'] = payment.workspaceId.trim()
             ..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );
@@ -158,6 +189,7 @@ class PaymentRepository {
     final paymentsSnapshot = await _firestore
         .collection(FirestorePaths.payments)
         .where('installmentId', isEqualTo: installmentId)
+        .where('workspaceId', isEqualTo: installment.workspaceId)
         .get();
     final payments = paymentsSnapshot.docs
         .map((doc) => PaymentRecord.fromMap(doc.id, doc.data()))
@@ -193,19 +225,22 @@ class PaymentRepository {
     final paymentsSnapshot = await _firestore
         .collection(FirestorePaths.payments)
         .where('unitId', isEqualTo: unitId)
+        .where('workspaceId', isEqualTo: unit.workspaceId)
         .get();
     final installmentsSnapshot = await _firestore
         .collection(FirestorePaths.installments)
         .where('unitId', isEqualTo: unitId)
+        .where('workspaceId', isEqualTo: unit.workspaceId)
         .get();
 
     final payments = paymentsSnapshot.docs
         .map((doc) => PaymentRecord.fromMap(doc.id, doc.data()))
         .toList(growable: false);
-    final installments = installmentsSnapshot.docs
-        .map((doc) => Installment.fromMap(doc.id, doc.data()))
-        .toList()
-      ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
+    final installments =
+        installmentsSnapshot.docs
+            .map((doc) => Installment.fromMap(doc.id, doc.data()))
+            .toList()
+          ..sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
     final trackedPaymentsTotal = payments
         .where((payment) => !payment.isDownPayment)
@@ -248,11 +283,14 @@ class PaymentRepository {
       );
     }
 
-    final unpaidInstallments = installments.where((installment) {
-      final paidAmount =
-          paidAmountsByInstallmentId[installment.id] ?? installment.paidAmount;
-      return paidAmount + 0.01 < installment.amount;
-    }).toList(growable: false);
+    final unpaidInstallments = installments
+        .where((installment) {
+          final paidAmount =
+              paidAmountsByInstallmentId[installment.id] ??
+              installment.paidAmount;
+          return paidAmount + 0.01 < installment.amount;
+        })
+        .toList(growable: false);
 
     if (unpaidInstallments.isEmpty) {
       return installments.last.dueDate;

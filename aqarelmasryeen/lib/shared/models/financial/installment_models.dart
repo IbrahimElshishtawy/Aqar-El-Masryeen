@@ -14,6 +14,7 @@ class InstallmentPlan {
     required this.updatedAt,
     required this.createdBy,
     required this.updatedBy,
+    this.workspaceId = '',
   });
 
   final String id;
@@ -27,6 +28,7 @@ class InstallmentPlan {
   final DateTime updatedAt;
   final String createdBy;
   final String updatedBy;
+  final String workspaceId;
 
   Map<String, dynamic> toMap() {
     return {
@@ -40,6 +42,7 @@ class InstallmentPlan {
       'updatedAt': updatedAt,
       'createdBy': createdBy,
       'updatedBy': updatedBy,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -57,6 +60,7 @@ class InstallmentPlan {
       updatedAt: parseDate(data['updatedAt']),
       createdBy: data['createdBy'] as String? ?? '',
       updatedBy: data['updatedBy'] as String? ?? '',
+      workspaceId: data['workspaceId'] as String? ?? '',
     );
   }
 
@@ -72,6 +76,7 @@ class InstallmentPlan {
     DateTime? updatedAt,
     String? createdBy,
     String? updatedBy,
+    String? workspaceId,
   }) {
     return InstallmentPlan(
       id: id ?? this.id,
@@ -85,6 +90,7 @@ class InstallmentPlan {
       updatedAt: updatedAt ?? this.updatedAt,
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
+      workspaceId: workspaceId ?? this.workspaceId,
     );
   }
 }
@@ -105,6 +111,7 @@ class Installment {
     required this.createdBy,
     required this.updatedBy,
     this.notes = '',
+    this.workspaceId = '',
   });
 
   final String id;
@@ -121,6 +128,7 @@ class Installment {
   final String createdBy;
   final String updatedBy;
   final String notes;
+  final String workspaceId;
 
   double get remainingAmount =>
       (amount - paidAmount).clamp(0, amount).toDouble();
@@ -145,6 +153,7 @@ class Installment {
       'updatedAt': updatedAt,
       'createdBy': createdBy,
       'updatedBy': updatedBy,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -168,6 +177,7 @@ class Installment {
       updatedAt: parseDate(data['updatedAt']),
       createdBy: data['createdBy'] as String? ?? '',
       updatedBy: data['updatedBy'] as String? ?? '',
+      workspaceId: data['workspaceId'] as String? ?? '',
     );
   }
 
@@ -186,6 +196,7 @@ class Installment {
     String? createdBy,
     String? updatedBy,
     String? notes,
+    String? workspaceId,
   }) {
     return Installment(
       id: id ?? this.id,
@@ -202,6 +213,7 @@ class Installment {
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
       notes: notes ?? this.notes,
+      workspaceId: workspaceId ?? this.workspaceId,
     );
   }
 }
@@ -223,6 +235,7 @@ class PaymentRecord {
     required this.updatedAt,
     required this.createdBy,
     required this.updatedBy,
+    this.workspaceId = '',
   });
 
   final String id;
@@ -240,6 +253,7 @@ class PaymentRecord {
   final DateTime updatedAt;
   final String createdBy;
   final String updatedBy;
+  final String workspaceId;
 
   String get effectivePayerName {
     if (payerName.trim().isNotEmpty) {
@@ -280,6 +294,7 @@ class PaymentRecord {
       'updatedAt': updatedAt,
       'createdBy': createdBy,
       'updatedBy': updatedBy,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -306,6 +321,7 @@ class PaymentRecord {
       updatedAt: parseDate(data['updatedAt']),
       createdBy: data['createdBy'] as String? ?? '',
       updatedBy: data['updatedBy'] as String? ?? '',
+      workspaceId: data['workspaceId'] as String? ?? '',
     );
   }
 
@@ -325,6 +341,7 @@ class PaymentRecord {
     DateTime? updatedAt,
     String? createdBy,
     String? updatedBy,
+    String? workspaceId,
   }) {
     return PaymentRecord(
       id: id ?? this.id,
@@ -342,6 +359,7 @@ class PaymentRecord {
       updatedAt: updatedAt ?? this.updatedAt,
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
+      workspaceId: workspaceId ?? this.workspaceId,
     );
   }
 }

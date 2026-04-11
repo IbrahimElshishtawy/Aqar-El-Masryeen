@@ -35,13 +35,15 @@ class DashboardOverviewSection extends StatelessWidget {
               DashboardStatCard(
                 label: 'إجمالي المصروفات',
                 value: snapshot.totalExpenses.egp,
-                subtitle: 'كل المصروفات المباشرة مع المدفوع الفعلي للمواد والموردين',
+                subtitle:
+                    'كل المصروفات المباشرة مع المدفوع الفعلي للمواد والموردين',
                 icon: Icons.receipt_long_outlined,
               ),
               DashboardStatCard(
                 label: 'مصروفاتك',
                 value: snapshot.currentUserExpenses.egp,
-                subtitle: 'كل ما تم تسجيله أو دفعه من جهتك داخل المصروفات والمواد',
+                subtitle:
+                    'كل ما تم تسجيله أو دفعه من جهتك داخل المصروفات والمواد',
                 icon: Icons.person_outline_rounded,
               ),
               DashboardStatCard(

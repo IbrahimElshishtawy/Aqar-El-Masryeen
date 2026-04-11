@@ -22,6 +22,7 @@ class UnitSale {
     required this.createdBy,
     required this.updatedBy,
     this.notes = '',
+    this.workspaceId = '',
     this.projectedCompletionDate,
   });
 
@@ -44,6 +45,7 @@ class UnitSale {
   final String createdBy;
   final String updatedBy;
   final String notes;
+  final String workspaceId;
   final DateTime? projectedCompletionDate;
 
   double get saleAmount => apartmentPrice;
@@ -55,7 +57,9 @@ class UnitSale {
   bool get hasRecordedSale {
     final hasCustomer = customerName.trim().isNotEmpty;
     final hasFinancialActivity =
-        downPayment > 0 || installmentScheduleCount > 0 || remainingAmount < apartmentPrice;
+        downPayment > 0 ||
+        installmentScheduleCount > 0 ||
+        remainingAmount < apartmentPrice;
     return apartmentPrice > 0 &&
         status != UnitStatus.cancelled &&
         (status == UnitStatus.sold || hasCustomer || hasFinancialActivity);
@@ -85,6 +89,7 @@ class UnitSale {
       'updatedAt': updatedAt,
       'createdBy': createdBy,
       'updatedBy': updatedBy,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -136,6 +141,7 @@ class UnitSale {
       updatedAt: parseDate(data['updatedAt']),
       createdBy: data['createdBy'] as String? ?? '',
       updatedBy: data['updatedBy'] as String? ?? '',
+      workspaceId: data['workspaceId'] as String? ?? '',
     );
   }
 
@@ -159,6 +165,7 @@ class UnitSale {
     String? createdBy,
     String? updatedBy,
     String? notes,
+    String? workspaceId,
     DateTime? projectedCompletionDate,
   }) {
     return UnitSale(
@@ -182,6 +189,7 @@ class UnitSale {
       createdBy: createdBy ?? this.createdBy,
       updatedBy: updatedBy ?? this.updatedBy,
       notes: notes ?? this.notes,
+      workspaceId: workspaceId ?? this.workspaceId,
       projectedCompletionDate:
           projectedCompletionDate ?? this.projectedCompletionDate,
     );

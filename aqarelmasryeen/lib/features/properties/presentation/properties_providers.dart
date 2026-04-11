@@ -11,35 +11,53 @@ import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:collection/collection.dart';
 
-final propertiesStreamProvider = StreamProvider.autoDispose<List<PropertyProject>>(
-  (ref) {
-    final session = ref.watch(authSessionProvider).valueOrNull;
-    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
-    final allPartners = ref.watch(partnersStreamProvider).valueOrNull ?? const [];
-    final accountUserIds = {
-      session?.userId ?? '',
-      ...allPartners
-          .map((partner) => partner.userId.trim())
-          .where((userId) => userId.isNotEmpty),
-    }..removeWhere((userId) => userId.trim().isEmpty);
-    return ref.watch(propertyRepositoryProvider).watchProperties(
-      workspaceId: workspaceId,
-      accountUserIds: accountUserIds,
-    );
-  },
-);
-final propertyExpensesStreamProvider = StreamProvider.autoDispose<List<ExpenseRecord>>(
-  (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
-);
-final propertyPaymentsStreamProvider = StreamProvider.autoDispose<List<PaymentRecord>>(
-  (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
-);
-final propertyUnitsStreamProvider = StreamProvider.autoDispose<List<UnitSale>>(
-  (ref) => ref.watch(salesRepositoryProvider).watchAll(),
-);
-final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>(
-  (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
-);
+final propertiesStreamProvider =
+    StreamProvider.autoDispose<List<PropertyProject>>((ref) {
+      final session = ref.watch(authSessionProvider).valueOrNull;
+      final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+      final allPartners =
+          ref.watch(partnersStreamProvider).valueOrNull ?? const [];
+      final accountUserIds = {
+        session?.userId ?? '',
+        ...allPartners
+            .map((partner) => partner.userId.trim())
+            .where((userId) => userId.isNotEmpty),
+      }..removeWhere((userId) => userId.trim().isEmpty);
+      return ref
+          .watch(propertyRepositoryProvider)
+          .watchProperties(
+            workspaceId: workspaceId,
+            accountUserIds: accountUserIds,
+          );
+    });
+final propertyExpensesStreamProvider =
+    StreamProvider.autoDispose<List<ExpenseRecord>>((ref) {
+      final session = ref.watch(authSessionProvider).valueOrNull;
+      return ref
+          .watch(expenseRepositoryProvider)
+          .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+    });
+final propertyPaymentsStreamProvider =
+    StreamProvider.autoDispose<List<PaymentRecord>>((ref) {
+      final session = ref.watch(authSessionProvider).valueOrNull;
+      return ref
+          .watch(paymentRepositoryProvider)
+          .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+    });
+final propertyUnitsStreamProvider = StreamProvider.autoDispose<List<UnitSale>>((
+  ref,
+) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(salesRepositoryProvider)
+      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
+final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(partnerRepositoryProvider)
+      .watchPartners(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
 
 final propertiesViewDataProvider =
     Provider.autoDispose<AsyncValue<PropertiesViewData>>((ref) {
@@ -61,7 +79,8 @@ final propertiesViewDataProvider =
 
       final session = ref.watch(authSessionProvider).valueOrNull;
       final workspaceId = session?.profile?.workspaceId.trim() ?? '';
-      final allPartners = ref.watch(partnersStreamProvider).valueOrNull ?? const [];
+      final allPartners =
+          ref.watch(partnersStreamProvider).valueOrNull ?? const [];
       final scopedPartners = workspaceId.isEmpty
           ? allPartners
                 .where((partner) => partner.createdBy.trim() == session?.userId)
@@ -91,21 +110,22 @@ final propertiesViewDataProvider =
           .map((property) => property.id)
           .toSet();
       final scopedUnits =
-          (ref.watch(propertyUnitsStreamProvider).valueOrNull ?? const <UnitSale>[])
-          .where((unit) => propertyIds.contains(unit.propertyId))
-          .toList(growable: false);
+          (ref.watch(propertyUnitsStreamProvider).valueOrNull ??
+                  const <UnitSale>[])
+              .where((unit) => propertyIds.contains(unit.propertyId))
+              .toList(growable: false);
       final summaries = const PropertyFinancialSummaryBuilder().build(
         properties: scopedProperties,
         expenses:
             (ref.watch(propertyExpensesStreamProvider).valueOrNull ??
-                  const <ExpenseRecord>[])
-            .where((expense) => propertyIds.contains(expense.propertyId))
-            .toList(growable: false),
+                    const <ExpenseRecord>[])
+                .where((expense) => propertyIds.contains(expense.propertyId))
+                .toList(growable: false),
         payments:
             (ref.watch(propertyPaymentsStreamProvider).valueOrNull ??
-                  const <PaymentRecord>[])
-            .where((payment) => propertyIds.contains(payment.propertyId))
-            .toList(growable: false),
+                    const <PaymentRecord>[])
+                .where((payment) => propertyIds.contains(payment.propertyId))
+                .toList(growable: false),
         units: scopedUnits,
       );
       final totalExpenses = summaries.fold<double>(

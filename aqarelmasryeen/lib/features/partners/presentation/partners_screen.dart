@@ -5,10 +5,14 @@ import 'package:aqarelmasryeen/core/widgets/load_failure_view.dart';
 import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
+import 'package:aqarelmasryeen/features/dashboard/presentation/dashboard_providers.dart'
+    as dashboard_providers;
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
 import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/partners/domain/partner_account_summary.dart';
 import 'package:aqarelmasryeen/features/partners/presentation/partner_form_sheet.dart';
+import 'package:aqarelmasryeen/features/properties/presentation/properties_providers.dart'
+    as properties_providers;
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/app_user.dart';
@@ -16,50 +20,27 @@ import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+part 'widgets/partners_stats_widgets.dart';
+part 'widgets/partners_toolbar.dart';
+part 'widgets/partner_accounts_section.dart';
+part 'widgets/partner_card_widgets.dart';
+part 'widgets/pending_requests_sheet.dart';
 
 final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>((ref) {
   final session = ref.watch(authSessionProvider).valueOrNull;
   final workspaceId = session?.profile?.workspaceId.trim() ?? '';
   return ref
       .watch(partnerRepositoryProvider)
-      .watchPartners()
-      .map(
-        (partners) => workspaceId.isEmpty
-            ? partners
-                  .where(
-                    (partner) =>
-                        partner.createdBy.trim() == (session?.userId ?? '') ||
-                        partner.userId.trim() == (session?.userId ?? ''),
-                  )
-                  .toList(growable: false)
-            : partners
-                  .where((partner) => partner.workspaceId.trim() == workspaceId)
-                  .toList(growable: false),
-      );
+      .watchPartners(workspaceId: workspaceId);
 });
 
 final partnerAccountsStreamProvider = StreamProvider.autoDispose<List<AppUser>>(
   (ref) {
     final session = ref.watch(authSessionProvider).valueOrNull;
     final workspaceId = session?.profile?.workspaceId.trim() ?? '';
-    final currentUid = session?.userId ?? '';
     return ref
         .watch(userProfileRemoteDataSourceProvider)
-        .watchAllProfiles()
-        .map((users) {
-          return users
-              .where((user) {
-                if (user.uid == currentUid) {
-                  return true;
-                }
-                final userWorkspaceId = user.workspaceId.trim();
-                if (workspaceId.isNotEmpty && userWorkspaceId == workspaceId) {
-                  return true;
-                }
-                return userWorkspaceId.isEmpty && user.createdBy == currentUid;
-              })
-              .toList(growable: false);
-        });
+        .watchProfilesByWorkspace(workspaceId);
   },
 );
 
@@ -647,9 +628,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
           },
           workspaceId: workspaceId,
         );
-    ref.invalidate(partnersStreamProvider);
-    ref.invalidate(partnerAccountsStreamProvider);
-    ref.invalidate(partnerAccountsProvider);
+    _refreshWorkspaceProviders(ref);
     _showInfoSnackBar('تم ربط الحساب بنجاح');
   }
 
@@ -707,8 +686,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
             },
             workspaceId: workspaceId,
           );
-      ref.invalidate(partnerAccountsStreamProvider);
-      ref.invalidate(partnerAccountsProvider);
+      _refreshWorkspaceProviders(ref);
       _showInfoSnackBar('تم ربط الحساب بنجاح');
     } catch (_) {
       _showInfoSnackBar('فشل الربط');
@@ -846,9 +824,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
           .clearPartnerLink(partner.userId, expectedPartnerId: partner.id);
     }
     await ref.read(partnerRepositoryProvider).delete(partner.id);
-    ref.invalidate(partnersStreamProvider);
-    ref.invalidate(partnerAccountsStreamProvider);
-    ref.invalidate(partnerAccountsProvider);
+    _refreshWorkspaceProviders(ref);
     _showInfoSnackBar('تم حذف الشريك بنجاح.');
   }
 
@@ -865,9 +841,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
           .read(userProfileRemoteDataSourceProvider)
           .clearPartnerLink(partner.userId, expectedPartnerId: partner.id);
     }
-    ref.invalidate(partnersStreamProvider);
-    ref.invalidate(partnerAccountsStreamProvider);
-    ref.invalidate(partnerAccountsProvider);
+    _refreshWorkspaceProviders(ref);
     _showInfoSnackBar('تم فك ربط الحساب من الشريك.');
   }
 
@@ -890,8 +864,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
       final result = await ref
           .read(authRepositoryProvider)
           .backfillAuthProfiles(workspaceId: workspaceId);
-      ref.invalidate(partnerAccountsStreamProvider);
-      ref.invalidate(partnerAccountsProvider);
+      _refreshWorkspaceProviders(ref);
       _showInfoSnackBar(
         'تمت المزامنة: ${result['createdCount'] ?? 0} حساب جديد، وتحديث ${result['updatedLookupCount'] ?? 0} بريد.',
       );
@@ -905,755 +878,32 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
   }
 }
 
-class _StatsCard extends StatelessWidget {
-  const _StatsCard({
-    required this.partnerCount,
-    required this.hasAccountCount,
-    required this.noAccountCount,
-  });
-
-  final int partnerCount;
-  final int hasAccountCount;
-  final int noAccountCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FC),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE6EAF2)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _StatItem(label: 'عدد الشركاء', value: '$partnerCount'),
-          ),
-          _buildDivider(theme),
-          Expanded(
-            child: _StatItem(label: 'مرتبطين بحساب', value: '$hasAccountCount'),
-          ),
-          _buildDivider(theme),
-          Expanded(
-            child: _StatItem(label: 'بدون حساب', value: '$noAccountCount'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDivider(ThemeData theme) {
-    return Container(
-      width: 1,
-      height: 34,
-      margin: const EdgeInsets.symmetric(horizontal: 8),
-      color: theme.colorScheme.outlineVariant,
-    );
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  const _StatItem({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Column(
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-            fontWeight: FontWeight.w600,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w800,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-}
-
-class _PartnerToolbar extends StatelessWidget {
-  const _PartnerToolbar({
-    required this.searchController,
-    required this.activeFilter,
-    required this.pendingCount,
-    required this.linkingAccount,
-    required this.onCreatePartner,
-    required this.onLinkAccount,
-    required this.onFilterChanged,
-    required this.onSearchChanged,
-  });
-
-  final TextEditingController searchController;
-  final _PartnersFilter activeFilter;
-  final int pendingCount;
-  final bool linkingAccount;
-  final VoidCallback onCreatePartner;
-  final VoidCallback onLinkAccount;
-  final ValueChanged<_PartnersFilter> onFilterChanged;
-  final ValueChanged<String> onSearchChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE7E9EE)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: onCreatePartner,
-                  icon: const Icon(Icons.add_rounded),
-                  label: const Text('إنشاء شريك'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: linkingAccount ? null : onLinkAccount,
-                  icon: linkingAccount
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.link_rounded),
-                  label: Text(
-                    linkingAccount
-                        ? 'جارٍ تنفيذ الربط...'
-                        : pendingCount > 0
-                        ? 'ربط حساب ($pendingCount)'
-                        : 'ربط حساب',
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: searchController,
-            onChanged: onSearchChanged,
-            decoration: InputDecoration(
-              hintText: 'ابحث باسم الشريك أو البريد الإلكتروني',
-              prefixIcon: const Icon(Icons.search_rounded),
-              filled: true,
-              fillColor: const Color(0xFFF6F7FB),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
-                borderSide: BorderSide.none,
-              ),
-            ),
-          ),
-          const SizedBox(height: 10),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: Wrap(
-              spacing: 8,
-              children: [
-                _FilterChipButton(
-                  label: 'الكل',
-                  selected: activeFilter == _PartnersFilter.all,
-                  onTap: () => onFilterChanged(_PartnersFilter.all),
-                ),
-                _FilterChipButton(
-                  label: 'له حساب',
-                  selected: activeFilter == _PartnersFilter.hasAccount,
-                  onTap: () => onFilterChanged(_PartnersFilter.hasAccount),
-                ),
-                _FilterChipButton(
-                  label: 'بدون حساب',
-                  selected: activeFilter == _PartnersFilter.noAccount,
-                  onTap: () => onFilterChanged(_PartnersFilter.noAccount),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterChipButton extends StatelessWidget {
-  const _FilterChipButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => onTap(),
-      showCheckmark: false,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-    );
-  }
-}
-
-class _PartnerAccountsSection extends StatelessWidget {
-  const _PartnerAccountsSection({
-    required this.accountsAsync,
-    required this.accounts,
-    required this.activeFilter,
-    required this.currentWorkspaceId,
-    required this.totalAccountsCount,
-    required this.createdByMeCount,
-    required this.linkedCount,
-    required this.availableLinkCount,
-    required this.onFilterChanged,
-    required this.onLinkToCurrentContext,
-    required this.onRetry,
-  });
-
-  final AsyncValue<List<PartnerAccountSummary>> accountsAsync;
-  final List<PartnerAccountSummary> accounts;
-  final _PartnerAccountsFilter activeFilter;
-  final String currentWorkspaceId;
-  final int totalAccountsCount;
-  final int createdByMeCount;
-  final int linkedCount;
-  final int availableLinkCount;
-  final ValueChanged<_PartnerAccountsFilter> onFilterChanged;
-  final Future<void> Function(PartnerAccountSummary summary)
-  onLinkToCurrentContext;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE7E9EE)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'الحسابات داخل النظام',
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'عرض المستخدمين الذين لديهم حسابات فعلية أو تم إنشاؤهم وربطهم بالنظام.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _TagPill(
-                icon: Icons.people_alt_outlined,
-                label: 'كل الحسابات: $totalAccountsCount',
-              ),
-              _TagPill(
-                icon: Icons.person_add_alt_rounded,
-                label: 'أنشأتها أنا: $createdByMeCount',
-              ),
-              _TagPill(
-                icon: Icons.link_rounded,
-                label: 'المرتبطة: $linkedCount',
-              ),
-              _TagPill(
-                icon: Icons.person_search_rounded,
-                label: 'المتاحة للربط: $availableLinkCount',
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _FilterChipButton(
-                label: 'كل المستخدمين',
-                selected: activeFilter == _PartnerAccountsFilter.all,
-                onTap: () => onFilterChanged(_PartnerAccountsFilter.all),
-              ),
-              _FilterChipButton(
-                label: 'تم إنشاؤهم بواسطتي',
-                selected: activeFilter == _PartnerAccountsFilter.createdByMe,
-                onTap: () =>
-                    onFilterChanged(_PartnerAccountsFilter.createdByMe),
-              ),
-              _FilterChipButton(
-                label: 'المرتبطون فقط',
-                selected: activeFilter == _PartnerAccountsFilter.linkedOnly,
-                onTap: () => onFilterChanged(_PartnerAccountsFilter.linkedOnly),
-              ),
-              _FilterChipButton(
-                label: 'غير المرتبطين',
-                selected: activeFilter == _PartnerAccountsFilter.unlinked,
-                onTap: () => onFilterChanged(_PartnerAccountsFilter.unlinked),
-              ),
-              _FilterChipButton(
-                label: 'ضمن نفس مساحة العمل',
-                selected: activeFilter == _PartnerAccountsFilter.sameWorkspace,
-                onTap: () =>
-                    onFilterChanged(_PartnerAccountsFilter.sameWorkspace),
-              ),
-              _FilterChipButton(
-                label: 'الذين لهم حساب',
-                selected:
-                    activeFilter == _PartnerAccountsFilter.hasLoginAccount,
-                onTap: () =>
-                    onFilterChanged(_PartnerAccountsFilter.hasLoginAccount),
-              ),
-              _FilterChipButton(
-                label: 'المتاحون للربط',
-                selected:
-                    activeFilter == _PartnerAccountsFilter.availableForLink,
-                onTap: () =>
-                    onFilterChanged(_PartnerAccountsFilter.availableForLink),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          accountsAsync.when(
-            data: (_) {
-              if (totalAccountsCount == 0) {
-                return const EmptyStateView(
-                  title: 'لا توجد حسابات مسجلة داخل النظام',
-                  message:
-                      'تأكد من إنشاء profile للمستخدمين داخل مجموعة users.',
-                );
-              }
-              if (accounts.isEmpty) {
-                return const EmptyStateView(
-                  title: 'لا توجد حسابات متاحة للربط',
-                  message: 'جرّب تغيير فلتر الحسابات أو تعديل عبارة البحث.',
-                );
-              }
-              return Column(
-                children: [
-                  for (var index = 0; index < accounts.length; index++) ...[
-                    _PartnerAccountCard(
-                      summary: accounts[index],
-                      currentWorkspaceId: currentWorkspaceId,
-                      onLinkToCurrentContext: onLinkToCurrentContext,
-                    ),
-                    if (index != accounts.length - 1)
-                      const SizedBox(height: 10),
-                  ],
-                ],
-              );
-            },
-            error: (error, _) => LoadFailureView(
-              title: 'تعذر تحميل حسابات المستخدمين',
-              error: error,
-              onRetry: onRetry,
-            ),
-            loading: () => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator()),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PartnerAccountCard extends StatefulWidget {
-  const _PartnerAccountCard({
-    required this.summary,
-    required this.currentWorkspaceId,
-    required this.onLinkToCurrentContext,
-  });
-
-  final PartnerAccountSummary summary;
-  final String currentWorkspaceId;
-  final Future<void> Function(PartnerAccountSummary summary)
-  onLinkToCurrentContext;
-
-  @override
-  State<_PartnerAccountCard> createState() => _PartnerAccountCardState();
-}
-
-class _PartnerAccountCardState extends State<_PartnerAccountCard> {
-  bool _linking = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final summary = widget.summary;
-    final user = summary.user;
-    final sameWorkspace =
-        widget.currentWorkspaceId.isNotEmpty &&
-        user.workspaceId.trim() == widget.currentWorkspaceId;
-    final linkedPartnerName =
-        summary.linkedPartner?.name.trim().isNotEmpty == true
-        ? summary.linkedPartner!.name.trim()
-        : user.linkedPartnerName.trim();
-    final isAlreadyLinked = summary.isLinked && sameWorkspace;
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FC),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE6EAF2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: const Color(0xFFE8ECF5),
-                child: Text(
-                  user.fullName.trim().isEmpty ? '?' : user.fullName.trim()[0],
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user.fullName.trim().isEmpty
-                          ? 'مستخدم بدون اسم'
-                          : user.fullName.trim(),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user.email.trim().isEmpty
-                          ? 'لا يوجد بريد إلكتروني'
-                          : user.email.trim(),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              const _TagPill(
-                icon: Icons.verified_user_outlined,
-                label: 'لديه حساب',
-              ),
-              _TagPill(
-                icon: summary.createdByCurrentUser
-                    ? Icons.person_add_alt_1_rounded
-                    : Icons.badge_outlined,
-                label: summary.createdByCurrentUser
-                    ? 'تم إنشاؤه بواسطتي'
-                    : 'أنشأه ${summary.createdByName}',
-              ),
-              _TagPill(
-                icon: summary.isLinked
-                    ? Icons.link_rounded
-                    : Icons.link_off_rounded,
-                label: summary.isLinked
-                    ? 'مرتبط: ${linkedPartnerName.isEmpty ? 'نعم' : linkedPartnerName}'
-                    : 'بدون ربط',
-              ),
-              _TagPill(
-                icon: sameWorkspace
-                    ? Icons.check_circle_outline_rounded
-                    : Icons.travel_explore_rounded,
-                label: sameWorkspace
-                    ? 'ضمن مساحة العمل الحالية'
-                    : 'خارج مساحة العمل الحالية',
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 18,
-            runSpacing: 8,
-            children: [
-              _InfoText(
-                label: 'تاريخ الإنشاء',
-                value: user.createdAt.formatShort(),
-              ),
-              _InfoText(label: 'UID مختصر', value: _shortUid(user.uid)),
-              _InfoText(
-                label: 'مساحة العمل',
-                value: user.workspaceId.trim().isEmpty
-                    ? 'غير محدد'
-                    : user.workspaceId.trim(),
-              ),
-              _InfoText(
-                label: 'الشريك المرتبط',
-                value: linkedPartnerName.isEmpty
-                    ? 'غير مرتبط'
-                    : linkedPartnerName,
-              ),
-              _InfoText(
-                label: 'حالة الحساب',
-                value: user.isActive ? 'نشط' : 'معطل',
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: FilledButton.tonalIcon(
-              onPressed: isAlreadyLinked || _linking
-                  ? null
-                  : () async {
-                      setState(() => _linking = true);
-                      try {
-                        await widget.onLinkToCurrentContext(summary);
-                      } finally {
-                        if (mounted) {
-                          setState(() => _linking = false);
-                        }
-                      }
-                    },
-              icon: Icon(isAlreadyLinked ? Icons.check_circle : Icons.link),
-              label: Text(
-                isAlreadyLinked
-                    ? 'مربوط بالحساب الحالي'
-                    : _linking
-                    ? 'جارٍ تنفيذ الربط...'
-                    : 'ربط بهذا الحساب',
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoText extends StatelessWidget {
-  const _InfoText({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return RichText(
-      text: TextSpan(
-        style: Theme.of(
-          context,
-        ).textTheme.bodySmall?.copyWith(color: const Color(0xFF59607A)),
-        children: [
-          TextSpan(
-            text: '$label: ',
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          TextSpan(text: value),
-        ],
-      ),
-    );
-  }
-}
-
-class _PartnerCard extends StatelessWidget {
-  const _PartnerCard({
-    required this.partner,
-    required this.onEdit,
-    required this.onManageAccount,
-    required this.onDelete,
-  });
-
-  final Partner partner;
-  final VoidCallback onEdit;
-  final VoidCallback onManageAccount;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final hasAccount = _hasAccount(partner);
-
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE6E8EE)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 23,
-                backgroundColor: const Color(0xFFEDEFF7),
-                child: Text(
-                  partner.name.isEmpty ? '?' : partner.name.characters.first,
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF3E4660),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      partner.name.isEmpty ? 'شريك بدون اسم' : partner.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      partner.linkedEmail.isEmpty
-                          ? 'لا يوجد بريد إلكتروني مرتبط'
-                          : partner.linkedEmail,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              _TagPill(
-                icon: Icons.verified_user_outlined,
-                label: hasAccount ? 'له حساب دخول' : 'لا يوجد حساب',
-              ),
-              const _TagPill(
-                icon: Icons.business_center_outlined,
-                label: 'المشروعات: غير محدد',
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              OutlinedButton.icon(
-                onPressed: onEdit,
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('تعديل بيانات الشريك'),
-              ),
-              FilledButton.tonalIcon(
-                onPressed: onManageAccount,
-                icon: const Icon(Icons.manage_accounts_outlined),
-                label: const Text('إدارة الحساب'),
-              ),
-              TextButton.icon(
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete_outline_rounded),
-                label: const Text('حذف الشريك'),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TagPill extends StatelessWidget {
-  const _TagPill({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F6FA),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: const Color(0xFF59607A)),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF59607A),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
-  const _ActionTile({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      dense: true,
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon),
-      title: Text(label),
-      onTap: onTap,
-    );
-  }
-}
-
 bool _hasAccount(Partner partner) {
   return partner.userId.isNotEmpty || partner.linkedEmail.isNotEmpty;
+}
+
+void _refreshWorkspaceProviders(WidgetRef ref) {
+  ref.invalidate(authSessionProvider);
+  ref.invalidate(partnersStreamProvider);
+  ref.invalidate(partnerAccountsStreamProvider);
+  ref.invalidate(partnerAccountsProvider);
+  ref.invalidate(pendingPartnerLinkRequestsProvider);
+  ref.invalidate(dashboard_providers.dashboardViewDataProvider);
+  ref.invalidate(dashboard_providers.dashboardPropertiesProvider);
+  ref.invalidate(dashboard_providers.dashboardUnitsProvider);
+  ref.invalidate(dashboard_providers.dashboardPaymentsProvider);
+  ref.invalidate(dashboard_providers.dashboardInstallmentsProvider);
+  ref.invalidate(dashboard_providers.dashboardExpensesProvider);
+  ref.invalidate(dashboard_providers.dashboardMaterialsProvider);
+  ref.invalidate(dashboard_providers.dashboardSupplierPaymentsProvider);
+  ref.invalidate(dashboard_providers.dashboardPartnersProvider);
+  ref.invalidate(dashboard_providers.dashboardPartnerLedgerProvider);
+  ref.invalidate(properties_providers.propertiesViewDataProvider);
+  ref.invalidate(properties_providers.propertiesStreamProvider);
+  ref.invalidate(properties_providers.propertyExpensesStreamProvider);
+  ref.invalidate(properties_providers.propertyPaymentsStreamProvider);
+  ref.invalidate(properties_providers.propertyUnitsStreamProvider);
+  ref.invalidate(properties_providers.partnersStreamProvider);
 }
 
 String _shortUid(String uid) {
@@ -1718,11 +968,13 @@ Future<void> _acceptPendingPartnerRequest(
     throw StateError('هذا الحساب مرتبط بالفعل بشريك آخر.');
   }
 
-  await ref.read(partnerRepositoryProvider).linkPartnerToUser(
-    partner: partner,
-    user: user,
-    workspaceId: workspaceId,
-  );
+  await ref
+      .read(partnerRepositoryProvider)
+      .linkPartnerToUser(
+        partner: partner,
+        user: user,
+        workspaceId: workspaceId,
+      );
   await ref
       .read(activityRepositoryProvider)
       .log(
@@ -1740,15 +992,15 @@ Future<void> _acceptPendingPartnerRequest(
         workspaceId: workspaceId,
       );
 
-  final requesterUserId =
-      (metadata['requesterUserId'] as String? ?? '').trim();
+  final requesterUserId = (metadata['requesterUserId'] as String? ?? '').trim();
   if (requesterUserId.isNotEmpty && requesterUserId != session.userId) {
     await ref
         .read(notificationRepositoryProvider)
         .create(
           userId: requesterUserId,
           title: 'تم قبول طلب الربط',
-          body: '${session.profile?.name ?? 'شريك'} قبل طلب ربط ${partner.name}.',
+          body:
+              '${session.profile?.name ?? 'شريك'} قبل طلب ربط ${partner.name}.',
           type: NotificationType.partnerLinkAccepted,
           route: '/partners',
           referenceKey: 'partner-link-accepted-${request.id}',
@@ -1757,105 +1009,12 @@ Future<void> _acceptPendingPartnerRequest(
   }
 
   await ref.read(notificationRepositoryProvider).markRead(request.id);
-  ref.invalidate(partnersStreamProvider);
-  ref.invalidate(partnerAccountsStreamProvider);
-  ref.invalidate(partnerAccountsProvider);
-  ref.invalidate(pendingPartnerLinkRequestsProvider);
+  _refreshWorkspaceProviders(ref);
 
   if (context.mounted) {
     Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم قبول طلب الربط بنجاح.')),
-    );
-  }
-}
-
-class _PendingRequestsSheet extends StatefulWidget {
-  const _PendingRequestsSheet({required this.requests, required this.onAccept});
-
-  final List<AppNotificationItem> requests;
-  final Future<void> Function(AppNotificationItem request) onAccept;
-
-  @override
-  State<_PendingRequestsSheet> createState() => _PendingRequestsSheetState();
-}
-
-class _PendingRequestsSheetState extends State<_PendingRequestsSheet> {
-  String? _acceptingRequestId;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'طلبات ربط الحساب',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'وافق على الطلب المناسب لربط حساب الدخول بهذا الشريك.',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 12),
-            if (widget.requests.isEmpty)
-              const EmptyStateView(
-                title: 'لا توجد طلبات ربط',
-                message: 'عند وصول طلبات جديدة ستظهر هنا.',
-              )
-            else
-              ...widget.requests.map(
-                (request) => Card(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  child: ListTile(
-                    title: Text(request.title),
-                    subtitle: Text(
-                      request.body,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: FilledButton.tonal(
-                      onPressed: _acceptingRequestId == null
-                          ? () => _accept(request)
-                          : null,
-                      child: _acceptingRequestId == request.id
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('مراجعة'),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _accept(AppNotificationItem request) async {
-    setState(() => _acceptingRequestId = request.id);
-    try {
-      await widget.onAccept(request);
-    } catch (error) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل الربط: $error')),
-      );
-    } finally {
-      if (mounted) {
-        setState(() => _acceptingRequestId = null);
-      }
-    }
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('تم قبول طلب الربط بنجاح.')));
   }
 }

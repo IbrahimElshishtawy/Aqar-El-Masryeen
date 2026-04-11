@@ -77,6 +77,8 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
     if (!_formKey.currentState!.validate()) return;
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) return;
+    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    if (workspaceId.isEmpty) return;
     setState(() => _saving = true);
 
     final amount = double.parse(_amountController.text.trim());
@@ -100,6 +102,7 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
       updatedAt: DateTime.now(),
       createdBy: widget.installment?.createdBy ?? session.userId,
       updatedBy: session.userId,
+      workspaceId: widget.installment?.workspaceId ?? workspaceId,
     );
 
     await ref.read(installmentRepositoryProvider).saveInstallment(installment);
@@ -116,6 +119,7 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
               ? '${widget.unitId}_${installment.sequence}'
               : installment.id,
           metadata: {'propertyId': widget.propertyId, 'unitId': widget.unitId},
+          workspaceId: workspaceId,
         );
 
     if (mounted) Navigator.of(context).pop();

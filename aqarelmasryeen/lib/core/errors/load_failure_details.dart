@@ -2,10 +2,7 @@ import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LoadFailureDetails {
-  const LoadFailureDetails({
-    required this.title,
-    required this.message,
-  });
+  const LoadFailureDetails({required this.title, required this.message});
 
   final String title;
   final String message;
@@ -48,7 +45,8 @@ LoadFailureDetails describeLoadFailure(
       case 'unavailable':
         return LoadFailureDetails(
           title: defaultTitle,
-          message: 'خدمة Firestore غير متاحة الآن. تحقق من الاتصال ثم حاول مرة أخرى.',
+          message:
+              'خدمة Firestore غير متاحة الآن. تحقق من الاتصال ثم حاول مرة أخرى.',
         );
       case 'not-found':
         return LoadFailureDetails(

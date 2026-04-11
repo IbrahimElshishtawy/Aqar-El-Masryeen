@@ -15,9 +15,15 @@ class ExpenseRepository {
   final Uuid _uuid;
   final LocalCacheService _cache;
 
-  Stream<List<ExpenseRecord>> watchAll() {
+  Stream<List<ExpenseRecord>> watchAll({required String workspaceId}) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <ExpenseRecord>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.expenses)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .where('archived', isEqualTo: false)
         .orderBy('date', descending: true)
         .snapshots()
@@ -29,16 +35,25 @@ class ExpenseRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.expenses,
+      cacheKey: CacheKeys.expenses(workspaceId: normalizedWorkspaceId),
       source: source,
       encode: _serializeExpense,
       decode: _deserializeExpense,
     );
   }
 
-  Stream<List<ExpenseRecord>> watchByProperty(String propertyId) {
+  Stream<List<ExpenseRecord>> watchByProperty(
+    String propertyId, {
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <ExpenseRecord>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.expenses)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .where('propertyId', isEqualTo: propertyId)
         .where('archived', isEqualTo: false)
         .orderBy('date', descending: true)
@@ -51,7 +66,10 @@ class ExpenseRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.expensesByProperty(propertyId),
+      cacheKey: CacheKeys.expensesByProperty(
+        propertyId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializeExpense,
       decode: _deserializeExpense,
@@ -69,6 +87,7 @@ class ExpenseRepository {
                 expense.createdAt == DateTime.fromMillisecondsSinceEpoch(0)
                 ? DateTime.now()
                 : expense.createdAt
+            ..['workspaceId'] = expense.workspaceId.trim()
             ..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );

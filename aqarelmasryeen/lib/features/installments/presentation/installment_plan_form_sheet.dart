@@ -8,6 +8,8 @@ import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+part 'widgets/installment_plan_form_fields.dart';
+part 'widgets/installment_plan_form_models.dart';
 
 class InstallmentPlanFormSheet extends ConsumerStatefulWidget {
   const InstallmentPlanFormSheet({
@@ -70,7 +72,8 @@ class _InstallmentPlanFormSheetState
   void _seedDraftInstallments() {
     final count = int.tryParse(_countController.text.trim()) ?? 0;
     if (count <= 0 || _draftInstallments.isNotEmpty) return;
-    final installmentAmount = double.tryParse(_amountController.text.trim()) ?? 0;
+    final installmentAmount =
+        double.tryParse(_amountController.text.trim()) ?? 0;
     for (var i = 0; i < count; i++) {
       _draftInstallments.add(
         _DraftInstallment(
@@ -97,10 +100,12 @@ class _InstallmentPlanFormSheetState
     if (!_formKey.currentState!.validate()) return;
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) return;
+    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    if (workspaceId.isEmpty) return;
     if (_draftInstallments.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('أضف قسطًا واحدًا على الأقل.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أضف قسطًا واحدًا على الأقل.')),
+      );
       return;
     }
 
@@ -119,6 +124,7 @@ class _InstallmentPlanFormSheetState
       updatedAt: now,
       createdBy: session.userId,
       updatedBy: session.userId,
+      workspaceId: workspaceId,
     );
 
     await ref
@@ -144,6 +150,7 @@ class _InstallmentPlanFormSheetState
               updatedAt: now,
               createdBy: session.userId,
               updatedBy: session.userId,
+              workspaceId: workspaceId,
             ),
           );
     }
@@ -160,6 +167,7 @@ class _InstallmentPlanFormSheetState
             'count': plan.installmentCount,
             'amount': plan.installmentAmount,
           },
+          workspaceId: workspaceId,
         );
 
     if (mounted) Navigator.of(context).pop();
@@ -169,157 +177,7 @@ class _InstallmentPlanFormSheetState
   Widget build(BuildContext context) {
     return AppFormSheet(
       title: 'إنشاء خطة أقساط',
-      child: Form(
-        key: _formKey,
-        child: Column(
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: _unitId.isEmpty ? null : _unitId,
-              items: widget.units
-                  .map(
-                    (item) => DropdownMenuItem(
-                      value: item.id,
-                      child: Text(
-                        '${item.unitNumber} • ${item.customerName}'.trim(),
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() => _unitId = value ?? '');
-                _prefillAmount();
-              },
-              decoration: const InputDecoration(labelText: 'الوحدة'),
-              validator: (value) =>
-                  (value ?? '').isEmpty ? 'اختر الوحدة أولًا.' : null,
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _countController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'عدد الأقساط'),
-                    onChanged: (_) => _prefillAmount(),
-                    validator: (value) {
-                      if ((int.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'مطلوب';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _intervalController,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'الفاصل بالأيام',
-                    ),
-                    validator: (value) {
-                      if ((int.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                        return 'مطلوب';
-                      }
-                      return null;
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            InkWell(
-              onTap: _pickDate,
-              borderRadius: BorderRadius.circular(20),
-              child: InputDecorator(
-                decoration: const InputDecoration(labelText: 'تاريخ البداية'),
-                child: Row(
-                  children: [
-                    Expanded(child: Text(_startDate.formatShort())),
-                    const Icon(Icons.calendar_today_outlined, size: 18),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _amountController,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              decoration: const InputDecoration(labelText: 'قيمة القسط'),
-              validator: (value) {
-                if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
-                  return 'أدخل قيمة القسط.';
-                }
-                return null;
-              },
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Text(
-                  'الأقساط اليدوية (${_draftInstallments.length})',
-                  style: Theme.of(context).textTheme.titleSmall,
-                ),
-                const Spacer(),
-                OutlinedButton.icon(
-                  onPressed: _saving ? null : _addInstallment,
-                  icon: const Icon(Icons.add),
-                  label: const Text('إضافة قسط'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            if (_draftInstallments.isEmpty)
-              const ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('لا توجد أقساط مضافة بعد'),
-                subtitle: Text('أضف تواريخ وقيم الأقساط يدويًا قبل الحفظ.'),
-              )
-            else
-              ..._draftInstallments.asMap().entries.map(
-                (entry) => ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    'القسط ${entry.key + 1} • ${entry.value.amount.toStringAsFixed(0)}',
-                  ),
-                  subtitle: Text(
-                    '${entry.value.dueDate.formatShort()}${entry.value.notes.trim().isEmpty ? '' : ' • ${entry.value.notes}'}',
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        onPressed: _saving
-                            ? null
-                            : () => _editInstallment(entry.key),
-                        icon: const Icon(Icons.edit_outlined),
-                      ),
-                      IconButton(
-                        onPressed: _saving
-                            ? null
-                            : () => setState(
-                                () => _draftInstallments.removeAt(entry.key),
-                              ),
-                        icon: const Icon(Icons.delete_outline),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            const SizedBox(height: 18),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton(
-                onPressed: _saving ? null : _submit,
-                child: Text(_saving ? 'جار الإنشاء...' : 'إنشاء الخطة'),
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: Form(key: _formKey, child: _buildFormFields()),
     );
   }
 
@@ -330,7 +188,9 @@ class _InstallmentPlanFormSheetState
   }
 
   Future<void> _editInstallment(int index) async {
-    final item = await _showInstallmentEditor(initial: _draftInstallments[index]);
+    final item = await _showInstallmentEditor(
+      initial: _draftInstallments[index],
+    );
     if (item == null) return;
     setState(() => _draftInstallments[index] = item);
   }
@@ -369,7 +229,9 @@ class _InstallmentPlanFormSheetState
                       }
                     },
                     child: InputDecorator(
-                      decoration: const InputDecoration(labelText: 'تاريخ القسط'),
+                      decoration: const InputDecoration(
+                        labelText: 'تاريخ القسط',
+                      ),
                       child: Text(dueDate.formatShort()),
                     ),
                   ),
@@ -390,7 +252,9 @@ class _InstallmentPlanFormSheetState
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: notesController,
-                    decoration: const InputDecoration(labelText: 'ملاحظة (اختياري)'),
+                    decoration: const InputDecoration(
+                      labelText: 'ملاحظة (اختياري)',
+                    ),
                   ),
                 ],
               ),
@@ -406,7 +270,8 @@ class _InstallmentPlanFormSheetState
                   Navigator.of(context).pop(
                     _DraftInstallment(
                       dueDate: dueDate,
-                      amount: double.tryParse(amountController.text.trim()) ?? 0,
+                      amount:
+                          double.tryParse(amountController.text.trim()) ?? 0,
                       notes: notesController.text.trim(),
                     ),
                   );
@@ -419,16 +284,4 @@ class _InstallmentPlanFormSheetState
       ),
     );
   }
-}
-
-class _DraftInstallment {
-  const _DraftInstallment({
-    required this.dueDate,
-    required this.amount,
-    this.notes = '',
-  });
-
-  final DateTime dueDate;
-  final double amount;
-  final String notes;
 }

@@ -15,44 +15,61 @@ class MaterialExpenseRepository {
   final Uuid _uuid;
   final LocalCacheService _cache;
 
-  Stream<List<MaterialExpenseEntry>> watchAll() {
+  Stream<List<MaterialExpenseEntry>> watchAll({required String workspaceId}) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <MaterialExpenseEntry>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.materialExpenses)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
+        .where('archived', isEqualTo: false)
         .orderBy('date', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()))
-              .where((entry) => !entry.archived)
               .toList(),
         );
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.materialExpenses,
+      cacheKey: CacheKeys.materialExpenses(workspaceId: normalizedWorkspaceId),
       source: source,
       encode: _serializeMaterialExpense,
       decode: _deserializeMaterialExpense,
     );
   }
 
-  Stream<List<MaterialExpenseEntry>> watchByProperty(String propertyId) {
+  Stream<List<MaterialExpenseEntry>> watchByProperty(
+    String propertyId, {
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <MaterialExpenseEntry>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.materialExpenses)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
+        .where('propertyId', isEqualTo: propertyId)
+        .where('archived', isEqualTo: false)
         .orderBy('date', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => MaterialExpenseEntry.fromMap(doc.id, doc.data()))
-              .where(
-                (entry) => entry.propertyId == propertyId && !entry.archived,
-              )
               .toList(),
         );
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.materialExpensesByProperty(propertyId),
+      cacheKey: CacheKeys.materialExpensesByProperty(
+        propertyId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializeMaterialExpense,
       decode: _deserializeMaterialExpense,
@@ -70,6 +87,7 @@ class MaterialExpenseRepository {
                 entry.createdAt == DateTime.fromMillisecondsSinceEpoch(0)
                 ? DateTime.now()
                 : entry.createdAt
+            ..['workspaceId'] = entry.workspaceId.trim()
             ..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );

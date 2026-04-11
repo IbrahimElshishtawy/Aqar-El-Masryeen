@@ -56,6 +56,8 @@ class _PartnerLedgerEntryFormSheetState
     if (!_formKey.currentState!.validate() || !_authorized) return;
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) return;
+    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    if (workspaceId.isEmpty) return;
     setState(() => _saving = true);
 
     final entry = PartnerLedgerEntry(
@@ -72,6 +74,7 @@ class _PartnerLedgerEntryFormSheetState
           widget.entry?.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0),
       updatedAt: DateTime.now(),
       archived: false,
+      workspaceId: widget.entry?.workspaceId ?? workspaceId,
     );
 
     final savedId = await ref
@@ -88,7 +91,7 @@ class _PartnerLedgerEntryFormSheetState
           entityType: 'partner_ledger',
           entityId: savedId,
           metadata: {'partnerId': widget.partner.id, 'amount': entry.amount},
-          workspaceId: session.profile?.workspaceId.trim(),
+          workspaceId: workspaceId,
         );
     await ref
         .read(notificationRepositoryProvider)
@@ -98,7 +101,7 @@ class _PartnerLedgerEntryFormSheetState
           body: '${widget.partner.name} ledger updated',
           type: NotificationType.ledgerUpdated,
           route: '/expenses',
-          workspaceId: session.profile?.workspaceId.trim(),
+          workspaceId: workspaceId,
         );
 
     if (mounted) Navigator.of(context).pop();

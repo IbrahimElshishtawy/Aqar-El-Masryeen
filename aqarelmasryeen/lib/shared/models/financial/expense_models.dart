@@ -18,6 +18,7 @@ class ExpenseRecord {
     required this.createdAt,
     required this.updatedAt,
     required this.archived,
+    this.workspaceId = '',
   });
 
   final String id;
@@ -35,6 +36,7 @@ class ExpenseRecord {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool archived;
+  final String workspaceId;
 
   Map<String, dynamic> toMap() {
     return {
@@ -52,6 +54,7 @@ class ExpenseRecord {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'archived': archived,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -79,6 +82,7 @@ class ExpenseRecord {
       createdAt: parseDate(data['createdAt']),
       updatedAt: parseDate(data['updatedAt']),
       archived: data['archived'] as bool? ?? false,
+      workspaceId: data['workspaceId'] as String? ?? '',
     );
   }
 
@@ -98,6 +102,7 @@ class ExpenseRecord {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? archived,
+    String? workspaceId,
   }) {
     return ExpenseRecord(
       id: id ?? this.id,
@@ -115,6 +120,7 @@ class ExpenseRecord {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       archived: archived ?? this.archived,
+      workspaceId: workspaceId ?? this.workspaceId,
     );
   }
 }
@@ -141,6 +147,7 @@ class MaterialExpenseEntry {
     required this.createdAt,
     required this.updatedAt,
     required this.archived,
+    this.workspaceId = '',
     this.dueDate,
   });
 
@@ -164,6 +171,7 @@ class MaterialExpenseEntry {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool archived;
+  final String workspaceId;
   final DateTime? dueDate;
 
   SupplierInvoiceStatus get status {
@@ -204,6 +212,7 @@ class MaterialExpenseEntry {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'archived': archived,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -243,6 +252,7 @@ class MaterialExpenseEntry {
       createdAt: parseDate(data['createdAt']),
       updatedAt: parseDate(data['updatedAt']),
       archived: data['archived'] as bool? ?? false,
+      workspaceId: data['workspaceId'] as String? ?? '',
     );
   }
 
@@ -268,6 +278,7 @@ class MaterialExpenseEntry {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? archived,
+    String? workspaceId,
   }) {
     return MaterialExpenseEntry(
       id: id ?? this.id,
@@ -292,6 +303,7 @@ class MaterialExpenseEntry {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       archived: archived ?? this.archived,
+      workspaceId: workspaceId ?? this.workspaceId,
     );
   }
 }
@@ -311,6 +323,7 @@ class SupplierPaymentRecord {
     required this.createdAt,
     required this.updatedAt,
     required this.archived,
+    this.workspaceId = '',
   });
 
   final String id;
@@ -326,6 +339,7 @@ class SupplierPaymentRecord {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool archived;
+  final String workspaceId;
 
   Map<String, dynamic> toMap() {
     return {
@@ -341,6 +355,7 @@ class SupplierPaymentRecord {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'archived': archived,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -360,6 +375,7 @@ class SupplierPaymentRecord {
       createdAt: parseDate(data['createdAt']),
       updatedAt: parseDate(data['updatedAt']),
       archived: data['archived'] as bool? ?? false,
+      workspaceId: data['workspaceId'] as String? ?? '',
     );
   }
 
@@ -377,6 +393,7 @@ class SupplierPaymentRecord {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? archived,
+    String? workspaceId,
   }) {
     return SupplierPaymentRecord(
       id: id ?? this.id,
@@ -392,6 +409,7 @@ class SupplierPaymentRecord {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       archived: archived ?? this.archived,
+      workspaceId: workspaceId ?? this.workspaceId,
     );
   }
 }

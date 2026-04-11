@@ -15,21 +15,27 @@ class PartnerLedgerRepository {
   final Uuid _uuid;
   final LocalCacheService _cache;
 
-  Stream<List<PartnerLedgerEntry>> watchAll() {
+  Stream<List<PartnerLedgerEntry>> watchAll({required String workspaceId}) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <PartnerLedgerEntry>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.partnerLedgers)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
+        .where('archived', isEqualTo: false)
         .orderBy('updatedAt', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => PartnerLedgerEntry.fromMap(doc.id, doc.data()))
-              .where((entry) => !entry.archived)
               .toList(),
         );
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.partnerLedger,
+      cacheKey: CacheKeys.partnerLedger(workspaceId: normalizedWorkspaceId),
       source: source,
       encode: _serializePartnerLedgerEntry,
       decode: _deserializePartnerLedgerEntry,
@@ -47,6 +53,7 @@ class PartnerLedgerRepository {
                 entry.createdAt == DateTime.fromMillisecondsSinceEpoch(0)
                 ? DateTime.now()
                 : entry.createdAt
+            ..['workspaceId'] = entry.workspaceId.trim()
             ..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );

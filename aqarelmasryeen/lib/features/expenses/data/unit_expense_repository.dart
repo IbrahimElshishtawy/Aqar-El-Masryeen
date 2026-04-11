@@ -60,6 +60,7 @@ class UnitExpenseRepository {
                 expense.createdAt == DateTime.fromMillisecondsSinceEpoch(0)
                 ? DateTime.now()
                 : expense.createdAt
+            ..['workspaceId'] = expense.workspaceId.trim()
             ..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );

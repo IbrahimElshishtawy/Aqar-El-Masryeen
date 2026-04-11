@@ -20,57 +20,58 @@ class PropertyRepository {
     Set<String> accountUserIds = const <String>{},
   }) {
     final normalizedWorkspaceId = workspaceId.trim();
-    final normalizedAccountUserIds = accountUserIds
-        .map((id) => id.trim())
-        .where((id) => id.isNotEmpty)
-        .toSet();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <PropertyProject>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.properties)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .where('archived', isEqualTo: false)
         .orderBy('updatedAt', descending: true)
         .snapshots()
-        .map((snapshot) {
-          final items = snapshot.docs
+        .map(
+          (snapshot) => snapshot.docs
               .map((doc) => PropertyProject.fromMap(doc.id, doc.data()))
-              .where((property) {
-                final propertyWorkspace = property.workspaceId.trim();
-                if (normalizedWorkspaceId.isNotEmpty &&
-                    propertyWorkspace == normalizedWorkspaceId) {
-                  return true;
-                }
-                if (normalizedAccountUserIds.isEmpty) {
-                  return normalizedWorkspaceId.isEmpty;
-                }
-                return normalizedAccountUserIds.contains(
-                  property.createdBy.trim(),
-                );
-              })
-              .toList(growable: false);
-          return items;
-        });
+              .toList(growable: false),
+        );
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.properties,
+      cacheKey: CacheKeys.properties(workspaceId: normalizedWorkspaceId),
       source: source,
       encode: _serializeProperty,
       decode: _deserializeProperty,
     );
   }
 
-  Stream<PropertyProject?> watchProperty(String propertyId) {
+  Stream<PropertyProject?> watchProperty(
+    String propertyId, {
+    String workspaceId = '',
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
     final source = _firestore
         .collection(FirestorePaths.properties)
         .doc(propertyId)
         .snapshots()
-        .map(
-          (doc) =>
-              doc.exists ? PropertyProject.fromMap(doc.id, doc.data()) : null,
-        );
+        .map((doc) {
+          if (!doc.exists) {
+            return null;
+          }
+          final property = PropertyProject.fromMap(doc.id, doc.data());
+          if (normalizedWorkspaceId.isNotEmpty &&
+              property.workspaceId.trim() != normalizedWorkspaceId) {
+            return null;
+          }
+          return property;
+        });
 
     return CachePolicy.watchObject(
       cache: _cache,
-      cacheKey: CacheKeys.property(propertyId),
+      cacheKey: CacheKeys.property(
+        propertyId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializeProperty,
       decode: _deserializeProperty,

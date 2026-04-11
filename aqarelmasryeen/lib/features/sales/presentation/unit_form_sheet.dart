@@ -88,6 +88,10 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     if (session == null) {
       return;
     }
+    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    if (workspaceId.isEmpty) {
+      return;
+    }
 
     setState(() => _saving = true);
     final now = DateTime.now();
@@ -120,6 +124,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
       updatedAt: now,
       createdBy: widget.unit?.createdBy ?? session.userId,
       updatedBy: session.userId,
+      workspaceId: widget.unit?.workspaceId ?? workspaceId,
     );
 
     final unitId = await ref.read(salesRepositoryProvider).save(unit);
@@ -137,6 +142,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
             'apartmentPrice': savedUnit.apartmentPrice,
             'status': savedUnit.status.name,
           },
+          workspaceId: workspaceId,
         );
 
     if (mounted) {
@@ -175,7 +181,9 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
-                    decoration: const InputDecoration(labelText: 'المساحة بالمتر'),
+                    decoration: const InputDecoration(
+                      labelText: 'المساحة بالمتر',
+                    ),
                   ),
                 ),
               ],
@@ -252,9 +260,8 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                         DropdownMenuItem(value: item, child: Text(item.label)),
                   )
                   .toList(),
-              onChanged: (value) => setState(
-                () => _paymentPlanType = value ?? _paymentPlanType,
-              ),
+              onChanged: (value) =>
+                  setState(() => _paymentPlanType = value ?? _paymentPlanType),
               decoration: const InputDecoration(labelText: 'نظام السداد'),
             ),
             const SizedBox(height: 12),

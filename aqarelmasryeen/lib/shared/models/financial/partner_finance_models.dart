@@ -15,6 +15,7 @@ class PartnerLedgerEntry {
     required this.createdAt,
     required this.updatedAt,
     required this.archived,
+    this.workspaceId = '',
   });
 
   final String id;
@@ -29,6 +30,7 @@ class PartnerLedgerEntry {
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool archived;
+  final String workspaceId;
 
   Map<String, dynamic> toMap() {
     return {
@@ -43,6 +45,7 @@ class PartnerLedgerEntry {
       'createdAt': createdAt,
       'updatedAt': updatedAt,
       'archived': archived,
+      'workspaceId': workspaceId,
     };
   }
 
@@ -64,6 +67,7 @@ class PartnerLedgerEntry {
       createdAt: parseDate(data['createdAt']),
       updatedAt: parseDate(data['updatedAt']),
       archived: data['archived'] as bool? ?? false,
+      workspaceId: data['workspaceId'] as String? ?? '',
     );
   }
 
@@ -80,6 +84,7 @@ class PartnerLedgerEntry {
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? archived,
+    String? workspaceId,
   }) {
     return PartnerLedgerEntry(
       id: id ?? this.id,
@@ -94,6 +99,7 @@ class PartnerLedgerEntry {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       archived: archived ?? this.archived,
+      workspaceId: workspaceId ?? this.workspaceId,
     );
   }
 }

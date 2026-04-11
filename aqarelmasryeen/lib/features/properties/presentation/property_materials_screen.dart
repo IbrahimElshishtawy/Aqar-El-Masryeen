@@ -279,8 +279,7 @@ class _SupplierSummaryCard extends StatelessWidget {
             LayoutBuilder(
               builder: (context, constraints) {
                 final hasTwoButtons = onAddPayment != null;
-                final buttonWidth =
-                    hasTwoButtons && constraints.maxWidth >= 320
+                final buttonWidth = hasTwoButtons && constraints.maxWidth >= 320
                     ? (constraints.maxWidth - 10) / 2
                     : constraints.maxWidth;
                 return Wrap(
@@ -290,19 +289,11 @@ class _SupplierSummaryCard extends StatelessWidget {
                     if (onAddPayment != null)
                       SizedBox(
                         width: buttonWidth,
-                        child: FilledButton.icon(
-                          onPressed: onAddPayment,
-                          icon: const Icon(Icons.add_card_rounded, size: 18),
-                          label: const Text('إضافة دفعة'),
+                        child: FilledButton.tonal(
+                          onPressed: onTap,
+                          child: const Text('فتح كشف المورد'),
                         ),
                       ),
-                    SizedBox(
-                      width: buttonWidth,
-                      child: FilledButton.tonal(
-                        onPressed: onTap,
-                        child: const Text('فتح كشف المورد'),
-                      ),
-                    ),
                   ],
                 );
               },

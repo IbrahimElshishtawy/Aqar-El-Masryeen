@@ -24,13 +24,11 @@ class UserProfileRemoteDataSource {
   }
 
   Stream<List<AppUser>> watchAllProfiles() {
-    return _users
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => AppUser.fromMap(doc.id, doc.data()))
-              .toList(growable: false),
-        );
+    return _users.snapshots().map(
+      (snapshot) => snapshot.docs
+          .map((doc) => AppUser.fromMap(doc.id, doc.data()))
+          .toList(growable: false),
+    );
   }
 
   Stream<List<AppUser>> watchProfilesByWorkspace(String workspaceId) {
@@ -92,6 +90,7 @@ class UserProfileRemoteDataSource {
     final resolvedWorkspaceId = _resolveWorkspaceId(
       requested: workspaceId,
       existing: existing?.workspaceId,
+      fallbackUid: uid,
     );
     final resolvedCreatedBy = _resolveCreatedBy(
       requested: createdBy,
@@ -100,10 +99,10 @@ class UserProfileRemoteDataSource {
     );
     final resolvedCreatedByName =
         (existing?.createdByName.trim().isNotEmpty == true
-            ? existing!.createdByName
-            : (createdByName?.trim().isNotEmpty == true
-                  ? createdByName!.trim()
-                  : fullName.trim()));
+        ? existing!.createdByName
+        : (createdByName?.trim().isNotEmpty == true
+              ? createdByName!.trim()
+              : fullName.trim()));
 
     final data = <String, dynamic>{
       'uid': uid,
@@ -135,11 +134,7 @@ class UserProfileRemoteDataSource {
       data['lastLoginAt'] = existing!.lastLoginAt;
     }
 
-    await _writeProfile(
-      uid: uid,
-      previousEmail: existing?.email,
-      data: data,
-    );
+    await _writeProfile(uid: uid, previousEmail: existing?.email, data: data);
   }
 
   Future<void> completeProfile({
@@ -161,11 +156,17 @@ class UserProfileRemoteDataSource {
     required String partnerId,
     required String partnerName,
     String? workspaceId,
-  }) {
+  }) async {
+    final existing = await fetchProfile(uid);
+    final resolvedWorkspaceId = _resolveWorkspaceId(
+      requested: workspaceId,
+      existing: existing?.workspaceId,
+      fallbackUid: uid,
+    );
     return _users.doc(uid).set({
       'linkedPartnerId': partnerId,
       'linkedPartnerName': partnerName,
-      'workspaceId': workspaceId?.trim() ?? '',
+      'workspaceId': resolvedWorkspaceId,
       'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -178,6 +179,11 @@ class UserProfileRemoteDataSource {
     String? createdBy,
   }) async {
     final existing = await fetchProfile(uid);
+    final resolvedWorkspaceId = _resolveWorkspaceId(
+      requested: workspaceId,
+      existing: existing?.workspaceId,
+      fallbackUid: uid,
+    );
     final resolvedCreatedBy = _resolveCreatedBy(
       requested: createdBy,
       existing: existing?.createdBy,
@@ -185,7 +191,7 @@ class UserProfileRemoteDataSource {
     );
 
     await _users.doc(uid).set({
-      'workspaceId': workspaceId.trim(),
+      'workspaceId': resolvedWorkspaceId,
       'linkedPartnerId': linkedPartnerId ?? existing?.linkedPartnerId ?? '',
       'linkedPartnerName':
           linkedPartnerName ?? existing?.linkedPartnerName ?? '',
@@ -195,10 +201,7 @@ class UserProfileRemoteDataSource {
     }, SetOptions(merge: true));
   }
 
-  Future<void> clearPartnerLink(
-    String uid, {
-    String? expectedPartnerId,
-  }) async {
+  Future<void> clearPartnerLink(String uid, {String? expectedPartnerId}) async {
     if (expectedPartnerId?.trim().isNotEmpty == true) {
       final existing = await fetchProfile(uid);
       if (existing == null || existing.linkedPartnerId != expectedPartnerId) {
@@ -248,7 +251,11 @@ class UserProfileRemoteDataSource {
         'createdByName': existing?.createdByName.isNotEmpty == true
             ? existing!.createdByName
             : fullName,
-        'workspaceId': existing?.workspaceId ?? '',
+        'workspaceId': _resolveWorkspaceId(
+          requested: existing?.workspaceId,
+          existing: null,
+          fallbackUid: user.uid,
+        ),
         'linkedPartnerId': existing?.linkedPartnerId ?? '',
         'linkedPartnerName': existing?.linkedPartnerName ?? '',
       },
@@ -338,6 +345,7 @@ class UserProfileRemoteDataSource {
   String _resolveWorkspaceId({
     required String? requested,
     required String? existing,
+    required String fallbackUid,
   }) {
     final normalizedRequested = requested?.trim() ?? '';
     if (normalizedRequested.isNotEmpty) {
@@ -347,7 +355,7 @@ class UserProfileRemoteDataSource {
     if (normalizedExisting.isNotEmpty) {
       return normalizedExisting;
     }
-    return '';
+    return 'workspace_$fallbackUid';
   }
 
   String _resolveCreatedBy({

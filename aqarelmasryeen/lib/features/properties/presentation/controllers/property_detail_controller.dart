@@ -22,35 +22,66 @@ export 'package:aqarelmasryeen/features/properties/presentation/controllers/prop
 export 'package:aqarelmasryeen/features/properties/presentation/controllers/property_detail_view_data.dart';
 
 final _allPropertiesProvider =
-    StreamProvider.autoDispose<List<PropertyProject>>(
-      (ref) => ref.watch(propertyRepositoryProvider).watchProperties(),
-    );
+    StreamProvider.autoDispose<List<PropertyProject>>((ref) {
+      final session = ref.watch(authSessionProvider).valueOrNull;
+      return ref
+          .watch(propertyRepositoryProvider)
+          .watchProperties(
+            workspaceId: session?.profile?.workspaceId.trim() ?? '',
+          );
+    });
 
-final _allUnitsProvider = StreamProvider.autoDispose<List<UnitSale>>(
-  (ref) => ref.watch(salesRepositoryProvider).watchAll(),
-);
+final _allUnitsProvider = StreamProvider.autoDispose<List<UnitSale>>((ref) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(salesRepositoryProvider)
+      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
 
-final _allInstallmentsProvider = StreamProvider.autoDispose<List<Installment>>(
-  (ref) => ref.watch(installmentRepositoryProvider).watchAllInstallments(),
-);
+final _allInstallmentsProvider = StreamProvider.autoDispose<List<Installment>>((
+  ref,
+) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(installmentRepositoryProvider)
+      .watchAllInstallments(
+        workspaceId: session?.profile?.workspaceId.trim() ?? '',
+      );
+});
 
-final _allPaymentsProvider = StreamProvider.autoDispose<List<PaymentRecord>>(
-  (ref) => ref.watch(paymentRepositoryProvider).watchAll(),
-);
+final _allPaymentsProvider = StreamProvider.autoDispose<List<PaymentRecord>>((
+  ref,
+) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(paymentRepositoryProvider)
+      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
 
-final _allExpensesProvider = StreamProvider.autoDispose<List<ExpenseRecord>>(
-  (ref) => ref.watch(expenseRepositoryProvider).watchAll(),
-);
+final _allExpensesProvider = StreamProvider.autoDispose<List<ExpenseRecord>>((
+  ref,
+) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(expenseRepositoryProvider)
+      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
 
 final _allMaterialsProvider =
-    StreamProvider.autoDispose<List<MaterialExpenseEntry>>(
-      (ref) => ref.watch(materialExpenseRepositoryProvider).watchAll(),
-    );
+    StreamProvider.autoDispose<List<MaterialExpenseEntry>>((ref) {
+      final session = ref.watch(authSessionProvider).valueOrNull;
+      return ref
+          .watch(materialExpenseRepositoryProvider)
+          .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+    });
 
 final _allSupplierPaymentsProvider =
-    StreamProvider.autoDispose<List<SupplierPaymentRecord>>(
-      (ref) => ref.watch(supplierPaymentRepositoryProvider).watchAll(),
-    );
+    StreamProvider.autoDispose<List<SupplierPaymentRecord>>((ref) {
+      final session = ref.watch(authSessionProvider).valueOrNull;
+      return ref
+          .watch(supplierPaymentRepositoryProvider)
+          .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+    });
 
 final propertyDetailsProvider = Provider.autoDispose
     .family<AsyncValue<PropertyProject?>, String>((ref, propertyId) {
@@ -128,22 +159,32 @@ final propertySupplierPaymentsProvider = Provider.autoDispose
       );
     });
 
-final propertyPartnersProvider = StreamProvider.autoDispose<List<Partner>>(
-  (ref) => ref.watch(partnerRepositoryProvider).watchPartners(),
-);
+final propertyPartnersProvider = StreamProvider.autoDispose<List<Partner>>((
+  ref,
+) {
+  final session = ref.watch(authSessionProvider).valueOrNull;
+  return ref
+      .watch(partnerRepositoryProvider)
+      .watchPartners(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+});
 
 final unitExpensesByUnitProvider = StreamProvider.autoDispose
     .family<List<UnitExpenseRecord>, UnitExpensesByUnitRequest>(
-      (ref, request) => ref.watch(unitExpenseRepositoryProvider).watchByUnit(
-        unitId: request.unitId,
-        workspaceId: request.workspaceId,
-      ),
+      (ref, request) => ref
+          .watch(unitExpenseRepositoryProvider)
+          .watchByUnit(
+            unitId: request.unitId,
+            workspaceId: request.workspaceId,
+          ),
     );
 
 final propertyPartnerLedgerProvider =
-    StreamProvider.autoDispose<List<PartnerLedgerEntry>>(
-      (ref) => ref.watch(partnerLedgerRepositoryProvider).watchAll(),
-    );
+    StreamProvider.autoDispose<List<PartnerLedgerEntry>>((ref) {
+      final session = ref.watch(authSessionProvider).valueOrNull;
+      return ref
+          .watch(partnerLedgerRepositoryProvider)
+          .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+    });
 
 final propertyProjectViewDataProvider = Provider.autoDispose
     .family<AsyncValue<PropertyProjectViewData?>, String>((ref, propertyId) {

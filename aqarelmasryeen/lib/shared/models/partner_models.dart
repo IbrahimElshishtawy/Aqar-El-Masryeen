@@ -29,7 +29,8 @@ class Partner {
   final String updatedBy;
   final String workspaceId;
 
-  bool get hasAccount => userId.trim().isNotEmpty || linkedEmail.trim().isNotEmpty;
+  bool get hasAccount =>
+      userId.trim().isNotEmpty || linkedEmail.trim().isNotEmpty;
 
   Map<String, dynamic> toMap() {
     return {

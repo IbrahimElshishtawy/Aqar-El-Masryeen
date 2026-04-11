@@ -16,9 +16,15 @@ class PartnerRepository {
   final Uuid _uuid;
   final LocalCacheService _cache;
 
-  Stream<List<Partner>> watchPartners() {
+  Stream<List<Partner>> watchPartners({required String workspaceId}) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <Partner>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.partners)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
@@ -29,7 +35,7 @@ class PartnerRepository {
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.partners,
+      cacheKey: CacheKeys.partners(workspaceId: normalizedWorkspaceId),
       source: source,
       encode: _serializePartner,
       decode: _deserializePartner,
@@ -49,7 +55,9 @@ class PartnerRepository {
         .collection(FirestorePaths.partners)
         .doc(id)
         .set(
-          partner.toMap()..['updatedAt'] = DateTime.now(),
+          partner.toMap()
+            ..['workspaceId'] = partner.workspaceId.trim()
+            ..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );
     return id;
@@ -60,7 +68,9 @@ class PartnerRepository {
     required AppUser user,
     required String workspaceId,
   }) async {
-    final partnerRef = _firestore.collection(FirestorePaths.partners).doc(partner.id);
+    final partnerRef = _firestore
+        .collection(FirestorePaths.partners)
+        .doc(partner.id);
     final userRef = _firestore.collection(FirestorePaths.users).doc(user.uid);
     final lookupRef = _firestore
         .collection(FirestorePaths.userEmailLookup)

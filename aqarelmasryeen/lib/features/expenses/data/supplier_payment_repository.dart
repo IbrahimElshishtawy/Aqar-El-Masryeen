@@ -15,44 +15,61 @@ class SupplierPaymentRepository {
   final Uuid _uuid;
   final LocalCacheService _cache;
 
-  Stream<List<SupplierPaymentRecord>> watchAll() {
+  Stream<List<SupplierPaymentRecord>> watchAll({required String workspaceId}) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <SupplierPaymentRecord>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.supplierPayments)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
+        .where('archived', isEqualTo: false)
         .orderBy('paidAt', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => SupplierPaymentRecord.fromMap(doc.id, doc.data()))
-              .where((entry) => !entry.archived)
               .toList(),
         );
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.supplierPayments,
+      cacheKey: CacheKeys.supplierPayments(workspaceId: normalizedWorkspaceId),
       source: source,
       encode: _serializeSupplierPayment,
       decode: _deserializeSupplierPayment,
     );
   }
 
-  Stream<List<SupplierPaymentRecord>> watchByProperty(String propertyId) {
+  Stream<List<SupplierPaymentRecord>> watchByProperty(
+    String propertyId, {
+    required String workspaceId,
+  }) {
+    final normalizedWorkspaceId = workspaceId.trim();
+    if (normalizedWorkspaceId.isEmpty) {
+      return Stream.value(const <SupplierPaymentRecord>[]);
+    }
+
     final source = _firestore
         .collection(FirestorePaths.supplierPayments)
+        .where('workspaceId', isEqualTo: normalizedWorkspaceId)
+        .where('propertyId', isEqualTo: propertyId)
+        .where('archived', isEqualTo: false)
         .orderBy('paidAt', descending: true)
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
               .map((doc) => SupplierPaymentRecord.fromMap(doc.id, doc.data()))
-              .where(
-                (entry) => entry.propertyId == propertyId && !entry.archived,
-              )
               .toList(),
         );
 
     return CachePolicy.watchList(
       cache: _cache,
-      cacheKey: CacheKeys.supplierPaymentsByProperty(propertyId),
+      cacheKey: CacheKeys.supplierPaymentsByProperty(
+        propertyId,
+        workspaceId: normalizedWorkspaceId,
+      ),
       source: source,
       encode: _serializeSupplierPayment,
       decode: _deserializeSupplierPayment,
@@ -70,6 +87,7 @@ class SupplierPaymentRepository {
                 payment.createdAt == DateTime.fromMillisecondsSinceEpoch(0)
                 ? DateTime.now()
                 : payment.createdAt
+            ..['workspaceId'] = payment.workspaceId.trim()
             ..['updatedAt'] = DateTime.now(),
           SetOptions(merge: true),
         );

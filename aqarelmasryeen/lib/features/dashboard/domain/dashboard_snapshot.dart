@@ -222,10 +222,9 @@ class DashboardSnapshotBuilder {
         ),
       ),
     ]..sort((a, b) => b.date.compareTo(a.date));
-    final activityRecentRecords = recentActivity
-        .map(_activityToRecentRecord)
-        .toList(growable: false)
-      ..sort((a, b) => b.date.compareTo(a.date));
+    final activityRecentRecords =
+        recentActivity.map(_activityToRecentRecord).toList(growable: false)
+          ..sort((a, b) => b.date.compareTo(a.date));
     final recentRecords = activityRecentRecords.isNotEmpty
         ? activityRecentRecords
         : financialRecentRecords;
