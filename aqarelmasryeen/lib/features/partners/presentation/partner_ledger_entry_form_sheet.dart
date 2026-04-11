@@ -1,3 +1,4 @@
+import 'package:aqarelmasryeen/core/utils/grouped_number_input_formatter.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
@@ -39,7 +40,9 @@ class _PartnerLedgerEntryFormSheetState
   void initState() {
     super.initState();
     _amountController = TextEditingController(
-      text: widget.entry == null ? '' : widget.entry!.amount.toStringAsFixed(0),
+      text: widget.entry == null
+          ? ''
+          : GroupedNumberInputFormatter.formatNumber(widget.entry!.amount),
     );
     _notesController = TextEditingController(text: widget.entry?.notes ?? '');
     _entryType = widget.entry?.entryType ?? PartnerLedgerEntryType.contribution;
@@ -56,7 +59,7 @@ class _PartnerLedgerEntryFormSheetState
     if (!_formKey.currentState!.validate() || !_authorized) return;
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) return;
-    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.read(currentWorkspaceIdProvider);
     if (workspaceId.isEmpty) return;
     setState(() => _saving = true);
 
@@ -65,7 +68,7 @@ class _PartnerLedgerEntryFormSheetState
       partnerId: widget.partner.id,
       propertyId: widget.entry?.propertyId ?? widget.propertyId,
       entryType: _entryType,
-      amount: double.parse(_amountController.text.trim()),
+      amount: parseGroupedDouble(_amountController.text),
       notes: _notesController.text.trim(),
       authorizedBy: session.userId,
       createdBy: widget.entry?.createdBy ?? session.userId,
@@ -134,12 +137,14 @@ class _PartnerLedgerEntryFormSheetState
             const SizedBox(height: 12),
             TextFormField(
               controller: _amountController,
+              inputFormatters: [GroupedNumberInputFormatter()],
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: const InputDecoration(labelText: 'Amount'),
               validator: (value) {
-                if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
+                if ((GroupedNumberInputFormatter.tryParse(value ?? '') ?? 0) <=
+                    0) {
                   return 'Enter a valid amount.';
                 }
                 return null;

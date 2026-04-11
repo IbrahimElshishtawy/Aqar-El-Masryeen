@@ -13,10 +13,12 @@ import 'package:aqarelmasryeen/features/auth/data/datasources/user_profile_remot
 import 'package:aqarelmasryeen/features/auth/domain/app_session.dart';
 import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
+import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/core/storage/local_cache_service.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:aqarelmasryeen/shared/models/app_user.dart';
 import 'package:aqarelmasryeen/shared/models/auth_device_info.dart';
+import 'package:aqarelmasryeen/shared/models/partner_models.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -29,6 +31,7 @@ class FirebaseAuthRepository implements AuthRepository {
     this._localDataSource,
     this._activityRepository,
     this._notificationRepository,
+    this._partnerRepository,
     this._secureStorage,
     this._cacheService,
     this._deviceInfoService,
@@ -44,6 +47,7 @@ class FirebaseAuthRepository implements AuthRepository {
   final AuthLocalDataSource _localDataSource;
   final ActivityRepository _activityRepository;
   final NotificationRepository _notificationRepository;
+  final PartnerRepository _partnerRepository;
   final SecureStorageService _secureStorage;
   final LocalCacheService _cacheService;
   final DeviceInfoService _deviceInfoService;
@@ -83,10 +87,14 @@ class FirebaseAuthRepository implements AuthRepository {
             profile ??
             cachedProfile ??
             await _profileDataSource.fetchProfile(user.uid);
-        await _syncLocalSession(resolvedProfile, user.uid);
+        final syncedProfile = await _synchronizeLinkedPartnerProfile(
+          resolvedProfile,
+          fallbackEmail: user.email?.trim().toLowerCase() ?? '',
+        );
+        await _syncLocalSession(syncedProfile, user.uid);
         return AppSession.fromFirebaseUser(
           firebaseUser: user,
-          profile: resolvedProfile,
+          profile: syncedProfile,
         );
       });
     }
@@ -108,7 +116,10 @@ class FirebaseAuthRepository implements AuthRepository {
       );
     }
 
-    final profile = await _profileDataSource.fetchProfile(user.uid);
+    final profile = await _synchronizeLinkedPartnerProfile(
+      await _profileDataSource.fetchProfile(user.uid),
+      fallbackEmail: user.email?.trim().toLowerCase() ?? '',
+    );
     await _syncLocalSession(profile, user.uid);
     return AppSession.fromFirebaseUser(firebaseUser: user, profile: profile);
   }
@@ -317,6 +328,11 @@ class FirebaseAuthRepository implements AuthRepository {
         : fallbackEmail.split('@').first;
     final userEmail = user.email?.trim().toLowerCase() ?? '';
     final resolvedEmail = userEmail.isNotEmpty ? userEmail : fallbackEmail;
+    final linkedPartner = await _resolveLinkedPartner(
+      user: user,
+      existingProfile: existingProfile,
+      fallbackEmail: resolvedEmail,
+    );
 
     await _profileDataSource.createOrMergeProfile(
       uid: user.uid,
@@ -330,16 +346,22 @@ class FirebaseAuthRepository implements AuthRepository {
       role: existingProfile?.role.name ?? 'partner',
       createdBy: existingProfile?.createdBy.isNotEmpty == true
           ? existingProfile!.createdBy
+          : linkedPartner?.createdBy.trim().isNotEmpty == true
+          ? linkedPartner!.createdBy.trim()
           : user.uid,
       createdByName: existingProfile?.createdByName.isNotEmpty == true
           ? existingProfile!.createdByName
           : resolvedName,
-      workspaceId: existingProfile?.workspaceId,
-      linkedPartnerId: existingProfile?.linkedPartnerId,
-      linkedPartnerName: existingProfile?.linkedPartnerName,
+      workspaceId: linkedPartner?.workspaceId ?? existingProfile?.workspaceId,
+      linkedPartnerId: linkedPartner?.id ?? existingProfile?.linkedPartnerId,
+      linkedPartnerName:
+          linkedPartner?.name ?? existingProfile?.linkedPartnerName,
     );
 
-    return _profileDataSource.fetchProfile(user.uid);
+    return _synchronizeLinkedPartnerProfile(
+      await _profileDataSource.fetchProfile(user.uid),
+      fallbackEmail: resolvedEmail,
+    );
   }
 
   @override
@@ -504,6 +526,81 @@ class FirebaseAuthRepository implements AuthRepository {
     await _secureStorage.clearSessionData();
     await _cacheService.clearByPrefix('cache.');
     await _authDataSource.signOut();
+  }
+
+  Future<Partner?> _resolveLinkedPartner({
+    required User user,
+    required AppUser? existingProfile,
+    required String fallbackEmail,
+  }) async {
+    final linkedPartnerId = existingProfile?.linkedPartnerId.trim() ?? '';
+    if (linkedPartnerId.isNotEmpty) {
+      final linkedPartner = await _partnerRepository.fetchById(linkedPartnerId);
+      if (linkedPartner != null) {
+        return linkedPartner;
+      }
+    }
+
+    final partnerByUser = await _partnerRepository.fetchByUserId(user.uid);
+    if (partnerByUser != null) {
+      return partnerByUser;
+    }
+
+    return _partnerRepository.fetchByLinkedEmail(fallbackEmail);
+  }
+
+  Future<AppUser?> _synchronizeLinkedPartnerProfile(
+    AppUser? profile, {
+    required String fallbackEmail,
+  }) async {
+    if (profile == null) {
+      return null;
+    }
+
+    final currentUser = _authDataSource.currentUser;
+    if (currentUser == null) {
+      return profile;
+    }
+
+    final linkedPartner = await _resolveLinkedPartner(
+      user: currentUser,
+      existingProfile: profile,
+      fallbackEmail: fallbackEmail,
+    );
+    if (linkedPartner == null) {
+      return profile;
+    }
+
+    final targetWorkspaceId = linkedPartner.workspaceId.trim();
+    final targetPartnerName = linkedPartner.name.trim();
+    final currentWorkspaceId = profile.workspaceId.trim();
+    final currentPartnerId = profile.linkedPartnerId.trim();
+    final currentPartnerName = profile.linkedPartnerName.trim();
+    final createdBy = linkedPartner.createdBy.trim();
+    final needsWorkspaceSync =
+        targetWorkspaceId.isNotEmpty && currentWorkspaceId != targetWorkspaceId;
+    final needsPartnerSync = currentPartnerId != linkedPartner.id;
+    final needsNameSync =
+        targetPartnerName.isNotEmpty && currentPartnerName != targetPartnerName;
+    final needsCreatorSync =
+        createdBy.isNotEmpty && profile.createdBy.trim() != createdBy;
+
+    if (!needsWorkspaceSync &&
+        !needsPartnerSync &&
+        !needsNameSync &&
+        !needsCreatorSync) {
+      return profile;
+    }
+
+    await _profileDataSource.updateAccountLinkage(
+      uid: profile.uid,
+      workspaceId: targetWorkspaceId,
+      linkedPartnerId: linkedPartner.id,
+      linkedPartnerName: targetPartnerName,
+      createdBy: createdBy.isEmpty ? null : createdBy,
+    );
+
+    return _profileDataSource.fetchProfile(profile.uid);
   }
 
   Future<void> _refreshCachedProfile(String uid) async {

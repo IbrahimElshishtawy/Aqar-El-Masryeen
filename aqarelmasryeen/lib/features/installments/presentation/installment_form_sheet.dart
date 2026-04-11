@@ -1,4 +1,5 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
+import 'package:aqarelmasryeen/core/utils/grouped_number_input_formatter.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/installments/data/installment_repository.dart';
@@ -47,7 +48,9 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
           : '${installment.sequence}',
     );
     _amountController = TextEditingController(
-      text: installment == null ? '' : installment.amount.toStringAsFixed(0),
+      text: installment == null
+          ? ''
+          : GroupedNumberInputFormatter.formatNumber(installment.amount),
     );
     _notesController = TextEditingController(text: installment?.notes ?? '');
     _dueDate = installment?.dueDate ?? DateTime.now();
@@ -77,11 +80,11 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
     if (!_formKey.currentState!.validate()) return;
     final session = ref.read(authSessionProvider).valueOrNull;
     if (session == null) return;
-    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.read(currentWorkspaceIdProvider);
     if (workspaceId.isEmpty) return;
     setState(() => _saving = true);
 
-    final amount = double.parse(_amountController.text.trim());
+    final amount = parseGroupedDouble(_amountController.text);
     final status = _dueDate.isBefore(DateTime.now())
         ? InstallmentStatus.overdue
         : InstallmentStatus.pending;
@@ -152,12 +155,15 @@ class _InstallmentFormSheetState extends ConsumerState<InstallmentFormSheet> {
                 Expanded(
                   child: TextFormField(
                     controller: _amountController,
+                    inputFormatters: [GroupedNumberInputFormatter()],
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     decoration: const InputDecoration(labelText: 'قيمة القسط'),
                     validator: (value) {
-                      if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
+                      if ((GroupedNumberInputFormatter.tryParse(value ?? '') ??
+                              0) <=
+                          0) {
                         return 'أدخل قيمة القسط.';
                       }
                       return null;

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
+import 'package:aqarelmasryeen/core/utils/grouped_number_input_formatter.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/material_expense_repository.dart';
@@ -58,10 +59,14 @@ class _MaterialExpenseFormSheetState
       text: entry == null ? '' : entry.quantity.toStringAsFixed(0),
     );
     _totalInvoiceController = TextEditingController(
-      text: entry == null ? '' : entry.totalPrice.toStringAsFixed(0),
+      text: entry == null
+          ? ''
+          : GroupedNumberInputFormatter.formatNumber(entry.totalPrice),
     );
     _paidController = TextEditingController(
-      text: entry == null ? '' : entry.initialPaidAmount.toStringAsFixed(0),
+      text: entry == null
+          ? ''
+          : GroupedNumberInputFormatter.formatNumber(entry.initialPaidAmount),
     );
     _notesController = TextEditingController(text: entry?.notes ?? '');
     _selectedDate = entry?.date ?? DateTime.now();
@@ -174,14 +179,14 @@ class _MaterialExpenseFormSheetState
     if (session == null) {
       return;
     }
-    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.read(currentWorkspaceIdProvider);
     if (workspaceId.isEmpty) {
       return;
     }
 
     final quantity = double.parse(_quantityController.text.trim());
-    final totalPrice = double.parse(_totalInvoiceController.text.trim());
-    final initialPaidAmount = double.parse(_paidController.text.trim());
+    final totalPrice = parseGroupedDouble(_totalInvoiceController.text);
+    final initialPaidAmount = parseGroupedDouble(_paidController.text);
     final previousExtraPaid = math.max(
       0,
       (widget.entry?.amountPaid ?? 0) - (widget.entry?.initialPaidAmount ?? 0),

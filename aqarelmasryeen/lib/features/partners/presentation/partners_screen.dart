@@ -27,8 +27,7 @@ part 'widgets/partner_card_widgets.dart';
 part 'widgets/pending_requests_sheet.dart';
 
 final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
-  final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+  final workspaceId = ref.watch(currentWorkspaceIdProvider);
   return ref
       .watch(partnerRepositoryProvider)
       .watchPartners(workspaceId: workspaceId);
@@ -36,8 +35,7 @@ final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>((ref) {
 
 final partnerAccountsStreamProvider = StreamProvider.autoDispose<List<AppUser>>(
   (ref) {
-    final session = ref.watch(authSessionProvider).valueOrNull;
-    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.watch(currentWorkspaceIdProvider);
     return ref
         .watch(userProfileRemoteDataSourceProvider)
         .watchProfilesByWorkspace(workspaceId);
@@ -113,7 +111,7 @@ final pendingPartnerLinkRequestsProvider =
         return;
       }
 
-      final workspaceId = session.profile?.workspaceId.trim() ?? '';
+      final workspaceId = ref.watch(currentWorkspaceIdProvider);
       yield* ref
           .watch(notificationRepositoryProvider)
           .watchNotifications(userId: session.userId, workspaceId: workspaceId)
@@ -187,8 +185,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
             final pendingCount = pendingRequestsAsync.valueOrNull?.length ?? 0;
             final accountItems =
                 accountsAsync.valueOrNull ?? const <PartnerAccountSummary>[];
-            final currentWorkspaceId =
-                session?.profile?.workspaceId.trim() ?? '';
+            final currentWorkspaceId = ref.watch(currentWorkspaceIdProvider);
             final filteredAccounts = _applyAccountFilters(
               accountItems,
               currentUserId,
@@ -247,11 +244,10 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
                 const SizedBox(height: 12),
                 if (partnerItems.isEmpty)
                   EmptyStateView(
-                    title: session?.profile?.workspaceId.trim().isEmpty == true
+                    title: ref.watch(currentWorkspaceIdProvider).isEmpty
                         ? 'لا توجد بيانات شركاء'
                         : 'لا يوجد شركاء حاليًا',
-                    message:
-                        session?.profile?.workspaceId.trim().isEmpty == true
+                    message: ref.watch(currentWorkspaceIdProvider).isEmpty
                         ? 'هذا الحساب غير مرتبط بأي مساحة عمل حاليًا.'
                         : 'ابدأ بإضافة شريك جديد أو ربط حساب موجود',
                     actionLabel: 'إنشاء شريك',
@@ -427,8 +423,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
       return;
     }
 
-    final session = ref.read(authSessionProvider).valueOrNull;
-    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.read(currentWorkspaceIdProvider);
     if (workspaceId.isEmpty) {
       _showInfoSnackBar('هذا الحساب غير مرتبط بأي مساحة عمل حاليًا.');
       return;
@@ -634,7 +629,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
 
   Future<void> _linkUserToCurrentContext(PartnerAccountSummary summary) async {
     final session = ref.read(authSessionProvider).valueOrNull;
-    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.read(currentWorkspaceIdProvider);
     if (workspaceId.isEmpty) {
       _showInfoSnackBar(
         'لا يمكن ربط هذا الحساب لأن مساحة العمل الحالية غير محددة.',
@@ -857,8 +852,7 @@ class _PartnersScreenState extends ConsumerState<PartnersScreen> {
       return;
     }
 
-    final session = ref.read(authSessionProvider).valueOrNull;
-    final workspaceId = session?.profile?.workspaceId.trim();
+    final workspaceId = ref.read(currentWorkspaceIdProvider);
     setState(() => _syncingAccounts = true);
     try {
       final result = await ref
@@ -946,7 +940,7 @@ Future<void> _acceptPendingPartnerRequest(
   final partnerId = (metadata['partnerId'] as String? ?? '').trim();
   final workspaceId = request.workspaceId.trim().isNotEmpty
       ? request.workspaceId.trim()
-      : session.profile?.workspaceId.trim() ?? '';
+      : ref.read(currentWorkspaceIdProvider);
   if (partnerId.isEmpty || workspaceId.isEmpty) {
     throw StateError('بيانات طلب الربط غير مكتملة.');
   }

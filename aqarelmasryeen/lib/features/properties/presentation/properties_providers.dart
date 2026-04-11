@@ -14,7 +14,7 @@ import 'package:collection/collection.dart';
 final propertiesStreamProvider =
     StreamProvider.autoDispose<List<PropertyProject>>((ref) {
       final session = ref.watch(authSessionProvider).valueOrNull;
-      final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+      final workspaceId = ref.watch(currentWorkspaceIdProvider);
       final allPartners =
           ref.watch(partnersStreamProvider).valueOrNull ?? const [];
       final accountUserIds = {
@@ -32,31 +32,27 @@ final propertiesStreamProvider =
     });
 final propertyExpensesStreamProvider =
     StreamProvider.autoDispose<List<ExpenseRecord>>((ref) {
-      final session = ref.watch(authSessionProvider).valueOrNull;
       return ref
           .watch(expenseRepositoryProvider)
-          .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+          .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
     });
 final propertyPaymentsStreamProvider =
     StreamProvider.autoDispose<List<PaymentRecord>>((ref) {
-      final session = ref.watch(authSessionProvider).valueOrNull;
       return ref
           .watch(paymentRepositoryProvider)
-          .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+          .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
     });
 final propertyUnitsStreamProvider = StreamProvider.autoDispose<List<UnitSale>>((
   ref,
 ) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(salesRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 final partnersStreamProvider = StreamProvider.autoDispose<List<Partner>>((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(partnerRepositoryProvider)
-      .watchPartners(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchPartners(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final propertiesViewDataProvider =
@@ -78,7 +74,7 @@ final propertiesViewDataProvider =
       }
 
       final session = ref.watch(authSessionProvider).valueOrNull;
-      final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+      final workspaceId = ref.watch(currentWorkspaceIdProvider);
       final allPartners =
           ref.watch(partnersStreamProvider).valueOrNull ?? const [];
       final scopedPartners = workspaceId.isEmpty

@@ -1,4 +1,5 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
+import 'package:aqarelmasryeen/core/utils/grouped_number_input_formatter.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/expense_repository.dart';
@@ -39,7 +40,9 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     super.initState();
     final expense = widget.expense;
     _amountController = TextEditingController(
-      text: expense == null ? '' : expense.amount.toStringAsFixed(0),
+      text: expense == null
+          ? ''
+          : GroupedNumberInputFormatter.formatNumber(expense.amount),
     );
     _descriptionController = TextEditingController(
       text: expense?.description ?? '',
@@ -77,7 +80,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     if (session == null) {
       return;
     }
-    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.read(currentWorkspaceIdProvider);
     if (workspaceId.isEmpty) {
       return;
     }
@@ -91,7 +94,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
           ExpenseRecord(
             id: widget.expense?.id ?? '',
             propertyId: widget.propertyId,
-            amount: double.parse(_amountController.text.trim()),
+            amount: parseGroupedDouble(_amountController.text),
             category: widget.expense?.category ?? ExpenseCategory.construction,
             description: _descriptionController.text.trim(),
             paidByPartnerId: paidByPartnerId,
@@ -187,9 +190,12 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              inputFormatters: [GroupedNumberInputFormatter()],
               decoration: const InputDecoration(labelText: 'المبلغ'),
               validator: (value) {
-                final parsed = double.tryParse((value ?? '').trim());
+                final parsed = GroupedNumberInputFormatter.tryParse(
+                  value ?? '',
+                );
                 if (parsed == null || parsed <= 0) {
                   return 'أدخل مبلغًا صحيحًا.';
                 }

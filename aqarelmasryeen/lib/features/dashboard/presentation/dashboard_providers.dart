@@ -18,7 +18,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final dashboardPropertiesProvider = StreamProvider.autoDispose((ref) {
   final session = ref.watch(authSessionProvider).valueOrNull;
-  final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+  final workspaceId = ref.watch(currentWorkspaceIdProvider);
   final scopedPartners =
       ref.watch(dashboardPartnersProvider).valueOrNull ?? const <Partner>[];
   final accountUserIds = {
@@ -35,58 +35,47 @@ final dashboardPropertiesProvider = StreamProvider.autoDispose((ref) {
       );
 });
 final dashboardUnitsProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(salesRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 final dashboardPaymentsProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(paymentRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 final dashboardInstallmentsProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(installmentRepositoryProvider)
-      .watchAllInstallments(
-        workspaceId: session?.profile?.workspaceId.trim() ?? '',
-      );
+      .watchAllInstallments(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 final dashboardExpensesProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(expenseRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 final dashboardMaterialsProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(materialExpenseRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 final dashboardSupplierPaymentsProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(supplierPaymentRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 final dashboardPartnersProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(partnerRepositoryProvider)
-      .watchPartners(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchPartners(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 final dashboardPartnerLedgerProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(partnerLedgerRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 final dashboardActivityProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
-  final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+  final workspaceId = ref.watch(currentWorkspaceIdProvider);
   return ref
       .watch(activityRepositoryProvider)
       .watchRecent(workspaceId: workspaceId);
@@ -137,10 +126,12 @@ final dashboardViewDataProvider =
           ref.watch(dashboardActivityProvider).valueOrNull ?? const [];
       final session = ref.watch(authSessionProvider).valueOrNull;
       final currentUserId = session?.userId ?? '';
+      final workspaceId = ref.watch(currentWorkspaceIdProvider);
 
       final scopedData = const DashboardScopeResolver().resolve(
         profile: session?.profile,
         currentUserId: currentUserId,
+        workspaceId: workspaceId,
         partners: allPartners,
         properties: allProperties,
         units: allUnits,

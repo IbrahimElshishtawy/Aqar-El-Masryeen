@@ -92,7 +92,7 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       createdBy: existing?.createdBy ?? session.userId,
       updatedBy: session.userId,
       workspaceId:
-          existing?.workspaceId ?? session.profile?.workspaceId.trim() ?? '',
+          existing?.workspaceId ?? ref.read(currentWorkspaceIdProvider),
       archived: existing?.archived ?? false,
     );
     try {
@@ -156,12 +156,11 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
         ? const AsyncData<PropertyProject?>(null)
         : ref.watch(
             StreamProvider.autoDispose<PropertyProject?>((ref) {
-              final session = ref.watch(authSessionProvider).valueOrNull;
               return ref
                   .watch(propertyRepositoryProvider)
                   .watchProperty(
                     widget.propertyId!,
-                    workspaceId: session?.profile?.workspaceId.trim() ?? '',
+                    workspaceId: ref.watch(currentWorkspaceIdProvider),
                   );
             }),
           );

@@ -67,6 +67,7 @@ class UnlockController extends Notifier<UnlockState> {
   }
 
   Future<void> useFullLoginFallback() async {
+    await ref.read(sessionLockControllerProvider.notifier).clearForLogout();
     await ref.read(authRepositoryProvider).signOut();
   }
 }

@@ -6,6 +6,7 @@ import 'package:aqarelmasryeen/features/auth/data/datasources/user_profile_remot
 import 'package:aqarelmasryeen/features/auth/data/repositories/firebase_auth_repository_impl.dart';
 import 'package:aqarelmasryeen/features/auth/domain/auth_repository.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
+import 'package:aqarelmasryeen/features/partners/data/partner_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -43,6 +44,7 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
     ref.watch(authLocalDataSourceProvider),
     ref.watch(activityRepositoryProvider),
     ref.watch(notificationRepositoryProvider),
+    ref.watch(partnerRepositoryProvider),
     ref.watch(secureStorageProvider),
     ref.watch(localCacheServiceProvider),
     ref.watch(deviceInfoServiceProvider),

@@ -84,10 +84,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _signOut() async {
     setState(() => _signingOut = true);
     try {
+      await ref.read(sessionLockControllerProvider.notifier).clearForLogout();
       await ref.read(authRepositoryProvider).signOut();
-      if (mounted) {
-        context.go(AppRoutes.login);
-      }
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(

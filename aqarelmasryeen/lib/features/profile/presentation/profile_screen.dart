@@ -1,5 +1,6 @@
 import 'package:aqarelmasryeen/core/errors/failure_mapper.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
+import 'package:aqarelmasryeen/core/security/session_lock_controller.dart';
 import 'package:aqarelmasryeen/core/widgets/app_panel.dart';
 import 'package:aqarelmasryeen/core/widgets/app_shell_scaffold.dart';
 import 'package:aqarelmasryeen/features/auth/data/firebase_auth_repository.dart';
@@ -21,8 +22,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Future<void> _signOut() async {
     setState(() => _signingOut = true);
     try {
+      await ref.read(sessionLockControllerProvider.notifier).clearForLogout();
       await ref.read(authRepositoryProvider).signOut();
-      if (mounted) context.go(AppRoutes.login);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(

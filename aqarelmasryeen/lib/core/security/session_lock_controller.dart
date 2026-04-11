@@ -296,6 +296,12 @@ class SessionLockController extends Notifier<SessionLockState> {
     _scheduleInactivityTimer();
   }
 
+  Future<void> clearForLogout() async {
+    _inactivityTimer?.cancel();
+    state = SessionLockState.initial().copyWith(isInitialized: true);
+    await ref.read(secureStorageProvider).clearSessionData();
+  }
+
   void _scheduleInactivityTimer() {
     _inactivityTimer?.cancel();
     if (!state.appLockEnabled || !state.trustedDeviceEnabled) {

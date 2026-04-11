@@ -26,24 +26,21 @@ part 'widgets/expenses_ledger_table.dart';
 part 'widgets/expenses_ledger_selection_sheet.dart';
 
 final allExpensesProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(expenseRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final allPartnersProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(partnerRepositoryProvider)
-      .watchPartners(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchPartners(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final allPropertiesProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(propertyRepositoryProvider)
-      .watchProperties(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchProperties(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 class ExpensesLedgerScreen extends ConsumerWidget {
@@ -52,7 +49,7 @@ class ExpensesLedgerScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(authSessionProvider).valueOrNull;
-    final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.watch(currentWorkspaceIdProvider);
     final expensesAsync = ref.watch(allExpensesProvider);
     final partnersAsync = ref.watch(allPartnersProvider);
     final propertiesAsync = ref.watch(allPropertiesProvider);

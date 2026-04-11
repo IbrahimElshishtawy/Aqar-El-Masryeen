@@ -43,6 +43,76 @@ class PartnerRepository {
     );
   }
 
+  Stream<Partner?> watchPartner(String partnerId) {
+    final normalizedPartnerId = partnerId.trim();
+    if (normalizedPartnerId.isEmpty) {
+      return Stream.value(null);
+    }
+
+    return _firestore
+        .collection(FirestorePaths.partners)
+        .doc(normalizedPartnerId)
+        .snapshots()
+        .map((snapshot) {
+          if (!snapshot.exists) {
+            return null;
+          }
+          return Partner.fromMap(snapshot.id, snapshot.data());
+        });
+  }
+
+  Future<Partner?> fetchById(String partnerId) async {
+    final normalizedPartnerId = partnerId.trim();
+    if (normalizedPartnerId.isEmpty) {
+      return null;
+    }
+
+    final snapshot = await _firestore
+        .collection(FirestorePaths.partners)
+        .doc(normalizedPartnerId)
+        .get();
+    if (!snapshot.exists) {
+      return null;
+    }
+    return Partner.fromMap(snapshot.id, snapshot.data());
+  }
+
+  Future<Partner?> fetchByUserId(String userId) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) {
+      return null;
+    }
+
+    final snapshot = await _firestore
+        .collection(FirestorePaths.partners)
+        .where('userId', isEqualTo: normalizedUserId)
+        .limit(1)
+        .get();
+    if (snapshot.docs.isEmpty) {
+      return null;
+    }
+    final doc = snapshot.docs.first;
+    return Partner.fromMap(doc.id, doc.data());
+  }
+
+  Future<Partner?> fetchByLinkedEmail(String email) async {
+    final normalizedEmail = email.trim().toLowerCase();
+    if (normalizedEmail.isEmpty) {
+      return null;
+    }
+
+    final snapshot = await _firestore
+        .collection(FirestorePaths.partners)
+        .where('linkedEmail', isEqualTo: normalizedEmail)
+        .limit(1)
+        .get();
+    if (snapshot.docs.isEmpty) {
+      return null;
+    }
+    final doc = snapshot.docs.first;
+    return Partner.fromMap(doc.id, doc.data());
+  }
+
   Future<void> delete(String partnerId) async {
     await _firestore
         .collection(FirestorePaths.partners)

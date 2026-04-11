@@ -12,7 +12,7 @@ final userNotificationsProvider = StreamProvider.autoDispose((ref) async* {
     yield const [];
     return;
   }
-  final workspaceId = session.profile?.workspaceId.trim() ?? '';
+  final workspaceId = ref.watch(currentWorkspaceIdProvider);
   yield* ref
       .watch(notificationRepositoryProvider)
       .watchNotifications(userId: session.userId, workspaceId: workspaceId);

@@ -1,4 +1,5 @@
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
+import 'package:aqarelmasryeen/core/utils/grouped_number_input_formatter.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/sales/data/sales_repository.dart';
 import 'package:aqarelmasryeen/features/settings/data/activity_repository.dart';
@@ -51,10 +52,14 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
       text: unit?.customerPhone ?? '',
     );
     _apartmentPriceController = TextEditingController(
-      text: unit == null ? '' : unit.apartmentPrice.toStringAsFixed(0),
+      text: unit == null
+          ? ''
+          : GroupedNumberInputFormatter.formatNumber(unit.apartmentPrice),
     );
     _downPaymentController = TextEditingController(
-      text: unit == null ? '' : unit.downPayment.toStringAsFixed(0),
+      text: unit == null
+          ? ''
+          : GroupedNumberInputFormatter.formatNumber(unit.downPayment),
     );
     _installmentScheduleCountController = TextEditingController(
       text: unit == null ? '' : '${unit.installmentScheduleCount}',
@@ -88,17 +93,15 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
     if (session == null) {
       return;
     }
-    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.read(currentWorkspaceIdProvider);
     if (workspaceId.isEmpty) {
       return;
     }
 
     setState(() => _saving = true);
     final now = DateTime.now();
-    final apartmentPrice =
-        double.tryParse(_apartmentPriceController.text.trim()) ?? 0;
-    final downPayment =
-        double.tryParse(_downPaymentController.text.trim()) ?? 0;
+    final apartmentPrice = parseGroupedDouble(_apartmentPriceController.text);
+    final downPayment = parseGroupedDouble(_downPaymentController.text);
 
     final unit = UnitSale(
       id: widget.unit?.id ?? '',
@@ -218,9 +221,11 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              inputFormatters: [GroupedNumberInputFormatter()],
               decoration: const InputDecoration(labelText: 'سعر الشقة'),
               validator: (value) {
-                if ((double.tryParse((value ?? '').trim()) ?? 0) <= 0) {
+                if ((GroupedNumberInputFormatter.tryParse(value ?? '') ?? 0) <=
+                    0) {
                   return 'أدخل سعر الشقة.';
                 }
                 return null;
@@ -235,6 +240,7 @@ class _UnitFormSheetState extends ConsumerState<UnitFormSheet> {
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
+                    inputFormatters: [GroupedNumberInputFormatter()],
                     decoration: const InputDecoration(labelText: 'المقدم'),
                   ),
                 ),

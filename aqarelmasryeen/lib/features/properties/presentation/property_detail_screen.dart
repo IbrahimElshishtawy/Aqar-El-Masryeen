@@ -570,17 +570,17 @@ class _PropertyHeroCard extends StatelessWidget {
           const SizedBox(height: 18),
           LayoutBuilder(
             builder: (context, constraints) {
-              final editButton = FilledButton.tonalIcon(
+              final editButton = _HeroActionButton(
                 onPressed: onEditProperty,
                 icon: const Icon(Icons.edit_outlined),
                 label: const Text('تعديل البيانات'),
               );
-              final addUnitButton = FilledButton.tonalIcon(
+              final addUnitButton = _HeroActionButton(
                 onPressed: onAddUnit,
                 icon: const Icon(Icons.add_business_outlined),
                 label: const Text('إضافة وحدة'),
               );
-              final materialsButton = FilledButton.tonalIcon(
+              final materialsButton = _HeroActionButton(
                 onPressed: onOpenMaterials,
                 icon: const Icon(Icons.inventory_2_outlined),
                 label: const Text('مواد البناء'),
@@ -632,6 +632,39 @@ class _PropertyHeroCard extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HeroActionButton extends StatelessWidget {
+  const _HeroActionButton({
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+  });
+
+  final VoidCallback? onPressed;
+  final Widget icon;
+  final Widget label;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.tonalIcon(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        visualDensity: VisualDensity.compact,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        textStyle: Theme.of(
+          context,
+        ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w700),
+      ),
+      icon: IconTheme.merge(data: const IconThemeData(size: 18), child: icon),
+      label: DefaultTextStyle.merge(
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        child: label,
       ),
     );
   }

@@ -57,12 +57,14 @@ extension _MaterialExpenseFormSheetFields on _MaterialExpenseFormSheetState {
             Expanded(
               child: TextFormField(
                 controller: _totalInvoiceController,
+                inputFormatters: [GroupedNumberInputFormatter()],
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
                 decoration: const InputDecoration(labelText: 'إجمالي الفاتورة'),
                 validator: (value) {
-                  final total = double.tryParse((value ?? '').trim()) ?? 0;
+                  final total =
+                      GroupedNumberInputFormatter.tryParse(value ?? '') ?? 0;
                   if (total <= 0) {
                     return 'أدخل إجمالي الفاتورة.';
                   }
@@ -75,12 +77,16 @@ extension _MaterialExpenseFormSheetFields on _MaterialExpenseFormSheetState {
         const SizedBox(height: 12),
         TextFormField(
           controller: _paidController,
+          inputFormatters: [GroupedNumberInputFormatter()],
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           decoration: const InputDecoration(labelText: 'المدفوع'),
           validator: (value) {
-            final paid = double.tryParse((value ?? '').trim()) ?? 0;
+            final paid = GroupedNumberInputFormatter.tryParse(value ?? '') ?? 0;
             final total =
-                double.tryParse(_totalInvoiceController.text.trim()) ?? 0;
+                GroupedNumberInputFormatter.tryParse(
+                  _totalInvoiceController.text,
+                ) ??
+                0;
             if (paid < 0) {
               return 'أدخل مبلغًا صحيحًا.';
             }

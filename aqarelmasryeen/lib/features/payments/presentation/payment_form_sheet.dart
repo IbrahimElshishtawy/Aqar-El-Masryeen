@@ -1,5 +1,6 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/extensions/number_extensions.dart';
+import 'package:aqarelmasryeen/core/utils/grouped_number_input_formatter.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/notifications/data/notification_repository.dart';
@@ -54,7 +55,9 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
         payment?.installmentId?.trim() ?? widget.installmentId?.trim() ?? '';
 
     _amountController = TextEditingController(
-      text: payment == null ? '' : payment.amount.toStringAsFixed(0),
+      text: payment == null
+          ? ''
+          : GroupedNumberInputFormatter.formatNumber(payment.amount),
     );
     _notesController = TextEditingController(text: payment?.notes ?? '');
     _paymentMethod = payment?.paymentMethod ?? PaymentMethod.cash;
@@ -109,7 +112,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
     if (session == null) {
       return;
     }
-    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.read(currentWorkspaceIdProvider);
     if (workspaceId.isEmpty) {
       return;
     }
@@ -132,7 +135,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
                 : widget.customerName.trim(),
             customerName: widget.customerName.trim(),
             installmentId: installmentId,
-            amount: double.parse(_amountController.text.trim()),
+            amount: parseGroupedDouble(_amountController.text),
             receivedAt: _receivedAt,
             paymentMethod: _paymentMethod,
             paymentSource: _paymentType,
@@ -162,7 +165,7 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
             'unitId': widget.unitId,
             'installmentId': installmentId,
             'paymentType': _paymentType,
-            'amount': double.parse(_amountController.text.trim()),
+            'amount': parseGroupedDouble(_amountController.text),
           },
           workspaceId: workspaceId,
         );
@@ -202,12 +205,15 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
             const SizedBox(height: 16),
             TextFormField(
               controller: _amountController,
+              inputFormatters: [GroupedNumberInputFormatter()],
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: const InputDecoration(labelText: 'قيمة الدفعة'),
               validator: (value) {
-                final parsed = double.tryParse((value ?? '').trim());
+                final parsed = GroupedNumberInputFormatter.tryParse(
+                  value ?? '',
+                );
                 if (parsed == null || parsed <= 0) {
                   return 'أدخل قيمة دفعة صحيحة.';
                 }

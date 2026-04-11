@@ -33,6 +33,7 @@ class DashboardScopeResolver {
   DashboardScopedData resolve({
     required AppUser? profile,
     required String currentUserId,
+    required String workspaceId,
     required List<Partner> partners,
     required List<PropertyProject> properties,
     required List<UnitSale> units,
@@ -42,7 +43,6 @@ class DashboardScopeResolver {
     required List<MaterialExpenseEntry> materials,
     required List<SupplierPaymentRecord> supplierPayments,
   }) {
-    final workspaceId = profile?.workspaceId.trim() ?? '';
     final visiblePartners = partners
         .where((partner) {
           if (workspaceId.isEmpty) {

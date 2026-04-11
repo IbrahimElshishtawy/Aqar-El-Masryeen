@@ -23,64 +23,53 @@ export 'package:aqarelmasryeen/features/properties/presentation/controllers/prop
 
 final _allPropertiesProvider =
     StreamProvider.autoDispose<List<PropertyProject>>((ref) {
-      final session = ref.watch(authSessionProvider).valueOrNull;
       return ref
           .watch(propertyRepositoryProvider)
-          .watchProperties(
-            workspaceId: session?.profile?.workspaceId.trim() ?? '',
-          );
+          .watchProperties(workspaceId: ref.watch(currentWorkspaceIdProvider));
     });
 
 final _allUnitsProvider = StreamProvider.autoDispose<List<UnitSale>>((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(salesRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final _allInstallmentsProvider = StreamProvider.autoDispose<List<Installment>>((
   ref,
 ) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(installmentRepositoryProvider)
-      .watchAllInstallments(
-        workspaceId: session?.profile?.workspaceId.trim() ?? '',
-      );
+      .watchAllInstallments(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final _allPaymentsProvider = StreamProvider.autoDispose<List<PaymentRecord>>((
   ref,
 ) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(paymentRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final _allExpensesProvider = StreamProvider.autoDispose<List<ExpenseRecord>>((
   ref,
 ) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(expenseRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final _allMaterialsProvider =
     StreamProvider.autoDispose<List<MaterialExpenseEntry>>((ref) {
-      final session = ref.watch(authSessionProvider).valueOrNull;
       return ref
           .watch(materialExpenseRepositoryProvider)
-          .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+          .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
     });
 
 final _allSupplierPaymentsProvider =
     StreamProvider.autoDispose<List<SupplierPaymentRecord>>((ref) {
-      final session = ref.watch(authSessionProvider).valueOrNull;
       return ref
           .watch(supplierPaymentRepositoryProvider)
-          .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+          .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
     });
 
 final propertyDetailsProvider = Provider.autoDispose
@@ -162,10 +151,9 @@ final propertySupplierPaymentsProvider = Provider.autoDispose
 final propertyPartnersProvider = StreamProvider.autoDispose<List<Partner>>((
   ref,
 ) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(partnerRepositoryProvider)
-      .watchPartners(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchPartners(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final unitExpensesByUnitProvider = StreamProvider.autoDispose
@@ -180,10 +168,9 @@ final unitExpensesByUnitProvider = StreamProvider.autoDispose
 
 final propertyPartnerLedgerProvider =
     StreamProvider.autoDispose<List<PartnerLedgerEntry>>((ref) {
-      final session = ref.watch(authSessionProvider).valueOrNull;
       return ref
           .watch(partnerLedgerRepositoryProvider)
-          .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+          .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
     });
 
 final propertyProjectViewDataProvider = Provider.autoDispose
@@ -256,7 +243,7 @@ final propertyUnitViewDataProvider = Provider.autoDispose
       request,
     ) {
       final session = ref.watch(authSessionProvider).valueOrNull;
-      final workspaceId = session?.profile?.workspaceId.trim() ?? '';
+      final workspaceId = ref.watch(currentWorkspaceIdProvider);
       final unitExpensesRequest = UnitExpensesByUnitRequest(
         unitId: request.unitId,
         workspaceId: workspaceId,

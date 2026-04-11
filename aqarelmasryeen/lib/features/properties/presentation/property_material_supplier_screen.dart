@@ -110,7 +110,7 @@ class _PropertyMaterialSupplierScreenState
     if (session == null) {
       return;
     }
-    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.read(currentWorkspaceIdProvider);
     if (workspaceId.isEmpty) {
       return;
     }

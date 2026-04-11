@@ -15,40 +15,33 @@ part 'widgets/reports_banner_widgets.dart';
 part 'widgets/property_performance_card.dart';
 
 final reportsPropertiesProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(propertyRepositoryProvider)
-      .watchProperties(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchProperties(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final reportsExpensesProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(expenseRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final reportsUnitsProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(salesRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final reportsPaymentsProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(paymentRepositoryProvider)
-      .watchAll(workspaceId: session?.profile?.workspaceId.trim() ?? '');
+      .watchAll(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 final reportsInstallmentsProvider = StreamProvider.autoDispose((ref) {
-  final session = ref.watch(authSessionProvider).valueOrNull;
   return ref
       .watch(installmentRepositoryProvider)
-      .watchAllInstallments(
-        workspaceId: session?.profile?.workspaceId.trim() ?? '',
-      );
+      .watchAllInstallments(workspaceId: ref.watch(currentWorkspaceIdProvider));
 });
 
 class ReportsScreen extends ConsumerWidget {

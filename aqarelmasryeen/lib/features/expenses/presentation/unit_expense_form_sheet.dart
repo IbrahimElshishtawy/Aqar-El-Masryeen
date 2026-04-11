@@ -1,5 +1,6 @@
 import 'package:aqarelmasryeen/core/extensions/date_extensions.dart';
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
+import 'package:aqarelmasryeen/core/utils/grouped_number_input_formatter.dart';
 import 'package:aqarelmasryeen/core/widgets/app_form_sheet.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/expenses/data/unit_expense_repository.dart';
@@ -50,7 +51,9 @@ class _UnitExpenseFormSheetState extends ConsumerState<UnitExpenseFormSheet> {
     super.initState();
     final expense = widget.expense;
     _amountController = TextEditingController(
-      text: expense == null ? '' : expense.amount.toStringAsFixed(0),
+      text: expense == null
+          ? ''
+          : GroupedNumberInputFormatter.formatNumber(expense.amount),
     );
     _descriptionController = TextEditingController(
       text: expense?.description ?? '',
@@ -90,7 +93,7 @@ class _UnitExpenseFormSheetState extends ConsumerState<UnitExpenseFormSheet> {
     if (session == null) {
       return;
     }
-    final workspaceId = session.profile?.workspaceId.trim() ?? '';
+    final workspaceId = ref.read(currentWorkspaceIdProvider);
     if (workspaceId.isEmpty) {
       return;
     }
@@ -103,7 +106,7 @@ class _UnitExpenseFormSheetState extends ConsumerState<UnitExpenseFormSheet> {
             id: widget.expense?.id ?? '',
             propertyId: widget.propertyId,
             unitId: widget.unitId,
-            amount: double.parse(_amountController.text.trim()),
+            amount: parseGroupedDouble(_amountController.text),
             description: _descriptionController.text.trim(),
             paidByPartnerId: _resolveSelectedPartnerId(session.userId),
             date: _selectedDate,
@@ -245,12 +248,15 @@ class _UnitExpenseFormSheetState extends ConsumerState<UnitExpenseFormSheet> {
             const SizedBox(height: 12),
             TextFormField(
               controller: _amountController,
+              inputFormatters: [GroupedNumberInputFormatter()],
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
               decoration: const InputDecoration(labelText: 'قيمة المصروف'),
               validator: (value) {
-                final parsed = double.tryParse((value ?? '').trim());
+                final parsed = GroupedNumberInputFormatter.tryParse(
+                  value ?? '',
+                );
                 if (parsed == null || parsed <= 0) {
                   return 'أدخل مبلغًا صحيحًا.';
                 }
