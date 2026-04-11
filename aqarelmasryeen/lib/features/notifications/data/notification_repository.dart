@@ -30,13 +30,16 @@ class NotificationRepository {
         .collection(FirestorePaths.notifications)
         .where('userId', isEqualTo: normalizedUserId)
         .where('workspaceId', isEqualTo: normalizedWorkspaceId)
-        .orderBy('createdAt', descending: true)
-        .limit(50)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => AppNotificationItem.fromMap(doc.id, doc.data()))
-              .toList(),
+          (snapshot) =>
+              snapshot.docs
+                  .map((doc) => AppNotificationItem.fromMap(doc.id, doc.data()))
+                  .toList()
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt))
+                ..length = snapshot.docs.length > 50
+                    ? 50
+                    : snapshot.docs.length,
         );
 
     return CachePolicy.watchList(

@@ -111,7 +111,7 @@ class _MaterialExpenseFormSheetState
 
     final currentUserId = ref.read(authSessionProvider).valueOrNull?.userId;
     if (currentUserId == null) {
-      return widget.partners.isEmpty ? '' : widget.partners.first.id;
+      return '';
     }
 
     for (final partner in widget.partners) {
@@ -119,7 +119,7 @@ class _MaterialExpenseFormSheetState
         return partner.id;
       }
     }
-    return widget.partners.isEmpty ? '' : widget.partners.first.id;
+    return '';
   }
 
   String _currentUserLabel() {
@@ -163,27 +163,6 @@ class _MaterialExpenseFormSheetState
       }
     }
     return currentUserLabel;
-  }
-
-  String _partnerOptionLabel(Partner partner) {
-    final name = partner.name.trim();
-    if (name.isNotEmpty) {
-      return name;
-    }
-
-    final session = ref.read(authSessionProvider).valueOrNull;
-    if (session != null &&
-        partner.userId == session.userId &&
-        _currentUserLabel().trim().isNotEmpty) {
-      return _currentUserLabel();
-    }
-
-    final linkedEmail = partner.linkedEmail.trim();
-    if (linkedEmail.isNotEmpty) {
-      return linkedEmail;
-    }
-
-    return 'شريك';
   }
 
   Future<void> _submit() async {
@@ -276,24 +255,11 @@ class _MaterialExpenseFormSheetState
 
   @override
   Widget build(BuildContext context) {
-    final payerOptions = widget.partners
-        .where((partner) => partner.id.trim().isNotEmpty)
-        .toList(growable: false);
-    final hasSelectedPayer = payerOptions.any(
-      (partner) => partner.id == _paidByPartnerId,
-    );
-
     return AppFormSheet(
       title: widget.entry == null
           ? 'إضافة فاتورة مواد بناء'
           : 'تعديل فاتورة مواد بناء',
-      child: Form(
-        key: _formKey,
-        child: _buildFormFields(
-          payerOptions: payerOptions,
-          hasSelectedPayer: hasSelectedPayer,
-        ),
-      ),
+      child: Form(key: _formKey, child: _buildFormFields()),
     );
   }
 }

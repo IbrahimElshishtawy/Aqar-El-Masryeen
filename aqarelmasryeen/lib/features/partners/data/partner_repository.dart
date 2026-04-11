@@ -25,12 +25,13 @@ class PartnerRepository {
     final source = _firestore
         .collection(FirestorePaths.partners)
         .where('workspaceId', isEqualTo: normalizedWorkspaceId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => Partner.fromMap(doc.id, doc.data()))
-              .toList(),
+          (snapshot) =>
+              snapshot.docs
+                  .map((doc) => Partner.fromMap(doc.id, doc.data()))
+                  .toList()
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
         );
 
     return CachePolicy.watchList(

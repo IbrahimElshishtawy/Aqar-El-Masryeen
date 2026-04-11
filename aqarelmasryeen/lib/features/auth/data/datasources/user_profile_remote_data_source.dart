@@ -39,12 +39,13 @@ class UserProfileRemoteDataSource {
 
     return _users
         .where('workspaceId', isEqualTo: normalizedWorkspaceId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => AppUser.fromMap(doc.id, doc.data()))
-              .toList(growable: false),
+          (snapshot) =>
+              snapshot.docs
+                  .map((doc) => AppUser.fromMap(doc.id, doc.data()))
+                  .toList(growable: false)
+                ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
         );
   }
 

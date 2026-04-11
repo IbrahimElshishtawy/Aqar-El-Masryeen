@@ -3,7 +3,6 @@ part of '../property_material_supplier_screen.dart';
 class _SupplierPaymentSheet extends StatefulWidget {
   const _SupplierPaymentSheet({
     required this.supplierName,
-    required this.partners,
     required this.currentPartnerId,
     required this.currentUserLabel,
     required this.totalRemaining,
@@ -11,7 +10,6 @@ class _SupplierPaymentSheet extends StatefulWidget {
   });
 
   final String supplierName;
-  final List<Partner> partners;
   final String? currentPartnerId;
   final String currentUserLabel;
   final double totalRemaining;
@@ -32,7 +30,7 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
   late final TextEditingController _amountController;
   late final TextEditingController _notesController;
   late DateTime _paidAt;
-  late String _paidByPartnerId;
+  late final String _paidByPartnerId;
   bool _saving = false;
 
   @override
@@ -41,9 +39,7 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
     _amountController = TextEditingController();
     _notesController = TextEditingController();
     _paidAt = DateTime.now();
-    _paidByPartnerId =
-        widget.currentPartnerId ??
-        (widget.partners.isEmpty ? '' : widget.partners.first.id);
+    _paidByPartnerId = widget.currentPartnerId ?? '';
   }
 
   @override
@@ -51,25 +47,6 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
     _amountController.dispose();
     _notesController.dispose();
     super.dispose();
-  }
-
-  String _partnerOptionLabel(Partner partner) {
-    final name = partner.name.trim();
-    if (name.isNotEmpty) {
-      return name;
-    }
-
-    if (partner.id == widget.currentPartnerId &&
-        widget.currentUserLabel.trim().isNotEmpty) {
-      return widget.currentUserLabel;
-    }
-
-    final linkedEmail = partner.linkedEmail.trim();
-    if (linkedEmail.isNotEmpty) {
-      return linkedEmail;
-    }
-
-    return 'شريك';
   }
 
   Future<void> _pickDate() async {
@@ -106,10 +83,6 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final hasSelectedPayer = widget.partners.any(
-      (partner) => partner.id == _paidByPartnerId,
-    );
-
     return AppFormSheet(
       title: 'إضافة دفعة حساب',
       child: Form(
@@ -125,7 +98,7 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
             ),
             const SizedBox(height: 6),
             Text(
-              'المتبقي الحالي ${widget.totalRemaining.egp}. سيتم توزيع الدفعة على الفواتير المفتوحة من الأقدم إلى الأحدث.',
+              'المتبقي الحالي ${widget.totalRemaining.egp}. سيتم تسجيل هذه الدفعة تلقائيًا على المستخدم الحالي وإظهارها في الجدول باسمه.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: Theme.of(context).colorScheme.secondary,
               ),
@@ -151,26 +124,15 @@ class _SupplierPaymentSheetState extends State<_SupplierPaymentSheet> {
                 return null;
               },
             ),
-            if (widget.partners.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: hasSelectedPayer ? _paidByPartnerId : null,
-                items: [
-                  for (final partner in widget.partners)
-                    DropdownMenuItem(
-                      value: partner.id,
-                      child: Text(_partnerOptionLabel(partner)),
-                    ),
-                ],
-                onChanged: (value) {
-                  setState(() => _paidByPartnerId = value ?? _paidByPartnerId);
-                },
-                decoration: const InputDecoration(labelText: 'من الذي دفع'),
-                validator: (value) => (value ?? '').trim().isEmpty
-                    ? 'اختر من الذي دفع هذه الدفعة.'
-                    : null,
+            const SizedBox(height: 12),
+            InputDecorator(
+              decoration: const InputDecoration(labelText: 'مسجل الدفعة'),
+              child: Text(
+                widget.currentUserLabel.trim().isEmpty
+                    ? 'المستخدم الحالي'
+                    : widget.currentUserLabel,
               ),
-            ],
+            ),
             const SizedBox(height: 12),
             InkWell(
               onTap: _pickDate,

@@ -75,7 +75,6 @@ class _PropertyMaterialSupplierScreenState
       useSafeArea: true,
       builder: (_) => _SupplierPaymentSheet(
         supplierName: supplierName,
-        partners: partners,
         currentPartnerId: currentPartnerId,
         currentUserLabel: currentUserLabel,
         totalRemaining: totalRemaining,

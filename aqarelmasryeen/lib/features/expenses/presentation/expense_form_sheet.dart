@@ -32,7 +32,6 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _notesController;
   late DateTime _selectedDate;
-  late String _paidByPartnerId;
   bool _saving = false;
 
   @override
@@ -47,7 +46,6 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     );
     _notesController = TextEditingController(text: expense?.notes ?? '');
     _selectedDate = expense?.date ?? DateTime.now();
-    _paidByPartnerId = _resolveInitialPaidByPartnerId();
   }
 
   @override
@@ -84,6 +82,8 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
       return;
     }
 
+    final paidByPartnerId = _resolveSelectedPartnerId(session.userId);
+
     setState(() => _saving = true);
     final savedId = await ref
         .read(expenseRepositoryProvider)
@@ -94,7 +94,7 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
             amount: double.parse(_amountController.text.trim()),
             category: widget.expense?.category ?? ExpenseCategory.construction,
             description: _descriptionController.text.trim(),
-            paidByPartnerId: _paidByPartnerId,
+            paidByPartnerId: paidByPartnerId,
             paymentMethod:
                 widget.expense?.paymentMethod ?? PaymentMethod.bankTransfer,
             date: _selectedDate,
@@ -142,22 +142,6 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     }
   }
 
-  String _resolveInitialPaidByPartnerId() {
-    if (widget.expense?.paidByPartnerId.isNotEmpty == true) {
-      return widget.expense!.paidByPartnerId;
-    }
-    final currentUserId = ref.read(authSessionProvider).valueOrNull?.userId;
-    if (currentUserId == null) {
-      return widget.partners.isEmpty ? '' : widget.partners.first.id;
-    }
-    for (final partner in widget.partners) {
-      if (partner.userId == currentUserId) {
-        return partner.id;
-      }
-    }
-    return widget.partners.isEmpty ? '' : widget.partners.first.id;
-  }
-
   Partner? _resolveCurrentPartner(String currentUserId) {
     for (final partner in widget.partners) {
       if (partner.userId == currentUserId) {
@@ -167,18 +151,20 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
     return null;
   }
 
+  String _resolveSelectedPartnerId(String currentUserId) {
+    final currentPartner = _resolveCurrentPartner(currentUserId);
+    if (currentPartner != null) {
+      return currentPartner.id;
+    }
+    return widget.expense?.paidByPartnerId ?? '';
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(authSessionProvider).valueOrNull;
     final currentPartner = session == null
         ? null
         : _resolveCurrentPartner(session.userId);
-    final payerOptions = widget.partners
-        .where((partner) => partner.id.trim().isNotEmpty)
-        .toList(growable: false);
-    final hasSelectedPayer = payerOptions.any(
-      (partner) => partner.id == _paidByPartnerId,
-    );
 
     return AppFormSheet(
       title: widget.expense == null ? 'إضافة مصروف' : 'تعديل مصروف',
@@ -189,28 +175,6 @@ class _ExpenseFormSheetState extends ConsumerState<ExpenseFormSheet> {
           children: [
             _ExpenseOwnerBanner(currentPartner: currentPartner),
             const SizedBox(height: 12),
-            if (payerOptions.isNotEmpty) ...[
-              DropdownButtonFormField<String>(
-                initialValue: hasSelectedPayer ? _paidByPartnerId : null,
-                items: [
-                  for (final partner in payerOptions)
-                    DropdownMenuItem(
-                      value: partner.id,
-                      child: Text(
-                        partner.name.trim().isEmpty ? 'شريك' : partner.name,
-                      ),
-                    ),
-                ],
-                onChanged: (value) {
-                  setState(() => _paidByPartnerId = value ?? _paidByPartnerId);
-                },
-                decoration: const InputDecoration(labelText: 'من الذي دفع'),
-                validator: (value) => (value ?? '').trim().isEmpty
-                    ? 'اختر من الذي دفع هذا المصروف.'
-                    : null,
-              ),
-              const SizedBox(height: 12),
-            ],
             TextFormField(
               controller: _descriptionController,
               decoration: const InputDecoration(labelText: 'البيان / الوصف'),
@@ -274,7 +238,7 @@ class _ExpenseOwnerBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final partnerName = currentPartner?.name;
+    final partnerName = currentPartner?.name.trim() ?? '';
 
     return Container(
       width: double.infinity,
@@ -285,9 +249,9 @@ class _ExpenseOwnerBanner extends StatelessWidget {
         border: Border.all(color: const Color(0xFFD8D8D2)),
       ),
       child: Text(
-        partnerName == null
-            ? 'سجل المصروف وحدد من الذي دفعه ليظهر بشكل صحيح داخل Totals المستخدم والشريك.'
-            : 'اختر من الذي دفع هذا المصروف. البيانات ستظهر فورًا بشكل مشترك لك وللشريك $partnerName.',
+        partnerName.isEmpty
+            ? 'سيتم تسجيل المصروف تلقائيًا باسم الحساب المسجل حاليًا.'
+            : 'سيتم تسجيل المصروف تلقائيًا باسمك الحالي كشريك $partnerName.',
         style: Theme.of(context).textTheme.bodyMedium,
       ),
     );

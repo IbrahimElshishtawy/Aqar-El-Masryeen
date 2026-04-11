@@ -3,10 +3,7 @@
 part of '../material_expense_form_sheet.dart';
 
 extension _MaterialExpenseFormSheetFields on _MaterialExpenseFormSheetState {
-  Widget _buildFormFields({
-    required List<Partner> payerOptions,
-    required bool hasSelectedPayer,
-  }) {
+  Widget _buildFormFields() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -19,7 +16,7 @@ extension _MaterialExpenseFormSheetFields on _MaterialExpenseFormSheetState {
             border: Border.all(color: const Color(0xFFD8D8D2)),
           ),
           child: Text(
-            'الفاتورة تحفظ باسم الصنف والمورد وإجمالي الفاتورة فقط. لا يتم عرض نوع المادة أو سعر الوحدة داخل النموذج.',
+            'سيتم حفظ الفاتورة باسم المورد والصنف وإجمالي الفاتورة، وأي مبلغ مدفوع عند الإنشاء سيسجل تلقائيًا على المستخدم الحالي.',
             style: Theme.of(context).textTheme.bodyMedium,
           ),
         ),
@@ -93,23 +90,6 @@ extension _MaterialExpenseFormSheetFields on _MaterialExpenseFormSheetState {
             return null;
           },
         ),
-        if (payerOptions.isNotEmpty) ...[
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: hasSelectedPayer ? _paidByPartnerId : null,
-            items: [
-              for (final partner in payerOptions)
-                DropdownMenuItem(
-                  value: partner.id,
-                  child: Text(_partnerOptionLabel(partner)),
-                ),
-            ],
-            onChanged: (value) {
-              setState(() => _paidByPartnerId = value ?? _paidByPartnerId);
-            },
-            decoration: const InputDecoration(labelText: 'من الذي دفع'),
-          ),
-        ],
         const SizedBox(height: 12),
         InkWell(
           onTap: _pickInvoiceDate,
