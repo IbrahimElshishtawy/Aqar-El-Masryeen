@@ -2,9 +2,12 @@ import 'package:aqarelmasryeen/features/dashboard/domain/dashboard_snapshot.dart
 import 'package:aqarelmasryeen/shared/enums/app_enums.dart';
 import 'package:aqarelmasryeen/shared/models/financial_models.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 void main() {
-  test('expense totals do not include material or supplier payments', () {
+  test('expense totals do not include material or supplier payments', () async {
+    await initializeDateFormatting('ar_EG');
+
     final now = DateTime.now();
     final snapshot = const DashboardSnapshotBuilder().build(
       properties: const [],

@@ -35,22 +35,19 @@ class DashboardOverviewSection extends StatelessWidget {
               DashboardStatCard(
                 label: 'إجمالي المصروفات',
                 value: snapshot.totalExpenses.egp,
-                subtitle:
-                    'كل المصروفات المسجلة في جدول المصاريف فقط',
+                subtitle: 'كل المصروفات المسجلة في جدول المصاريف فقط',
                 icon: Icons.receipt_long_outlined,
               ),
               DashboardStatCard(
                 label: 'مصروفاتك',
                 value: snapshot.currentUserExpenses.egp,
-                subtitle:
-                    'كل ما تم تسجيله من جهتك داخل جدول المصاريف فقط',
+                subtitle: 'كل ما تم تسجيله من جهتك داخل جدول المصاريف فقط',
                 icon: Icons.person_outline_rounded,
               ),
               DashboardStatCard(
                 label: counterpartExpensesLabel,
                 value: snapshot.counterpartExpenses.egp,
-                subtitle:
-                    'إجمالي ما يخص الطرف الآخر من المصروفات المسجلة فقط',
+                subtitle: 'إجمالي ما يخص الطرف الآخر من المصروفات المسجلة فقط',
                 icon: Icons.groups_2_outlined,
               ),
               DashboardStatCard(

@@ -57,47 +57,121 @@ class FirebaseAuthRepository implements AuthRepository {
   String _lastSessionUid = '';
 
   @override
-  Stream<AppSession?> watchSession() async* {
-    await for (final user in _authDataSource.authStateChanges()) {
-      if (user == null) {
-        _lastSessionUid = '';
-        await _secureStorage.clearSessionData();
-        await _cacheService.clearByPrefix('cache.');
-        yield null;
-        continue;
-      }
+  Stream<AppSession?> watchSession() {
+    late final StreamController<AppSession?> controller;
+    StreamSubscription<User?>? authSubscription;
+    StreamSubscription<AppUser?>? profileSubscription;
+    var authGeneration = 0;
 
-      if (_lastSessionUid.isNotEmpty && _lastSessionUid != user.uid) {
-        await _cacheService.clearByPrefix('cache.');
+    Future<void> emitSession(
+      User user,
+      AppUser? profile,
+      int generation,
+    ) async {
+      final resolvedProfile =
+          profile ?? await _profileDataSource.fetchProfile(user.uid);
+      if (controller.isClosed || generation != authGeneration) {
+        return;
       }
-      _lastSessionUid = user.uid;
-
-      final cachedProfile = await _localDataSource.readProfile(user.uid);
-      if (cachedProfile != null) {
-        yield AppSession.fromFirebaseUser(
-          firebaseUser: user,
-          profile: cachedProfile,
-        );
+      final syncedProfile = await _synchronizeLinkedPartnerProfile(
+        resolvedProfile,
+        fallbackEmail: user.email?.trim().toLowerCase() ?? '',
+      );
+      if (controller.isClosed || generation != authGeneration) {
+        return;
       }
-
-      yield* _profileDataSource.watchProfile(user.uid).asyncMap((
-        profile,
-      ) async {
-        final resolvedProfile =
-            profile ??
-            cachedProfile ??
-            await _profileDataSource.fetchProfile(user.uid);
-        final syncedProfile = await _synchronizeLinkedPartnerProfile(
-          resolvedProfile,
-          fallbackEmail: user.email?.trim().toLowerCase() ?? '',
-        );
-        await _syncLocalSession(syncedProfile, user.uid);
-        return AppSession.fromFirebaseUser(
-          firebaseUser: user,
-          profile: syncedProfile,
-        );
-      });
+      await _syncLocalSession(syncedProfile, user.uid);
+      if (controller.isClosed || generation != authGeneration) {
+        return;
+      }
+      controller.add(
+        AppSession.fromFirebaseUser(firebaseUser: user, profile: syncedProfile),
+      );
     }
+
+    controller = StreamController<AppSession?>(
+      onListen: () {
+        authSubscription = _authDataSource.authStateChanges().listen(
+          (user) async {
+            final generation = ++authGeneration;
+            await profileSubscription?.cancel();
+            profileSubscription = null;
+
+            if (user == null) {
+              _lastSessionUid = '';
+              await _secureStorage.clearSessionData();
+              await _cacheService.clearByPrefix('cache.');
+              if (!controller.isClosed && generation == authGeneration) {
+                controller.add(null);
+              }
+              return;
+            }
+
+            if (_lastSessionUid.isNotEmpty && _lastSessionUid != user.uid) {
+              await _cacheService.clearByPrefix('cache.');
+            }
+            _lastSessionUid = user.uid;
+
+            try {
+              final cachedProfile = await _localDataSource.readProfile(
+                user.uid,
+              );
+              if (controller.isClosed || generation != authGeneration) {
+                return;
+              }
+              if (cachedProfile != null) {
+                controller.add(
+                  AppSession.fromFirebaseUser(
+                    firebaseUser: user,
+                    profile: cachedProfile,
+                  ),
+                );
+              }
+
+              profileSubscription = _profileDataSource
+                  .watchProfile(user.uid)
+                  .listen(
+                    (profile) async {
+                      if (controller.isClosed || generation != authGeneration) {
+                        return;
+                      }
+                      try {
+                        await emitSession(
+                          user,
+                          profile ?? cachedProfile,
+                          generation,
+                        );
+                      } catch (error, stackTrace) {
+                        if (!controller.isClosed &&
+                            generation == authGeneration) {
+                          controller.addError(error, stackTrace);
+                        }
+                      }
+                    },
+                    onError: (Object error, StackTrace stackTrace) {
+                      if (!controller.isClosed &&
+                          generation == authGeneration) {
+                        controller.addError(error, stackTrace);
+                      }
+                    },
+                  );
+            } catch (error, stackTrace) {
+              if (!controller.isClosed && generation == authGeneration) {
+                controller.addError(error, stackTrace);
+              }
+            }
+          },
+          onError: controller.addError,
+          onDone: controller.close,
+        );
+      },
+      onCancel: () async {
+        await profileSubscription?.cancel();
+        await authSubscription?.cancel();
+      },
+    );
+
+    return controller.stream;
   }
 
   @override

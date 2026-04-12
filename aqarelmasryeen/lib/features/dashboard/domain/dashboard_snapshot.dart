@@ -216,10 +216,7 @@ class DashboardSnapshotBuilder {
       totalRemainingInstallments: totalRemainingInstallments,
       pendingSupplierDues: pendingSupplierDues,
       partnerContributionTotal: partnerContributionTotal,
-      chart: _buildChart(
-        expenses: expenses,
-        payments: payments,
-      ),
+      chart: _buildChart(expenses: expenses, payments: payments),
       recentRecords: recentRecords.take(6).toList(),
     );
   }

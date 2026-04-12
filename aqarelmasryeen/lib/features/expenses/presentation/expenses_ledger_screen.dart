@@ -250,7 +250,9 @@ Future<void> _deleteExpense(
   final confirmed = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('\u062d\u0630\u0641 \u0627\u0644\u0645\u0635\u0631\u0648\u0641'),
+      title: const Text(
+        '\u062d\u0630\u0641 \u0627\u0644\u0645\u0635\u0631\u0648\u0641',
+      ),
       content: const Text(
         '\u0633\u064a\u062a\u0645 \u062d\u0630\u0641 \u0647\u0630\u0627 \u0627\u0644\u0645\u0635\u0631\u0648\u0641 \u0645\u0646 \u062c\u062f\u0648\u0644 \u0627\u0644\u0645\u0635\u0627\u0631\u064a\u0641.',
       ),
