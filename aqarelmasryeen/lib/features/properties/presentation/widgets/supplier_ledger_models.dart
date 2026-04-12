@@ -37,7 +37,7 @@ class _SupplierLedgerRow {
   final bool isPayment;
   final String supplierName;
   final String description;
-  final double? quantity;
+  final String quantity;
   final double unitPrice;
   final double addedValue;
   final double paidValue;
@@ -50,10 +50,10 @@ class _SupplierLedgerRow {
   String get typeLabel => isPayment ? 'دفعة' : '';
 
   String get quantityLabel {
-    if (quantity == null || quantity == 0) {
+    if (quantity.trim().isEmpty) {
       return '-';
     }
-    return _formatQuantity(quantity!);
+    return quantity;
   }
 
   String get priceLabel {

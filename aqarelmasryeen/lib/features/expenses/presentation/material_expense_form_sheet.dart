@@ -56,7 +56,7 @@ class _MaterialExpenseFormSheetState
     );
     _itemNameController = TextEditingController(text: entry?.itemName ?? '');
     _quantityController = TextEditingController(
-      text: entry == null ? '' : entry.quantity.toStringAsFixed(0),
+      text: entry?.quantity ?? '',
     );
     _totalInvoiceController = TextEditingController(
       text: entry == null
@@ -184,7 +184,8 @@ class _MaterialExpenseFormSheetState
       return;
     }
 
-    final quantity = double.parse(_quantityController.text.trim());
+    final quantity = _quantityController.text.trim();
+    final quantityValue = _parseQuantityValue(quantity);
     final totalPrice = parseGroupedDouble(_totalInvoiceController.text);
     final initialPaidAmount = parseGroupedDouble(_paidController.text);
     final previousExtraPaid = math.max(
@@ -195,7 +196,7 @@ class _MaterialExpenseFormSheetState
     final remainingAmount = (totalPrice - totalPaid)
         .clamp(0, totalPrice)
         .toDouble();
-    final unitPrice = quantity <= 0 ? 0.0 : totalPrice / quantity;
+    final unitPrice = quantityValue <= 0 ? 0.0 : totalPrice / quantityValue;
     final now = DateTime.now();
 
     setState(() => _saving = true);
@@ -267,4 +268,12 @@ class _MaterialExpenseFormSheetState
       child: Form(key: _formKey, child: _buildFormFields()),
     );
   }
+}
+
+double _parseQuantityValue(String value) {
+  final match = RegExp(r'-?\d+(?:[.,]\d+)?').firstMatch(value);
+  if (match == null) {
+    return 0;
+  }
+  return double.tryParse(match.group(0)!.replaceAll(',', '.')) ?? 0;
 }

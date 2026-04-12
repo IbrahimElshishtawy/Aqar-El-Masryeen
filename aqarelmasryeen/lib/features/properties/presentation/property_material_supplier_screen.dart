@@ -637,7 +637,7 @@ List<_SupplierLedgerRow> _buildLedgerRows({
         isPayment: true,
         supplierName: payment.supplierName,
         description: 'دفعة على المورد',
-        quantity: null,
+        quantity: '',
         unitPrice: 0,
         addedValue: 0,
         paidValue: payment.amount,
@@ -666,7 +666,7 @@ _SupplierAccountSummary _buildSupplierAccountSummary({
 }) {
   final totalQuantity = invoiceRows.fold<double>(
     0,
-    (sum, item) => sum + item.quantity,
+    (sum, item) => sum + item.quantityValue,
   );
   final totalRequired = invoiceRows.fold<double>(
     0,

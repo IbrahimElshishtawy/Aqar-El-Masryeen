@@ -120,7 +120,7 @@ class MaterialsLedgerCalculator {
             categoryLabel: entry.key,
             totalQuantity: categoryEntries.fold<double>(
               0,
-              (sum, item) => sum + item.quantity,
+              (sum, item) => sum + item.quantityValue,
             ),
             totalSpending: categoryEntries.fold<double>(
               0,

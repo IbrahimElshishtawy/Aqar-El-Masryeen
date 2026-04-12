@@ -156,7 +156,7 @@ class MaterialExpenseEntry {
   final DateTime date;
   final MaterialCategory materialCategory;
   final String itemName;
-  final double quantity;
+  final String quantity;
   final double unitPrice;
   final double totalPrice;
   final String supplierName;
@@ -173,6 +173,8 @@ class MaterialExpenseEntry {
   final bool archived;
   final String workspaceId;
   final DateTime? dueDate;
+
+  double get quantityValue => _parseQuantityValue(quantity);
 
   SupplierInvoiceStatus get status {
     if (amountRemaining <= 0) {
@@ -233,7 +235,7 @@ class MaterialExpenseEntry {
         orElse: () => MaterialCategory.other,
       ),
       itemName: data['itemName'] as String? ?? '',
-      quantity: parseDouble(data['quantity']),
+      quantity: _parseQuantityLabel(data['quantity']),
       unitPrice: parseDouble(data['unitPrice']),
       totalPrice: totalPrice,
       supplierName: data['supplierName'] as String? ?? '',
@@ -262,7 +264,7 @@ class MaterialExpenseEntry {
     DateTime? date,
     MaterialCategory? materialCategory,
     String? itemName,
-    double? quantity,
+    String? quantity,
     double? unitPrice,
     double? totalPrice,
     String? supplierName,
@@ -412,4 +414,22 @@ class SupplierPaymentRecord {
       workspaceId: workspaceId ?? this.workspaceId,
     );
   }
+}
+
+String _parseQuantityLabel(dynamic value) {
+  if (value == null) {
+    return '';
+  }
+  if (value is num) {
+    return value % 1 == 0 ? value.toStringAsFixed(0) : value.toString();
+  }
+  return '$value'.trim();
+}
+
+double _parseQuantityValue(String value) {
+  final match = RegExp(r'-?\d+(?:[.,]\d+)?').firstMatch(value.trim());
+  if (match == null) {
+    return 0;
+  }
+  return double.tryParse(match.group(0)!.replaceAll(',', '.')) ?? 0;
 }

@@ -40,13 +40,10 @@ extension _MaterialExpenseFormSheetFields on _MaterialExpenseFormSheetState {
             Expanded(
               child: TextFormField(
                 controller: _quantityController,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
+                keyboardType: TextInputType.text,
                 decoration: const InputDecoration(labelText: 'الكمية'),
                 validator: (value) {
-                  final quantity = double.tryParse((value ?? '').trim()) ?? 0;
-                  if (quantity <= 0) {
+                  if ((value ?? '').trim().isEmpty) {
                     return 'أدخل كمية صحيحة.';
                   }
                   return null;

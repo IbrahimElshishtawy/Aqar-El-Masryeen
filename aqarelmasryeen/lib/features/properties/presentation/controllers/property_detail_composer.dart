@@ -81,7 +81,10 @@ class PropertyDetailComposer {
       final rows = materialRowsByCategory[category] ?? const [];
       return MaterialCategoryTotal(
         categoryLabel: category.label,
-        totalQuantity: rows.fold<double>(0, (sum, item) => sum + item.quantity),
+        totalQuantity: rows.fold<double>(
+          0,
+          (sum, item) => sum + item.quantityValue,
+        ),
         totalSpending: rows.fold<double>(
           0,
           (sum, item) => sum + item.totalPrice,
