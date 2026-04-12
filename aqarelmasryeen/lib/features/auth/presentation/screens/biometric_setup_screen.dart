@@ -97,15 +97,18 @@ class _BiometricSetupScreenState extends ConsumerState<BiometricSetupScreen> {
           children: [
             SwitchListTile.adaptive(
               value: _trustedDeviceEnabled,
-              onChanged: (value) {
-                setState(() {
-                  _trustedDeviceEnabled = value;
-                  if (!value) {
-                    _biometricEnabled = false;
-                    _appLockEnabled = false;
-                  }
-                });
-              },
+              onChanged: data.canUseSecureUnlock || _trustedDeviceEnabled
+                  ? (value) {
+                      setState(() {
+                        _trustedDeviceEnabled =
+                            value && data.canUseSecureUnlock;
+                        if (!_trustedDeviceEnabled) {
+                          _biometricEnabled = false;
+                          _appLockEnabled = false;
+                        }
+                      });
+                    }
+                  : null,
               title: const Text('تفعيل الفتح السريع للجهاز الموثوق'),
               subtitle: Text(
                 data.canUseSecureUnlock

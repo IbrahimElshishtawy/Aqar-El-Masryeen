@@ -1,4 +1,5 @@
 import 'package:aqarelmasryeen/core/errors/app_exception.dart';
+import 'package:flutter/foundation.dart';
 import 'package:local_auth/local_auth.dart';
 
 class BiometricAvailability {
@@ -45,13 +46,31 @@ class BiometricService {
 
   Future<bool> canCheckBiometrics() => _localAuth.canCheckBiometrics;
 
-  Future<List<BiometricType>> getAvailableBiometrics() {
-    return _localAuth.getAvailableBiometrics();
+  Future<List<BiometricType>> getAvailableBiometrics() async {
+    try {
+      return await _localAuth.getAvailableBiometrics();
+    } on LocalAuthException catch (error, stackTrace) {
+      switch (error.code) {
+        case LocalAuthExceptionCode.noBiometricHardware:
+        case LocalAuthExceptionCode.noBiometricsEnrolled:
+          debugPrint('Biometric methods unavailable: ${error.code.name}');
+          debugPrintStack(stackTrace: stackTrace, maxFrames: 4);
+          return const <BiometricType>[];
+        default:
+          rethrow;
+      }
+    }
   }
 
   Future<BiometricAvailability> getAvailability() async {
     final methods = await getAvailableBiometrics();
-    final isDeviceSupported = await _localAuth.isDeviceSupported();
+    var isDeviceSupported = false;
+    try {
+      isDeviceSupported = await _localAuth.isDeviceSupported();
+    } on LocalAuthException catch (error, stackTrace) {
+      debugPrint('Secure unlock support check failed: ${error.code.name}');
+      debugPrintStack(stackTrace: stackTrace, maxFrames: 4);
+    }
     return BiometricAvailability(
       isDeviceSupported: isDeviceSupported,
       availableBiometrics: methods,

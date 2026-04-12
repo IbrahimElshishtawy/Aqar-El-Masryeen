@@ -45,7 +45,7 @@ class SessionLockState extends Equatable {
   final DateTime? lastBackgroundAt;
 
   bool get shouldPresentUnlock =>
-      isInitialized && isLocked && appLockEnabled && trustedDeviceEnabled;
+      isInitialized && isLocked && trustedDeviceEnabled;
 
   SessionLockState copyWith({
     bool? isInitialized,

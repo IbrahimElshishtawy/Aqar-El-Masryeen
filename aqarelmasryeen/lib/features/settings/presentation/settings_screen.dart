@@ -169,6 +169,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: const Text('قفل الآن'),
               subtitle: const Text('اطلب البصمة أو قفل الجهاز فورًا.'),
               onTap: () async {
+                if (profile?.trustedDeviceEnabled != true) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'ÙØ¹Ù„ Ø§Ù„Ø¬Ù‡Ø§Ø² Ø§Ù„Ù…ÙˆØ«ÙˆÙ‚ Ø£ÙˆÙ„Ù‹Ø§ Ù„Ø§Ø³ØªØ®Ø¯Ø§Ù… Ø§Ù„Ø¨ØµÙ…Ø© Ø£Ùˆ Ø±Ù…Ø² Ù‚ÙÙ„ Ø§Ù„Ø¬Ù‡Ø§Ø².',
+                      ),
+                    ),
+                  );
+                  return;
+                }
                 final router = GoRouter.of(context);
                 await ref
                     .read(sessionLockControllerProvider.notifier)
