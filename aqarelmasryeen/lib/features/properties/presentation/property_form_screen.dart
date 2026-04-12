@@ -1,6 +1,7 @@
 import 'package:aqarelmasryeen/core/routing/app_routes.dart';
 import 'package:aqarelmasryeen/core/widgets/app_top_bar.dart';
 import 'package:aqarelmasryeen/core/widgets/async_value_view.dart';
+import 'package:aqarelmasryeen/core/widgets/empty_state_view.dart';
 import 'package:aqarelmasryeen/features/auth/presentation/auth_providers.dart';
 import 'package:aqarelmasryeen/features/properties/data/property_repository.dart';
 import 'package:aqarelmasryeen/features/properties/presentation/properties_providers.dart';
@@ -10,6 +11,13 @@ import 'package:aqarelmasryeen/shared/models/property_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+final _propertyFormDetailsProvider = StreamProvider.autoDispose
+    .family<PropertyProject?, _PropertyFormRequest>((ref, request) {
+      return ref
+          .watch(propertyRepositoryProvider)
+          .watchProperty(request.propertyId, workspaceId: request.workspaceId);
+    });
 
 class PropertyFormScreen extends ConsumerStatefulWidget {
   const PropertyFormScreen({super.key, this.propertyId});
@@ -155,14 +163,12 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
     final propertyAsync = widget.propertyId == null
         ? const AsyncData<PropertyProject?>(null)
         : ref.watch(
-            StreamProvider.autoDispose<PropertyProject?>((ref) {
-              return ref
-                  .watch(propertyRepositoryProvider)
-                  .watchProperty(
-                    widget.propertyId!,
-                    workspaceId: ref.watch(currentWorkspaceIdProvider),
-                  );
-            }),
+            _propertyFormDetailsProvider(
+              _PropertyFormRequest(
+                propertyId: widget.propertyId!,
+                workspaceId: ref.watch(currentWorkspaceIdProvider),
+              ),
+            ),
           );
 
     return Scaffold(
@@ -174,6 +180,14 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
         child: AsyncValueView<PropertyProject?>(
           value: propertyAsync,
           data: (existing) {
+            if (widget.propertyId != null && existing == null) {
+              return const EmptyStateView(
+                title: 'ØªØ¹Ø°Ø± Ø§Ù„Ø¹Ø«ÙˆØ± Ø¹Ù„Ù‰ Ø§Ù„Ø¹Ù‚Ø§Ø±',
+                message:
+                    'Ù„Ù… Ù†ØªÙ…ÙƒÙ† Ù…Ù† ØªØ­Ù…ÙŠÙ„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¹Ù‚Ø§Ø± Ø§Ù„Ù…Ø·Ù„ÙˆØ¨ ØªØ¹Ø¯ÙŠÙ„Ù‡.',
+              );
+            }
+
             if (existing != null) {
               _hydrate(existing);
             }
@@ -267,4 +281,24 @@ class _PropertyFormScreenState extends ConsumerState<PropertyFormScreen> {
       ),
     );
   }
+}
+
+class _PropertyFormRequest {
+  const _PropertyFormRequest({
+    required this.propertyId,
+    required this.workspaceId,
+  });
+
+  final String propertyId;
+  final String workspaceId;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _PropertyFormRequest &&
+        other.propertyId == propertyId &&
+        other.workspaceId == workspaceId;
+  }
+
+  @override
+  int get hashCode => Object.hash(propertyId, workspaceId);
 }

@@ -514,17 +514,21 @@ class FirebaseAuthRepository implements AuthRepository {
   Future<void> signOut() async {
     final user = _authDataSource.currentUser;
     if (user != null) {
-      await _messagingService.unregisterCurrentDeviceToken();
-      await _logSecurityEvent(
-        actorId: user.uid,
-        actorName: user.displayName ?? user.email ?? 'Ø´Ø±ÙŠÙƒ',
-        action: 'logout',
+      await _runBestEffort(
+        () => _messagingService.unregisterCurrentDeviceToken(),
       );
-      await _analytics.logEvent(name: 'secure_logout');
-      await _localDataSource.clearProfile(user.uid);
+      await _runBestEffort(
+        () => _logSecurityEvent(
+          actorId: user.uid,
+          actorName: user.displayName ?? user.email ?? 'Ø´Ø±ÙŠÙƒ',
+          action: 'logout',
+        ),
+      );
+      await _runBestEffort(() => _analytics.logEvent(name: 'secure_logout'));
+      await _runBestEffort(() => _localDataSource.clearProfile(user.uid));
     }
-    await _secureStorage.clearSessionData();
-    await _cacheService.clearByPrefix('cache.');
+    await _runBestEffort(() => _secureStorage.clearSessionData());
+    await _runBestEffort(() => _cacheService.clearByPrefix('cache.'));
     await _authDataSource.signOut();
   }
 
@@ -660,6 +664,14 @@ class FirebaseAuthRepository implements AuthRepository {
 
   void _recordError(Object error, StackTrace stackTrace) {
     _crashlytics.recordError(error, stackTrace, fatal: false);
+  }
+
+  Future<void> _runBestEffort(Future<void> Function() action) async {
+    try {
+      await action();
+    } catch (error, stackTrace) {
+      _recordError(error, stackTrace);
+    }
   }
 
   bool _shouldFallbackToClientProvisioning(AppException error) {
