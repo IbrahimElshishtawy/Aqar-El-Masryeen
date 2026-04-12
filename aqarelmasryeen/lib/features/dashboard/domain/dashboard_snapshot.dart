@@ -110,7 +110,7 @@ class DashboardSnapshotBuilder {
       0,
       (sum, record) => sum + record.amount,
     );
-    final totalExpenses = totalDirectExpenses + materialsSnapshot.overallPaid;
+    final totalExpenses = totalDirectExpenses;
     final currentDirectExpenses = expenses
         .where(
           (record) => _belongsToCurrentSide(
@@ -121,30 +121,7 @@ class DashboardSnapshotBuilder {
           ),
         )
         .fold<double>(0, (sum, record) => sum + record.amount);
-    final currentMaterialExpenses = materials
-        .where(
-          (record) => _belongsToCurrentSide(
-            actorUserId: record.createdBy,
-            payerPartnerId: record.initialPaidByPartnerId,
-            currentUserId: currentUserId,
-            currentPartnerId: currentPartnerId,
-          ),
-        )
-        .fold<double>(0, (sum, record) => sum + record.initialPaidAmount);
-    final currentSupplierExpenses = supplierPayments
-        .where(
-          (record) => _belongsToCurrentSide(
-            actorUserId: record.createdBy,
-            payerPartnerId: record.paidByPartnerId,
-            currentUserId: currentUserId,
-            currentPartnerId: currentPartnerId,
-          ),
-        )
-        .fold<double>(0, (sum, record) => sum + record.amount);
-    final currentUserExpenses =
-        currentDirectExpenses +
-        currentMaterialExpenses +
-        currentSupplierExpenses;
+    final currentUserExpenses = currentDirectExpenses;
     final counterpartExpenses = (totalExpenses - currentUserExpenses) < 0
         ? 0.0
         : (totalExpenses - currentUserExpenses);
@@ -241,8 +218,6 @@ class DashboardSnapshotBuilder {
       partnerContributionTotal: partnerContributionTotal,
       chart: _buildChart(
         expenses: expenses,
-        materials: materials,
-        supplierPayments: supplierPayments,
         payments: payments,
       ),
       recentRecords: recentRecords.take(6).toList(),
@@ -251,8 +226,6 @@ class DashboardSnapshotBuilder {
 
   List<DashboardChartBucket> _buildChart({
     required List<ExpenseRecord> expenses,
-    required List<MaterialExpenseEntry> materials,
-    required List<SupplierPaymentRecord> supplierPayments,
     required List<PaymentRecord> payments,
   }) {
     final now = DateTime.now();
@@ -268,18 +241,6 @@ class DashboardSnapshotBuilder {
                 !item.date.isBefore(month) && item.date.isBefore(nextMonth),
           )
           .fold<double>(0, (sum, item) => sum + item.amount);
-      final materialExpenseValue = materials
-          .where(
-            (item) =>
-                !item.date.isBefore(month) && item.date.isBefore(nextMonth),
-          )
-          .fold<double>(0, (sum, item) => sum + item.initialPaidAmount);
-      final supplierPaymentValue = supplierPayments
-          .where(
-            (item) =>
-                !item.paidAt.isBefore(month) && item.paidAt.isBefore(nextMonth),
-          )
-          .fold<double>(0, (sum, item) => sum + item.amount);
       final paymentValue = payments
           .where(
             (item) =>
@@ -291,8 +252,7 @@ class DashboardSnapshotBuilder {
       buckets.add(
         DashboardChartBucket(
           label: formatter.format(month),
-          expenses:
-              directExpenseValue + materialExpenseValue + supplierPaymentValue,
+          expenses: directExpenseValue,
           payments: paymentValue,
         ),
       );

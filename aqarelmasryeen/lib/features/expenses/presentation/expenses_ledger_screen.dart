@@ -182,6 +182,13 @@ class ExpensesLedgerScreen extends ConsumerWidget {
                     amountLabel: row.expense.amount.egp,
                     description: _expenseMeaning(row.expense),
                     isCurrentSide: row.isCurrentUser,
+                    onEdit: () => _showExpenseSheet(
+                      context,
+                      properties: properties,
+                      partners: partners,
+                      expense: row.expense,
+                    ),
+                    onDelete: () => _deleteExpense(context, ref, row.expense),
                   ),
                 )
                 .toList(growable: false),
@@ -212,19 +219,58 @@ Future<void> _showExpenseSheet(
   BuildContext context, {
   required List<PropertyProject> properties,
   required List<Partner> partners,
+  ExpenseRecord? expense,
 }) async {
-  final property = await _pickProperty(context, properties);
-  if (property == null || !context.mounted) {
-    return;
+  var propertyId = expense?.propertyId ?? '';
+  if (propertyId.isEmpty) {
+    final property = await _pickProperty(context, properties);
+    if (property == null || !context.mounted) {
+      return;
+    }
+    propertyId = property.id;
   }
 
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) =>
-        ExpenseFormSheet(propertyId: property.id, partners: partners),
+    builder: (_) => ExpenseFormSheet(
+      propertyId: propertyId,
+      partners: partners,
+      expense: expense,
+    ),
   );
+}
+
+Future<void> _deleteExpense(
+  BuildContext context,
+  WidgetRef ref,
+  ExpenseRecord expense,
+) async {
+  final confirmed = await showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('\u062d\u0630\u0641 \u0627\u0644\u0645\u0635\u0631\u0648\u0641'),
+      content: const Text(
+        '\u0633\u064a\u062a\u0645 \u062d\u0630\u0641 \u0647\u0630\u0627 \u0627\u0644\u0645\u0635\u0631\u0648\u0641 \u0645\u0646 \u062c\u062f\u0648\u0644 \u0627\u0644\u0645\u0635\u0627\u0631\u064a\u0641.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('\u0625\u0644\u063a\u0627\u0621'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('\u062d\u0630\u0641'),
+        ),
+      ],
+    ),
+  );
+  if (confirmed != true) {
+    return;
+  }
+
+  await ref.read(expenseRepositoryProvider).softDelete(expense.id);
 }
 
 Future<PropertyProject?> _pickProperty(

@@ -8,12 +8,16 @@ class ExpenseSplitLedgerRow {
     required this.amountLabel,
     required this.description,
     required this.isCurrentSide,
+    this.onEdit,
+    this.onDelete,
   });
 
   final String dateLabel;
   final String amountLabel;
   final String description;
   final bool isCurrentSide;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 }
 
 class ExpenseSplitLedgerTable extends StatelessWidget {
@@ -323,6 +327,27 @@ class _ExpenseEntryCard extends StatelessWidget {
               height: 1.25,
             ),
           ),
+          if (entry.onEdit != null || entry.onDelete != null) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                if (entry.onEdit != null)
+                  OutlinedButton.icon(
+                    onPressed: entry.onEdit,
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: const Text('\u062a\u0639\u062f\u064a\u0644'),
+                  ),
+                if (entry.onDelete != null)
+                  OutlinedButton.icon(
+                    onPressed: entry.onDelete,
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('\u062d\u0630\u0641'),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );

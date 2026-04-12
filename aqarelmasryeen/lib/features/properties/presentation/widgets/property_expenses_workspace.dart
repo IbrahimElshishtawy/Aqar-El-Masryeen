@@ -55,6 +55,8 @@ class PropertyExpensesWorkspace extends StatelessWidget {
             amountLabel: row.row.expense.amount.egp,
             description: row.description,
             isCurrentSide: row.isCurrentSide,
+            onEdit: () => onEditExpense(row.row.expense),
+            onDelete: () => onDeleteExpense(row.row.expense),
           ),
         )
         .toList(growable: false);
