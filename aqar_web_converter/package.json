@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "convert": "node scripts/convert-all.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.58.0",

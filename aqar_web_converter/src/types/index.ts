@@ -1,0 +1,220 @@
+// Type definitions converted from aqarelmasryeen/lib/shared/enums and models
+
+export enum UserRole {
+  Owner = 'owner',
+  Admin = 'admin',
+  Partner = 'partner',
+}
+
+export enum PropertyStatus {
+  Planning = 'planning',
+  Active = 'active',
+  Delivered = 'delivered',
+  Archived = 'archived',
+}
+
+export enum UnitStatus {
+  Available = 'available',
+  Reserved = 'reserved',
+  Sold = 'sold',
+  Cancelled = 'cancelled',
+}
+
+export enum UnitType {
+  Apartment = 'apartment',
+  Penthouse = 'penthouse',
+  Office = 'office',
+  Retail = 'retail',
+  Floor = 'floor',
+  Villa = 'villa',
+}
+
+export enum InstallmentStatus {
+  Pending = 'pending',
+  PartiallyPaid = 'partiallyPaid',
+  Paid = 'paid',
+  Overdue = 'overdue',
+}
+
+export enum PaymentMethod {
+  Cash = 'cash',
+  BankTransfer = 'bankTransfer',
+  Cheque = 'cheque',
+  Wallet = 'wallet',
+  Other = 'other',
+}
+
+export enum ExpenseCategory {
+  Construction = 'construction',
+  Legal = 'legal',
+  Permits = 'permits',
+  Utilities = 'utilities',
+  Marketing = 'marketing',
+  Brokerage = 'brokerage',
+  Maintenance = 'maintenance',
+  Materials = 'materials',
+  PartnerSettlement = 'partnerSettlement',
+  Other = 'other',
+}
+
+export enum MaterialCategory {
+  Cement = 'cement',
+  Brick = 'brick',
+  Steel = 'steel',
+  Sand = 'sand',
+  Gravel = 'gravel',
+  Finishing = 'finishing',
+  Electrical = 'electrical',
+  Plumbing = 'plumbing',
+  Paint = 'paint',
+  Other = 'other',
+}
+
+// Arabic Labels Dictionaries
+export const PropertyStatusLabels: Record<PropertyStatus, string> = {
+  [PropertyStatus.Planning]: 'تحت الإنشاء',
+  [PropertyStatus.Active]: 'نشط',
+  [PropertyStatus.Delivered]: 'تم التسليم',
+  [PropertyStatus.Archived]: 'مؤرشف',
+};
+
+export const UnitStatusLabels: Record<UnitStatus, string> = {
+  [UnitStatus.Available]: 'متاحة',
+  [UnitStatus.Reserved]: 'محجوزة',
+  [UnitStatus.Sold]: 'مباعة',
+  [UnitStatus.Cancelled]: 'ملغاة',
+};
+
+export const UnitTypeLabels: Record<UnitType, string> = {
+  [UnitType.Apartment]: 'شقة',
+  [UnitType.Penthouse]: 'بنتهاوس',
+  [UnitType.Office]: 'مكتب',
+  [UnitType.Retail]: 'محل تجاري',
+  [UnitType.Floor]: 'دور كامل',
+  [UnitType.Villa]: 'فيلا',
+};
+
+export const InstallmentStatusLabels: Record<InstallmentStatus, string> = {
+  [InstallmentStatus.Pending]: 'مستحق',
+  [InstallmentStatus.PartiallyPaid]: 'مدفوع جزئياً',
+  [InstallmentStatus.Paid]: 'تم السداد',
+  [InstallmentStatus.Overdue]: 'متأخر',
+};
+
+export const ExpenseCategoryLabels: Record<ExpenseCategory, string> = {
+  [ExpenseCategory.Construction]: 'إنشاءات وبناء',
+  [ExpenseCategory.Legal]: 'أتعاب قانونية',
+  [ExpenseCategory.Permits]: 'تراخيص ورسوم',
+  [ExpenseCategory.Utilities]: 'مرافق وخدمات',
+  [ExpenseCategory.Marketing]: 'تسويق ودعاية',
+  [ExpenseCategory.Brokerage]: 'عمولات سمسرة',
+  [ExpenseCategory.Maintenance]: 'صيانة',
+  [ExpenseCategory.Materials]: 'مواد بناء',
+  [ExpenseCategory.PartnerSettlement]: 'تسوية أرباح شريك',
+  [ExpenseCategory.Other]: 'مصروفات أخرى',
+};
+
+export const MaterialCategoryLabels: Record<MaterialCategory, string> = {
+  [MaterialCategory.Cement]: 'أسمنت',
+  [MaterialCategory.Brick]: 'طوب',
+  [MaterialCategory.Steel]: 'حديد تسليح',
+  [MaterialCategory.Sand]: 'رمل',
+  [MaterialCategory.Gravel]: 'زلط',
+  [MaterialCategory.Finishing]: 'تشطيبات وديكور',
+  [MaterialCategory.Electrical]: 'تأسيس كهرباء',
+  [MaterialCategory.Plumbing]: 'تأسيس سباكة',
+  [MaterialCategory.Paint]: 'دهانات',
+  [MaterialCategory.Other]: 'مواد أخرى',
+};
+
+// Data Models
+export interface PropertyProject {
+  id: string;
+  name: string;
+  location: string;
+  apartmentCount: number;
+  description: string;
+  status: PropertyStatus;
+  totalBudget: number;
+  totalSalesTarget: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  workspaceId: string;
+  archived: boolean;
+}
+
+export interface UnitSale {
+  id: string;
+  propertyId: string;
+  unitNumber: string;
+  unitType: UnitType;
+  floor: number;
+  areaSqm: number;
+  salePrice: number;
+  downPayment: number;
+  customerName: string;
+  customerPhone: string;
+  status: UnitStatus;
+  contractDate: string;
+  notes?: string;
+}
+
+export interface InstallmentPlan {
+  id: string;
+  propertyId: string;
+  unitId: string;
+  customerName: string;
+  totalAmount: number;
+  installmentCount: number;
+  installmentAmount: number;
+  intervalDays: number;
+  startDate: string;
+  workspaceId: string;
+}
+
+export interface Installment {
+  id: string;
+  planId: string;
+  propertyId: string;
+  unitId: string;
+  sequence: number;
+  amount: number;
+  paidAmount: number;
+  dueDate: string;
+  status: InstallmentStatus;
+  customerName?: string;
+  paidDate?: string;
+}
+
+export interface ExpenseRecord {
+  id: string;
+  propertyId: string;
+  category: ExpenseCategory;
+  title: string;
+  amount: number;
+  date: string;
+  paidByPartnerId?: string;
+  notes?: string;
+  supplierName?: string;
+  receiptNumber?: string;
+}
+
+export interface Partner {
+  id: string;
+  name: string;
+  phone: string;
+  shareRatio: number; // e.g. 0.40 for 40%
+  initialCapital: number;
+  joinedDate: string;
+  status: 'active' | 'inactive';
+}
+
+export interface PartnerSettlement {
+  partnerId: string;
+  partnerName: string;
+  contributedAmount: number;
+  shareRatio: number;
+  expectedContribution: number;
+  balanceDelta: number; // positive = owed money, negative = needs to pay
+}
