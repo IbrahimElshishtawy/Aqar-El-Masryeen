@@ -70,9 +70,9 @@ export default function ExpensesPage() {
       actions={
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition active:scale-95"
+          className="px-4 py-2.5 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition active:scale-95"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 text-[#A89F91]" />
           <span>تسجيل مصروف جديد</span>
         </button>
       }
@@ -84,7 +84,6 @@ export default function ExpensesPage() {
             label="إجمالي المصروفات المنفذة"
             value={`${(totalAmount / 1000).toLocaleString()} ألف ج.م`}
             icon={Receipt}
-            color="amber"
             subtext="كل بنود الإنفاق المسجلة"
           />
 
@@ -92,7 +91,6 @@ export default function ExpensesPage() {
             label="تكلفة مواد البناء (تشوينات)"
             value={`${(materialsAmount / 1000).toLocaleString()} ألف ج.م`}
             icon={Truck}
-            color="blue"
             subtext="حديد تسليح، أسمنت، زلط ورمل"
           />
 
@@ -100,21 +98,20 @@ export default function ExpensesPage() {
             label="أعمال الإنشاء والمقاولين"
             value={`${(constructionAmount / 1000).toLocaleString()} ألف ج.م`}
             icon={Building}
-            color="purple"
             subtext="صب خرسانات، مصنعيات وعمالة"
           />
         </section>
 
         {/* Filter and Search Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#FFFFFF] border border-[#E2DFD8] shadow-sm">
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+            <Search className="w-4 h-4 text-[#777777] absolute right-3 top-3" />
             <input
               type="text"
               placeholder="بحث في المصروفات أو اسم المورد..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-3 pr-9 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full pl-3 pr-9 py-2 bg-[#F4F4F2] border border-[#E2DFD8] rounded-xl text-xs text-[#242424] placeholder-[#777777] focus:outline-none focus:border-[#242424]"
             />
           </div>
 
@@ -128,10 +125,10 @@ export default function ExpensesPage() {
               <button
                 key={tab.id}
                 onClick={() => setFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition border ${
                   filter === tab.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-[#242424] text-white border-[#242424]'
+                    : 'bg-[#F4F4F2] text-[#777777] border-[#E2DFD8] hover:text-[#242424]'
                 }`}
               >
                 {tab.label}
@@ -141,15 +138,15 @@ export default function ExpensesPage() {
         </div>
 
         {/* Expenses Table */}
-        <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 shadow-lg space-y-4">
+        <div className="rounded-3xl bg-[#FFFFFF] border border-[#E2DFD8] p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-white">دفتر المصروفات والتشوينات</h3>
-            <span className="text-xs text-slate-400">{filtered.length} بند مسجل</span>
+            <h3 className="font-editorial text-base font-bold text-[#242424]">دفتر المصروفات والتشوينات</h3>
+            <span className="text-xs text-[#777777]">{filtered.length} بند مسجل</span>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-800">
+          <div className="overflow-x-auto rounded-2xl border border-[#E2DFD8]">
             <table className="w-full text-right text-xs">
-              <thead className="bg-slate-800/80 text-slate-300 font-bold border-b border-slate-700">
+              <thead className="bg-[#F4F4F2] text-[#242424] font-bold border-b border-[#E2DFD8]">
                 <tr>
                   <th className="p-3.5">بيان المصروف</th>
                   <th className="p-3.5">التصنيف</th>
@@ -160,24 +157,24 @@ export default function ExpensesPage() {
                   <th className="p-3.5">رقم الإيصال</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800 text-slate-200">
+              <tbody className="divide-y divide-[#E2DFD8] text-[#242424]">
                 {filtered.map(exp => {
                   const partner = initialPartners.find(p => p.id === exp.paidByPartnerId);
                   return (
-                    <tr key={exp.id} className="hover:bg-slate-800/40 transition">
-                      <td className="p-3.5 font-bold text-white">{exp.title}</td>
+                    <tr key={exp.id} className="hover:bg-[#F4F4F2] transition">
+                      <td className="p-3.5 font-bold text-[#242424]">{exp.title}</td>
                       <td className="p-3.5">
-                        <span className="px-2 py-0.5 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 text-[11px]">
+                        <span className="px-2.5 py-0.5 rounded-full bg-[#F4F4F2] text-[#777777] border border-[#E2DFD8] text-[11px] font-semibold">
                           {ExpenseCategoryLabels[exp.category] || exp.category}
                         </span>
                       </td>
-                      <td className="p-3.5 font-mono font-bold text-amber-400">
+                      <td className="p-3.5 font-mono font-bold text-[#242424]">
                         {exp.amount.toLocaleString()} ج.م
                       </td>
-                      <td className="p-3.5 font-mono text-slate-400">{exp.date}</td>
-                      <td className="p-3.5 text-slate-300">{exp.supplierName || '—'}</td>
-                      <td className="p-3.5 font-medium text-purple-300">{partner?.name || 'الشركة'}</td>
-                      <td className="p-3.5 font-mono text-slate-400">{exp.receiptNumber || '—'}</td>
+                      <td className="p-3.5 font-mono text-[#777777]">{exp.date}</td>
+                      <td className="p-3.5 text-[#242424]">{exp.supplierName || '—'}</td>
+                      <td className="p-3.5 font-medium text-[#777777]">{partner?.name || 'الشركة'}</td>
+                      <td className="p-3.5 font-mono text-[#777777]">{exp.receiptNumber || '—'}</td>
                     </tr>
                   );
                 })}

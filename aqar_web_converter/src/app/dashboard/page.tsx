@@ -9,12 +9,8 @@ import {
   Building2,
   Receipt,
   Users,
-  BarChart3,
   ArrowUpRight,
   Plus,
-  AlertCircle,
-  CheckCircle2,
-  Sparkles,
 } from 'lucide-react';
 import AppShell from '@/components/layout/AppShell';
 import MetricCard from '@/components/ui/MetricCard';
@@ -23,7 +19,7 @@ import { initialProjects, initialUnits, initialInstallments, initialExpenses } f
 
 export default function DashboardPage() {
   const [projects] = useState(initialProjects);
-  const [installments, setInstallments] = useState(initialInstallments);
+  const [installments] = useState(initialInstallments);
   const [expenses] = useState(initialExpenses);
 
   // Calculations
@@ -38,15 +34,15 @@ export default function DashboardPage() {
 
   return (
     <AppShell
-      title="الرئيسية | لوحة المتابعة الشاملة"
-      subtitle="ملخص مالي مشترك لكل المشاريع والتحصيلات والمصروفات والأقساط"
+      title="لوحة المؤشرات المحاسبية العامة"
+      subtitle="ملخص مالي وإداري شامل لكافة المشروعات، التحصيلات، دفاتر المصروفات، وأقساط العملاء"
       actions={
         <div className="flex items-center gap-2">
           <Link
             href="/properties"
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition active:scale-95"
+            className="px-4 py-2.5 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition active:scale-95"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-[#A89F91]" />
             <span>مشروع جديد</span>
           </Link>
         </div>
@@ -59,7 +55,6 @@ export default function DashboardPage() {
             label="إجمالي القيمة البيعية للمشروعات"
             value={`${(totalSales / 1000000).toFixed(1)} مليون ج.م`}
             icon={TrendingUp}
-            color="blue"
             trend="↑ +18% نمو المبيعات"
             subtext="موزعة على 3 مشروعات نشطة"
           />
@@ -68,7 +63,6 @@ export default function DashboardPage() {
             label="إجمالي التحصيلات النقدية"
             value={`${(totalCollected / 1000000).toFixed(2)} مليون ج.م`}
             icon={DollarSign}
-            color="emerald"
             subtext="مقدمات تعاقد وأقساط مسددة"
           />
 
@@ -76,7 +70,6 @@ export default function DashboardPage() {
             label="الأقساط المتأخرة والمستحقة"
             value={`${overdueCount} أقساط`}
             icon={Calendar}
-            color="rose"
             subtext="تحتاج إلى متابعة تحصيل عاجلة"
           />
 
@@ -84,66 +77,65 @@ export default function DashboardPage() {
             label="إجمالي المصروفات المنفذة"
             value={`${(totalExpenseAmount / 1000000).toFixed(2)} مليون ج.م`}
             icon={Receipt}
-            color="amber"
             subtext="إنشاءات وتشوينات ومواد بناء"
           />
         </section>
 
         {/* Quick Links Banner */}
-        <section className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg">
+        <section className="p-6 rounded-3xl bg-[#FFFFFF] border border-[#E2DFD8] shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-bold text-white">روابط سريعة للأقسام الأساسية</h3>
-              <p className="text-xs text-slate-400 mt-0.5">انتقل مباشرة لإدارة الأقساط أو تسجيل التشوينات أو حساب الشركاء</p>
+              <h3 className="font-editorial text-base font-bold text-[#242424]">روابط سريعة للأقسام المحاسبية الأساسية</h3>
+              <p className="text-xs text-[#777777] mt-0.5">انتقل مباشرة لإدارة جداول الأقساط أو تسجيل التشوينات أو حسابات الشركاء</p>
             </div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Link
               href="/properties"
-              className="p-4 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-right transition flex items-center justify-between group"
+              className="p-4 rounded-2xl bg-[#F4F4F2] hover:bg-[#EBE8E1] border border-[#E2DFD8] text-right transition flex items-center justify-between group"
             >
               <div>
-                <Building2 className="w-5 h-5 text-blue-400 mb-2 group-hover:scale-110 transition" />
-                <span className="text-xs font-bold text-white block">المشروعات</span>
-                <span className="text-[10px] text-slate-400">3 مشاريع قيد العمل</span>
+                <Building2 className="w-5 h-5 text-[#242424] mb-2 group-hover:scale-110 transition" />
+                <span className="text-xs font-bold text-[#242424] block">المشروعات</span>
+                <span className="text-[10px] text-[#777777]">3 مشاريع قيد العمل</span>
               </div>
-              <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-blue-400 transition" />
+              <ArrowUpRight className="w-4 h-4 text-[#777777] group-hover:text-[#242424] transition" />
             </Link>
 
             <Link
               href="/installments"
-              className="p-4 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-right transition flex items-center justify-between group"
+              className="p-4 rounded-2xl bg-[#F4F4F2] hover:bg-[#EBE8E1] border border-[#E2DFD8] text-right transition flex items-center justify-between group"
             >
               <div>
-                <Calendar className="w-5 h-5 text-emerald-400 mb-2 group-hover:scale-110 transition" />
-                <span className="text-xs font-bold text-white block">جدول الأقساط</span>
-                <span className="text-[10px] text-slate-400">توليد ومتابعة التحصيل</span>
+                <Calendar className="w-5 h-5 text-[#242424] mb-2 group-hover:scale-110 transition" />
+                <span className="text-xs font-bold text-[#242424] block">جدول الأقساط</span>
+                <span className="text-[10px] text-[#777777]">توليد ومتابعة التحصيل</span>
               </div>
-              <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition" />
+              <ArrowUpRight className="w-4 h-4 text-[#777777] group-hover:text-[#242424] transition" />
             </Link>
 
             <Link
               href="/expenses"
-              className="p-4 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-right transition flex items-center justify-between group"
+              className="p-4 rounded-2xl bg-[#F4F4F2] hover:bg-[#EBE8E1] border border-[#E2DFD8] text-right transition flex items-center justify-between group"
             >
               <div>
-                <Receipt className="w-5 h-5 text-amber-400 mb-2 group-hover:scale-110 transition" />
-                <span className="text-xs font-bold text-white block">دفتر المصروفات</span>
-                <span className="text-[10px] text-slate-400">حديد، أسمنت، مقاولين</span>
+                <Receipt className="w-5 h-5 text-[#242424] mb-2 group-hover:scale-110 transition" />
+                <span className="text-xs font-bold text-[#242424] block">دفتر المصروفات</span>
+                <span className="text-[10px] text-[#777777]">حديد، أسمنت، مقاولين</span>
               </div>
-              <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition" />
+              <ArrowUpRight className="w-4 h-4 text-[#777777] group-hover:text-[#242424] transition" />
             </Link>
 
             <Link
               href="/partners"
-              className="p-4 rounded-2xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 text-right transition flex items-center justify-between group"
+              className="p-4 rounded-2xl bg-[#F4F4F2] hover:bg-[#EBE8E1] border border-[#E2DFD8] text-right transition flex items-center justify-between group"
             >
               <div>
-                <Users className="w-5 h-5 text-purple-400 mb-2 group-hover:scale-110 transition" />
-                <span className="text-xs font-bold text-white block">تسويات الشركاء</span>
-                <span className="text-[10px] text-slate-400">حصص ونسب رأس المال</span>
+                <Users className="w-5 h-5 text-[#242424] mb-2 group-hover:scale-110 transition" />
+                <span className="text-xs font-bold text-[#242424] block">تسويات الشركاء</span>
+                <span className="text-[10px] text-[#777777]">حصص ونسب رأس المال</span>
               </div>
-              <ArrowUpRight className="w-4 h-4 text-slate-500 group-hover:text-purple-400 transition" />
+              <ArrowUpRight className="w-4 h-4 text-[#777777] group-hover:text-[#242424] transition" />
             </Link>
           </div>
         </section>
@@ -151,13 +143,13 @@ export default function DashboardPage() {
         {/* 2-Column Section: Active Projects & Overdue Installments */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Projects Overview */}
-          <div className="lg:col-span-2 p-6 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg space-y-4">
+          <div className="lg:col-span-2 p-6 rounded-3xl bg-[#FFFFFF] border border-[#E2DFD8] shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-white">المشروعات الحالية</h3>
-                <p className="text-xs text-slate-400">متابعة نسب التنفيذ والمبيعات لكل مشروع</p>
+                <h3 className="font-editorial text-base font-bold text-[#242424]">المشروعات الحالية</h3>
+                <p className="text-xs text-[#777777]">متابعة نسب التنفيذ والمبيعات لكل مشروع</p>
               </div>
-              <Link href="/properties" className="text-xs font-semibold text-blue-400 hover:text-blue-300">
+              <Link href="/properties" className="text-xs font-bold text-[#242424] hover:text-[#777777] transition">
                 عرض كافة المشروعات ←
               </Link>
             </div>
@@ -167,22 +159,22 @@ export default function DashboardPage() {
                 <Link
                   key={project.id}
                   href={`/properties/${project.id}`}
-                  className="p-4 rounded-2xl bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition group"
+                  className="p-4 rounded-2xl bg-[#F4F4F2] hover:bg-[#EBE8E1] border border-[#E2DFD8] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-600/10 text-blue-400 flex items-center justify-center font-bold">
-                      <Building2 className="w-5 h-5" />
+                    <div className="w-10 h-10 rounded-xl bg-[#242424] text-white flex items-center justify-center font-bold">
+                      <Building2 className="w-5 h-5 text-[#A89F91]" />
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-white group-hover:text-blue-400 transition">{project.name}</h4>
-                      <p className="text-xs text-slate-400">{project.location}</p>
+                      <h4 className="text-sm font-bold text-[#242424] group-hover:text-[#A89F91] transition">{project.name}</h4>
+                      <p className="text-xs text-[#777777]">{project.location}</p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
                     <div className="text-left sm:text-right">
-                      <span className="text-[11px] text-slate-400 block">إجمالي الوحدات: {project.apartmentCount} وحدة</span>
-                      <span className="text-xs font-mono font-bold text-emerald-400">
+                      <span className="text-[11px] text-[#777777] block">إجمالي الوحدات: {project.apartmentCount} وحدة</span>
+                      <span className="text-xs font-mono font-bold text-[#242424]">
                         {(project.totalSalesTarget / 1000000).toFixed(1)}M ج.م
                       </span>
                     </div>
@@ -194,13 +186,13 @@ export default function DashboardPage() {
           </div>
 
           {/* Due & Overdue Installments Feed */}
-          <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-lg space-y-4">
+          <div className="p-6 rounded-3xl bg-[#FFFFFF] border border-[#E2DFD8] shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-white">تنبيهات الأقساط</h3>
-                <p className="text-xs text-slate-400">الأقساط المستحقة والمتأخرة</p>
+                <h3 className="font-editorial text-base font-bold text-[#242424]">تنبيهات الأقساط</h3>
+                <p className="text-xs text-[#777777]">الأقساط المستحقة والمتأخرة</p>
               </div>
-              <Link href="/installments" className="text-xs font-semibold text-blue-400 hover:text-blue-300">
+              <Link href="/installments" className="text-xs font-bold text-[#242424] hover:text-[#777777] transition">
                 الكل ←
               </Link>
             </div>
@@ -209,16 +201,16 @@ export default function DashboardPage() {
               {installments.slice(0, 4).map(inst => (
                 <div
                   key={inst.id}
-                  className="p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700/60 flex items-center justify-between gap-2"
+                  className="p-3.5 rounded-2xl bg-[#F4F4F2] border border-[#E2DFD8] flex items-center justify-between gap-2"
                 >
                   <div>
-                    <h5 className="text-xs font-bold text-white">{inst.customerName}</h5>
-                    <p className="text-[10px] text-slate-400 mt-0.5">
+                    <h5 className="text-xs font-bold text-[#242424]">{inst.customerName}</h5>
+                    <p className="text-[10px] text-[#777777] mt-0.5">
                       القسط #{inst.sequence} - تاريخ الاستحقاق: {inst.dueDate}
                     </p>
                   </div>
                   <div className="text-left shrink-0">
-                    <span className="text-xs font-mono font-bold text-white block">
+                    <span className="text-xs font-mono font-bold text-[#242424] block">
                       {inst.amount.toLocaleString()} ج.م
                     </span>
                     <StatusBadge status={inst.status} type="installment" />

@@ -90,9 +90,9 @@ export default function InstallmentsPage() {
       actions={
         <button
           onClick={() => setShowGeneratorModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition active:scale-95"
+          className="px-4 py-2.5 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition active:scale-95"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 text-[#A89F91]" />
           <span>توليد خطة أقساط جديدة</span>
         </button>
       }
@@ -104,15 +104,13 @@ export default function InstallmentsPage() {
             label="إجمالي الأقساط المحصلة"
             value={`${(totalPaid / 1000).toLocaleString()} ألف ج.م`}
             icon={CheckCircle2}
-            color="emerald"
-            subtext="تم تحصيلها وإيداعها"
+            subtext="تم تحصيلها وإيداعها في الخزينة"
           />
 
           <MetricCard
             label="إجمالي الأقساط المتبقية"
             value={`${(totalPending / 1000).toLocaleString()} ألف ج.م`}
             icon={Clock}
-            color="blue"
             subtext="أقساط مجدولة قيد الاستحقاق"
           />
 
@@ -120,21 +118,20 @@ export default function InstallmentsPage() {
             label="الأقساط المتأخرة السداد"
             value={`${overdueCount} أقساط`}
             icon={AlertCircle}
-            color="rose"
-            subtext="تجاوزت تاريخ الاستحقاق"
+            subtext="تجاوزت تاريخ الاستحقاق المحدد"
           />
         </section>
 
         {/* Filter and Search Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#FFFFFF] border border-[#E2DFD8] shadow-sm">
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+            <Search className="w-4 h-4 text-[#777777] absolute right-3 top-3" />
             <input
               type="text"
               placeholder="بحث باسم العميل أو رقم القسط..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-3 pr-9 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full pl-3 pr-9 py-2 bg-[#F4F4F2] border border-[#E2DFD8] rounded-xl text-xs text-[#242424] placeholder-[#777777] focus:outline-none focus:border-[#242424]"
             />
           </div>
 
@@ -148,10 +145,10 @@ export default function InstallmentsPage() {
               <button
                 key={tab.id}
                 onClick={() => setFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition border ${
                   filter === tab.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-[#242424] text-white border-[#242424]'
+                    : 'bg-[#F4F4F2] text-[#777777] border-[#E2DFD8] hover:text-[#242424]'
                 }`}
               >
                 {tab.label}
@@ -161,15 +158,15 @@ export default function InstallmentsPage() {
         </div>
 
         {/* Installments Table */}
-        <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 shadow-lg space-y-4">
+        <div className="rounded-3xl bg-[#FFFFFF] border border-[#E2DFD8] p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-base font-bold text-white">سجل الأقساط المستحقة</h3>
-            <span className="text-xs text-slate-400">{filtered.length} قسط معروض</span>
+            <h3 className="font-editorial text-base font-bold text-[#242424]">سجل الأقساط والمتحصلات</h3>
+            <span className="text-xs text-[#777777]">{filtered.length} قسط معروض</span>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-800">
+          <div className="overflow-x-auto rounded-2xl border border-[#E2DFD8]">
             <table className="w-full text-right text-xs">
-              <thead className="bg-slate-800/80 text-slate-300 font-bold border-b border-slate-700">
+              <thead className="bg-[#F4F4F2] text-[#242424] font-bold border-b border-[#E2DFD8]">
                 <tr>
                   <th className="p-3.5">العميل</th>
                   <th className="p-3.5">رقم القسط</th>
@@ -180,16 +177,16 @@ export default function InstallmentsPage() {
                   <th className="p-3.5 text-center">الإجراء</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800 text-slate-200">
+              <tbody className="divide-y divide-[#E2DFD8] text-[#242424]">
                 {filtered.map(inst => (
-                  <tr key={inst.id} className="hover:bg-slate-800/40 transition">
-                    <td className="p-3.5 font-bold text-white">{inst.customerName || 'عميل'}</td>
-                    <td className="p-3.5 font-mono">القسط #{inst.sequence}</td>
-                    <td className="p-3.5 font-mono text-slate-300">{inst.dueDate}</td>
-                    <td className="p-3.5 font-mono font-bold text-emerald-400">
+                  <tr key={inst.id} className="hover:bg-[#F4F4F2] transition">
+                    <td className="p-3.5 font-bold text-[#242424]">{inst.customerName || 'عميل'}</td>
+                    <td className="p-3.5 font-mono text-[#777777]">القسط #{inst.sequence}</td>
+                    <td className="p-3.5 font-mono text-[#777777]">{inst.dueDate}</td>
+                    <td className="p-3.5 font-mono font-bold text-[#242424]">
                       {inst.amount.toLocaleString()} ج.م
                     </td>
-                    <td className="p-3.5 font-mono text-slate-300">
+                    <td className="p-3.5 font-mono text-[#777777]">
                       {inst.paidAmount.toLocaleString()} ج.م
                     </td>
                     <td className="p-3.5">
@@ -199,13 +196,13 @@ export default function InstallmentsPage() {
                       {inst.status !== InstallmentStatus.Paid ? (
                         <button
                           onClick={() => handleMarkAsPaid(inst.id)}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition flex items-center gap-1 mx-auto"
+                          className="px-3 py-1.5 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white text-[11px] font-bold transition flex items-center gap-1 mx-auto"
                         >
-                          <Check className="w-3.5 h-3.5" />
+                          <Check className="w-3.5 h-3.5 text-[#A89F91]" />
                           <span>تحصيل القسط</span>
                         </button>
                       ) : (
-                        <span className="text-[11px] text-slate-500 font-mono">مسدد في {inst.paidDate}</span>
+                        <span className="text-[11px] text-[#777777] font-mono">مسدد في {inst.paidDate}</span>
                       )}
                     </td>
                   </tr>
@@ -217,61 +214,61 @@ export default function InstallmentsPage() {
 
         {/* Generator Modal */}
         {showGeneratorModal && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4">
-              <div className="pb-3 border-b border-slate-800">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-blue-400" />
-                  مولد خطة أقساط ذكي (Installment Plan Generator)
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-lg rounded-3xl bg-[#FFFFFF] border border-[#E2DFD8] p-6 space-y-4 shadow-2xl text-[#242424]">
+              <div className="pb-3 border-b border-[#E2DFD8]">
+                <h3 className="font-editorial text-base font-bold text-[#242424] flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-[#A89F91]" />
+                  <span>مولد خطة أقساط ذكي (Installment Plan Generator)</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-1">
-                  يقوم بحساب مواعيد الاستحقاق وقيمة القسط المتساوية تلقائياً بناءً على كود فلاتر الأصلي
+                <p className="text-xs text-[#777777] mt-1">
+                  يقوم بحساب مواعيد الاستحقاق وقيمة القسط المتساوية تلقائياً بناءً على محددات العقد
                 </p>
               </div>
 
               <form onSubmit={handleGeneratePlan} className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">اسم العميل المشتري</label>
+                  <label className="block text-[#242424] font-bold mb-1">اسم العميل المشتري</label>
                   <input
                     type="text"
                     required
                     placeholder="مثال: أحمد عبد الله"
                     value={customerName}
                     onChange={e => setCustomerName(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424]"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">المبلغ الإجمالي للتقسيط</label>
+                    <label className="block text-[#242424] font-bold mb-1">المبلغ الإجمالي للتقسيط</label>
                     <input
                       type="number"
                       required
                       value={totalAmount}
                       onChange={e => setTotalAmount(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500 font-mono"
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424] font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">عدد الأقساط</label>
+                    <label className="block text-[#242424] font-bold mb-1">عدد الأقساط</label>
                     <input
                       type="number"
                       required
                       value={installmentCount}
                       onChange={e => setInstallmentCount(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500 font-mono"
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424] font-mono"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">الدورية (الفترة بالأيام)</label>
+                    <label className="block text-[#242424] font-bold mb-1">الدورية (الفترة بالأيام)</label>
                     <select
                       value={intervalDays}
                       onChange={e => setIntervalDays(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424]"
                     >
                       <option value={30}>شهري (كل 30 يوم)</option>
                       <option value={90}>ربع سنوي (كل 3 شهور)</option>
@@ -280,35 +277,35 @@ export default function InstallmentsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">تاريخ استحقاق أول قسط</label>
+                    <label className="block text-[#242424] font-bold mb-1">تاريخ استحقاق أول قسط</label>
                     <input
                       type="date"
                       required
                       value={startDate}
                       onChange={e => setStartDate(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500 font-mono"
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424] font-mono"
                     />
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-800/60 border border-slate-700 text-xs">
-                  <span className="text-slate-400 block">قيمة القسط الفردي المقدرة:</span>
-                  <strong className="text-emerald-400 font-mono text-base block mt-0.5">
+                <div className="p-3.5 rounded-2xl bg-[#F4F4F2] border border-[#E2DFD8] text-xs">
+                  <span className="text-[#777777] block">قيمة القسط الفردي المقدرة:</span>
+                  <strong className="text-[#242424] font-mono text-base block mt-0.5">
                     {Math.round(totalAmount / installmentCount).toLocaleString()} ج.م
                   </strong>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E2DFD8]">
                   <button
                     type="button"
                     onClick={() => setShowGeneratorModal(false)}
-                    className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
+                    className="px-4 py-2 rounded-xl text-[#777777] hover:text-[#242424]"
                   >
                     إلغاء
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition"
+                    className="px-5 py-2.5 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white font-bold transition shadow-sm"
                   >
                     توليد جدول الأقساط
                   </button>

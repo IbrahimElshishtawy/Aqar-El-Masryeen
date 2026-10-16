@@ -17,16 +17,16 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, type = 'installment' }: StatusBadgeProps) {
   let label = status;
-  let color = 'bg-slate-800 text-slate-300 border-slate-700';
+  let color = 'bg-[#F4F4F2] text-[#777777] border-[#E2DFD8]';
 
   if (status === InstallmentStatus.Paid || status === UnitStatus.Sold || status === PropertyStatus.Delivered) {
-    color = 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30';
+    color = 'bg-[#242424] text-white border-[#242424]';
   } else if (status === InstallmentStatus.Overdue || status === UnitStatus.Cancelled) {
-    color = 'bg-rose-500/15 text-rose-400 border-rose-500/30';
+    color = 'bg-rose-50 text-rose-800 border-rose-200';
   } else if (status === InstallmentStatus.Pending || status === UnitStatus.Reserved || status === PropertyStatus.Planning) {
-    color = 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+    color = 'bg-[#EBE8E1] text-[#242424] border-[#DCD8D0]';
   } else if (status === PropertyStatus.Active || status === UnitStatus.Available) {
-    color = 'bg-blue-500/15 text-blue-400 border-blue-500/30';
+    color = 'bg-[#A89F91]/25 text-[#242424] border-[#A89F91]/50';
   }
 
   // Label resolving
@@ -44,3 +44,4 @@ export function StatusBadge({ status, type = 'installment' }: StatusBadgeProps) 
     </span>
   );
 }
+

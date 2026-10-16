@@ -68,28 +68,28 @@ export default function PropertiesPage() {
   return (
     <AppShell
       title="المشروعات والعقارات"
-      subtitle="إدارة وتتبع المشروعات السكنية والتجارية ومخططات المبيعات"
+      subtitle="إدارة وتتبع المشروعات السكنية والتجارية ومخططات المبيعات المحاسبية"
       actions={
         <button
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition active:scale-95"
+          className="px-4 py-2.5 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition active:scale-95"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-4 h-4 text-[#A89F91]" />
           <span>إضافة مشروع جديد</span>
         </button>
       }
     >
       <div className="space-y-6">
         {/* Controls Bar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-[#FFFFFF] border border-[#E2DFD8] shadow-sm">
           <div className="relative w-full sm:w-80">
-            <Search className="w-4 h-4 text-slate-500 absolute right-3 top-3" />
+            <Search className="w-4 h-4 text-[#777777] absolute right-3 top-3" />
             <input
               type="text"
               placeholder="بحث باسم المشروع أو الموقع..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-3 pr-9 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full pl-3 pr-9 py-2 bg-[#F4F4F2] border border-[#E2DFD8] rounded-xl text-xs text-[#242424] placeholder-[#777777] focus:outline-none focus:border-[#242424]"
             />
           </div>
 
@@ -103,10 +103,10 @@ export default function PropertiesPage() {
               <button
                 key={tab.id}
                 onClick={() => setFilter(tab.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition ${
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition border ${
                   filter === tab.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                    ? 'bg-[#242424] text-white border-[#242424]'
+                    : 'bg-[#F4F4F2] text-[#777777] border-[#E2DFD8] hover:text-[#242424]'
                 }`}
               >
                 {tab.label}
@@ -120,53 +120,53 @@ export default function PropertiesPage() {
           {filtered.map(project => (
             <div
               key={project.id}
-              className="rounded-3xl bg-slate-900/80 border border-slate-800 hover:border-slate-700/80 p-6 flex flex-col justify-between transition-all duration-300 hover:shadow-xl group"
+              className="rounded-3xl bg-[#FFFFFF] border border-[#E2DFD8] hover:border-[#A89F91]/50 p-6 flex flex-col justify-between transition-all duration-300 shadow-sm hover:shadow-xl group"
             >
               <div>
                 <div className="flex items-start justify-between gap-2 mb-4">
-                  <div className="w-12 h-12 rounded-2xl bg-blue-600/10 text-blue-400 flex items-center justify-center font-bold">
-                    <Building2 className="w-6 h-6" />
+                  <div className="w-12 h-12 rounded-2xl bg-[#242424] text-white flex items-center justify-center font-bold">
+                    <Building2 className="w-6 h-6 text-[#A89F91]" />
                   </div>
                   <StatusBadge status={project.status} type="property" />
                 </div>
 
-                <h3 className="text-lg font-bold text-white group-hover:text-blue-400 transition mb-1">
+                <h3 className="font-editorial text-lg font-bold text-[#242424] group-hover:text-[#A89F91] transition mb-1">
                   {project.name}
                 </h3>
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-3">
-                  <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <div className="flex items-center gap-1.5 text-xs text-[#777777] mb-3">
+                  <MapPin className="w-3.5 h-3.5 text-[#A89F91] shrink-0" />
                   <span className="truncate">{project.location}</span>
                 </div>
-                <p className="text-xs text-slate-400 line-clamp-2 mb-6">
+                <p className="text-xs text-[#777777] line-clamp-2 mb-6">
                   {project.description}
                 </p>
 
                 {/* Specs Box */}
-                <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-slate-800/50 border border-slate-700/50 text-xs mb-6">
+                <div className="grid grid-cols-2 gap-2 p-3 rounded-2xl bg-[#F4F4F2] border border-[#E2DFD8] text-xs mb-6">
                   <div>
-                    <span className="text-[10px] text-slate-400 block">إجمالي الوحدات</span>
-                    <strong className="text-slate-100 font-bold">{project.apartmentCount} وحدة</strong>
+                    <span className="text-[10px] text-[#777777] block">إجمالي الوحدات</span>
+                    <strong className="text-[#242424] font-bold">{project.apartmentCount} وحدة</strong>
                   </div>
                   <div>
-                    <span className="text-[10px] text-slate-400 block">المبيعات المستهدفة</span>
-                    <strong className="text-emerald-400 font-mono font-bold">
+                    <span className="text-[10px] text-[#777777] block">المبيعات المستهدفة</span>
+                    <strong className="text-[#242424] font-mono font-bold">
                       {(project.totalSalesTarget / 1000000).toFixed(1)} مليون ج.م
                     </strong>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+              <div className="pt-4 border-t border-[#E2DFD8] flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] text-slate-500 block">ميزانية المشروع</span>
-                  <span className="text-xs font-mono font-bold text-slate-300">
+                  <span className="text-[10px] text-[#777777] block">ميزانية المشروع</span>
+                  <span className="text-xs font-mono font-bold text-[#242424]">
                     {project.totalBudget.toLocaleString()} ج.م
                   </span>
                 </div>
 
                 <Link
                   href={`/properties/${project.id}`}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-blue-600 text-white font-bold text-xs transition flex items-center gap-1"
+                  className="px-4 py-2 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white font-bold text-xs transition flex items-center gap-1"
                 >
                   <span>عرض التفاصيل والوحدات</span>
                 </Link>
@@ -177,98 +177,98 @@ export default function PropertiesPage() {
 
         {/* Add Project Modal */}
         {showAddModal && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-blue-400" />
-                  إضافة مشروع عقاري جديد
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-lg rounded-3xl bg-[#FFFFFF] border border-[#E2DFD8] p-6 space-y-4 shadow-2xl text-[#242424]">
+              <div className="flex items-center justify-between pb-3 border-b border-[#E2DFD8]">
+                <h3 className="font-editorial text-base font-bold text-[#242424] flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-[#A89F91]" />
+                  <span>إضافة مشروع عقاري جديد</span>
                 </h3>
-                <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">
+                <button onClick={() => setShowAddModal(false)} className="text-[#777777] hover:text-[#242424]">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               <form onSubmit={handleCreateProject} className="space-y-4 text-xs">
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">اسم المشروع</label>
+                  <label className="block text-[#242424] font-bold mb-1">اسم المشروع</label>
                   <input
                     type="text"
                     required
                     placeholder="مثال: برج الفيروز ريزيدنس"
                     value={name}
                     onChange={e => setName(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">الموقع / العنوان</label>
+                  <label className="block text-[#242424] font-bold mb-1">الموقع / العنوان</label>
                   <input
                     type="text"
                     required
                     placeholder="مثال: الحي الأول - أكتوبر"
                     value={location}
                     onChange={e => setLocation(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424]"
                   />
                 </div>
 
                 <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">عدد الوحدات</label>
+                    <label className="block text-[#242424] font-bold mb-1">عدد الوحدات</label>
                     <input
                       type="number"
                       required
                       value={apartmentCount}
                       onChange={e => setApartmentCount(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424]"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">الميزانية التقديرية</label>
+                    <label className="block text-[#242424] font-bold mb-1">الميزانية التقديرية</label>
                     <input
                       type="number"
                       required
                       value={totalBudget}
                       onChange={e => setTotalBudget(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500 font-mono"
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424] font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">المبيعات المستهدفة</label>
+                    <label className="block text-[#242424] font-bold mb-1">المبيعات المستهدفة</label>
                     <input
                       type="number"
                       required
                       value={totalSalesTarget}
                       onChange={e => setTotalSalesTarget(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500 font-mono"
+                      className="w-full px-3 py-2.5 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424] font-mono"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-bold mb-1">وصف المشروع</label>
+                  <label className="block text-[#242424] font-bold mb-1">وصف المشروع</label>
                   <textarea
                     rows={3}
                     placeholder="تفاصيل المشروع ومراحل التنفيذ..."
                     value={description}
                     onChange={e => setDescription(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500"
+                    className="w-full px-3 py-2.5 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424]"
                   />
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E2DFD8]">
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
+                    className="px-4 py-2 rounded-xl text-[#777777] hover:text-[#242424]"
                   >
                     إلغاء
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition"
+                    className="px-5 py-2.5 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white font-bold transition shadow-sm"
                   >
                     حفظ المشروع
                   </button>

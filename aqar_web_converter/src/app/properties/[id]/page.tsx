@@ -88,16 +88,16 @@ function PropertyDetailContent() {
         <div className="flex items-center gap-2">
           <Link
             href="/properties"
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl bg-[#F4F4F2] hover:bg-[#EAE8E2] text-[#242424] border border-[#E2DFD8] text-xs font-bold transition flex items-center gap-1.5"
           >
             <ArrowRight className="w-4 h-4" />
             <span>العودة للمشروعات</span>
           </Link>
           <button
             onClick={() => setShowAddUnitModal(true)}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 shadow-lg shadow-blue-600/25 transition"
+            className="px-4 py-2 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 text-[#A89F91]" />
             <span>إضافة وحدة</span>
           </button>
         </div>
@@ -110,7 +110,7 @@ function PropertyDetailContent() {
             label="الوحدات المباعة"
             value={`${summary.totalSoldUnits} من ${project.apartmentCount}`}
             icon={Building2}
-            color="blue"
+            color="editorial"
             subtext={`متبقي ${summary.remainingUnits} وحدة متاحة`}
           />
 
@@ -118,7 +118,7 @@ function PropertyDetailContent() {
             label="إجمالي المبيعات المحققة"
             value={`${(summary.totalSalesValue / 1000000).toFixed(2)}M ج.م`}
             icon={TrendingUp}
-            color="emerald"
+            color="editorial"
             subtext={`نسبة التحصيل: ${summary.collectionPercentage}%`}
           />
 
@@ -126,7 +126,7 @@ function PropertyDetailContent() {
             label="التحصيلات النقدية"
             value={`${(summary.totalCollections / 1000000).toFixed(2)}M ج.م`}
             icon={DollarSign}
-            color="amber"
+            color="editorial"
             subtext="مقدمات وأقساط مسددة"
           />
 
@@ -134,26 +134,26 @@ function PropertyDetailContent() {
             label="صافي التدفق المالي"
             value={`${(summary.netProfit / 1000000).toFixed(2)}M ج.م`}
             icon={Receipt}
-            color="purple"
+            color="editorial"
             subtext="بعد خصم المصروفات المنفذة"
           />
         </section>
 
         {/* Units Table Section */}
-        <section className="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 shadow-lg space-y-4">
+        <section className="rounded-2xl bg-white border border-[#E2DFD8] p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-white">جدول الوحدات العقارية بالمشروع</h3>
-              <p className="text-xs text-slate-400">سجل الوحدات، العملاء، ومواصفات الشقق والأسعار</p>
+              <h3 className="text-base font-bold text-[#242424]">جدول الوحدات العقارية بالمشروع</h3>
+              <p className="text-xs text-[#777777]">سجل الوحدات، العملاء، ومواصفات الشقق والأسعار</p>
             </div>
-            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-800 text-slate-300">
+            <span className="text-xs font-semibold px-3 py-1 rounded-full bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424]">
               {units.length} وحدة مسجلة
             </span>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-slate-800">
+          <div className="overflow-x-auto rounded-xl border border-[#E2DFD8]">
             <table className="w-full text-right text-xs">
-              <thead className="bg-slate-800/80 text-slate-300 font-bold border-b border-slate-700">
+              <thead className="bg-[#F4F4F2] text-[#777777] font-bold border-b border-[#E2DFD8]">
                 <tr>
                   <th className="p-3.5">رقم الوحدة</th>
                   <th className="p-3.5">النوع</th>
@@ -165,27 +165,27 @@ function PropertyDetailContent() {
                   <th className="p-3.5">الحالة</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800 text-slate-200">
+              <tbody className="divide-y divide-[#E2DFD8] text-[#242424]">
                 {units.map(unit => (
-                  <tr key={unit.id} className="hover:bg-slate-800/40 transition">
-                    <td className="p-3.5 font-bold font-mono text-white">{unit.unitNumber}</td>
+                  <tr key={unit.id} className="hover:bg-[#F9F9F8] transition">
+                    <td className="p-3.5 font-bold font-mono text-[#242424]">{unit.unitNumber}</td>
                     <td className="p-3.5">{UnitTypeLabels[unit.unitType]}</td>
                     <td className="p-3.5 font-mono">{unit.floor}</td>
                     <td className="p-3.5 font-mono">{unit.areaSqm} م²</td>
-                    <td className="p-3.5 font-mono font-bold text-emerald-400">
+                    <td className="p-3.5 font-mono font-bold text-[#242424]">
                       {unit.salePrice.toLocaleString()} ج.م
                     </td>
-                    <td className="p-3.5 font-mono text-slate-300">
+                    <td className="p-3.5 font-mono text-[#777777]">
                       {unit.downPayment.toLocaleString()} ج.م
                     </td>
                     <td className="p-3.5">
                       {unit.customerName ? (
                         <div>
-                          <p className="font-bold text-white">{unit.customerName}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">{unit.customerPhone}</p>
+                          <p className="font-bold text-[#242424]">{unit.customerName}</p>
+                          <p className="text-[10px] text-[#777777] font-mono">{unit.customerPhone}</p>
                         </div>
                       ) : (
-                        <span className="text-slate-500 italic">غير محجوز</span>
+                        <span className="text-[#A89F91] italic">غير محجوز</span>
                       )}
                     </td>
                     <td className="p-3.5">
@@ -200,14 +200,14 @@ function PropertyDetailContent() {
 
         {/* Add Unit Modal */}
         {showAddUnitModal && (
-          <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-800 p-6 space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Building2 className="w-5 h-5 text-blue-400" />
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-lg rounded-2xl bg-white border border-[#E2DFD8] p-6 space-y-4 shadow-xl">
+              <div className="flex items-center justify-between pb-3 border-b border-[#E2DFD8]">
+                <h3 className="text-base font-bold text-[#242424] flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-[#A89F91]" />
                   إضافة وحدة جديدة للمشروع
                 </h3>
-                <button onClick={() => setShowAddUnitModal(false)} className="text-slate-400 hover:text-white">
+                <button onClick={() => setShowAddUnitModal(false)} className="text-[#777777] hover:text-[#242424]">
                   <X className="w-5 h-5" />
                 </button>
               </div>
@@ -215,22 +215,22 @@ function PropertyDetailContent() {
               <form onSubmit={handleAddUnit} className="space-y-4 text-xs">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">رقم الوحدة</label>
+                    <label className="block text-[#242424] font-bold mb-1">رقم الوحدة</label>
                     <input
                       type="text"
                       required
                       placeholder="مثال: A-301"
                       value={unitNumber}
                       onChange={e => setUnitNumber(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500 font-mono"
+                      className="w-full px-3 py-2 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424] font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">نوع الوحدة</label>
+                    <label className="block text-[#242424] font-bold mb-1">نوع الوحدة</label>
                     <select
                       value={unitType}
                       onChange={e => setUnitType(e.target.value as UnitType)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424]"
                     >
                       <option value={UnitType.Apartment}>شقة</option>
                       <option value={UnitType.Penthouse}>بنتهاوس</option>
@@ -242,86 +242,86 @@ function PropertyDetailContent() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">الدور</label>
+                    <label className="block text-[#242424] font-bold mb-1">الدور</label>
                     <input
                       type="number"
                       required
                       value={floor}
                       onChange={e => setFloor(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424]"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">المساحة (م²)</label>
+                    <label className="block text-[#242424] font-bold mb-1">المساحة (م²)</label>
                     <input
                       type="number"
                       required
                       value={areaSqm}
                       onChange={e => setAreaSqm(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-3 py-2 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424]"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">سعر البيع الإجمالي</label>
+                    <label className="block text-[#242424] font-bold mb-1">سعر البيع الإجمالي</label>
                     <input
                       type="number"
                       required
                       value={salePrice}
                       onChange={e => setSalePrice(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500 font-mono"
+                      className="w-full px-3 py-2 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424] font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-300 font-bold mb-1">مقدم التعاقد</label>
+                    <label className="block text-[#242424] font-bold mb-1">مقدم التعاقد</label>
                     <input
                       type="number"
                       value={downPayment}
                       onChange={e => setDownPayment(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500 font-mono"
+                      className="w-full px-3 py-2 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424] font-mono"
                     />
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-800">
-                  <p className="text-[11px] text-slate-400 font-bold mb-2">بيانات العميل (اختياري - في حالة الحجز):</p>
+                <div className="pt-2 border-t border-[#E2DFD8]">
+                  <p className="text-[11px] text-[#777777] font-bold mb-2">بيانات العميل (اختياري - في حالة الحجز):</p>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-slate-300 font-bold mb-1">اسم العميل</label>
+                      <label className="block text-[#242424] font-bold mb-1">اسم العميل</label>
                       <input
                         type="text"
                         placeholder="اسم المشتري"
                         value={customerName}
                         onChange={e => setCustomerName(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500"
+                        className="w-full px-3 py-2 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424]"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-300 font-bold mb-1">رقم الهاتف</label>
+                      <label className="block text-[#242424] font-bold mb-1">رقم الهاتف</label>
                       <input
                         type="text"
                         placeholder="010..."
                         value={customerPhone}
                         onChange={e => setCustomerPhone(e.target.value)}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-none focus:border-blue-500 font-mono"
+                        className="w-full px-3 py-2 rounded-xl bg-[#F4F4F2] border border-[#E2DFD8] text-[#242424] focus:outline-none focus:border-[#242424] font-mono"
                       />
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-[#E2DFD8]">
                   <button
                     type="button"
                     onClick={() => setShowAddUnitModal(false)}
-                    className="px-4 py-2 rounded-xl text-slate-400 hover:text-white"
+                    className="px-4 py-2 rounded-xl text-[#777777] hover:text-[#242424]"
                   >
                     إلغاء
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition"
+                    className="px-5 py-2 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white font-bold transition shadow-sm"
                   >
                     حفظ الوحدة
                   </button>

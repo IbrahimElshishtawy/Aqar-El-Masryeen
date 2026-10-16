@@ -80,8 +80,8 @@ export default function ReportsPage() {
         </section>
 
         {/* Project By Project Breakdown */}
-        <section className="rounded-3xl bg-slate-900/80 border border-slate-800 p-6 shadow-lg space-y-4">
-          <h3 className="text-base font-bold text-white">التقرير المالي التفصيلي لكل مشروع</h3>
+        <section className="rounded-3xl bg-[#FFFFFF] border border-[#E2DFD8] p-6 shadow-sm space-y-4">
+          <h3 className="font-editorial text-base font-bold text-[#242424]">التقرير المالي والتحليلي لكل مشروع</h3>
 
           <div className="space-y-4">
             {initialProjects.map(project => {
@@ -93,40 +93,40 @@ export default function ReportsPage() {
               return (
                 <div
                   key={project.id}
-                  className="p-5 rounded-2xl bg-slate-800/40 border border-slate-700/60 space-y-3"
+                  className="p-5 rounded-2xl bg-[#F4F4F2] border border-[#E2DFD8] space-y-3"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-600/15 text-blue-400 flex items-center justify-center font-bold">
-                        <Building2 className="w-5 h-5" />
+                      <div className="w-10 h-10 rounded-xl bg-[#242424] text-white flex items-center justify-center font-bold">
+                        <Building2 className="w-5 h-5 text-[#A89F91]" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-bold text-white">{project.name}</h4>
-                        <p className="text-xs text-slate-400">{project.location}</p>
+                        <h4 className="font-editorial text-sm font-bold text-[#242424]">{project.name}</h4>
+                        <p className="text-xs text-[#777777]">{project.location}</p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-4 text-xs font-mono">
                       <div>
-                        <span className="text-[10px] text-slate-400 block">المبيعات المحققة</span>
-                        <strong className="text-emerald-400 font-bold">{projectSales.toLocaleString()} ج.م</strong>
+                        <span className="text-[10px] text-[#777777] block">المبيعات المحققة</span>
+                        <strong className="text-[#242424] font-bold">{projectSales.toLocaleString()} ج.م</strong>
                       </div>
                       <div>
-                        <span className="text-[10px] text-slate-400 block">المصروفات المنفذة</span>
-                        <strong className="text-amber-400 font-bold">{projectExp.toLocaleString()} ج.م</strong>
+                        <span className="text-[10px] text-[#777777] block">المصروفات المنفذة</span>
+                        <strong className="text-[#777777] font-bold">{projectExp.toLocaleString()} ج.م</strong>
                       </div>
                     </div>
                   </div>
 
                   {/* Progress bar */}
                   <div>
-                    <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                      <span>نسبة إنجاز المبيعات</span>
-                      <span className="font-mono font-bold text-blue-400">{progressPct}%</span>
+                    <div className="flex justify-between text-[11px] text-[#777777] mb-1">
+                      <span>نسبة إنجاز المبيعات المستهدفة</span>
+                      <span className="font-mono font-bold text-[#242424]">{progressPct}%</span>
                     </div>
-                    <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+                    <div className="w-full h-2.5 rounded-full bg-[#E2DFD8] overflow-hidden">
                       <div
-                        className="h-full bg-gradient-to-r from-blue-600 to-emerald-500 rounded-full transition-all duration-500"
+                        className="h-full bg-[#242424] rounded-full transition-all duration-500"
                         style={{ width: `${Math.min(progressPct, 100)}%` }}
                       />
                     </div>
