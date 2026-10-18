@@ -32,37 +32,66 @@ export default function PropertiesPage() {
   const [totalSalesTarget, setTotalSalesTarget] = useState(25000000);
   const [description, setDescription] = useState('');
 
+  const [userRole, setUserRole] = useState<string>('admin');
+
+  const loadProjects = async () => {
+    try {
+      const res = await fetch('/api/accounting/data');
+      if (res.ok) {
+        const json = await res.json();
+        setProjects(json.data.projects || []);
+        setUserRole(json.user?.role || 'admin');
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  React.useEffect(() => {
+    loadProjects();
+  }, []);
+
   const filtered = projects.filter(p => {
     const matchesFilter = filter === 'all' || p.status === filter;
     const matchesSearch = p.name.includes(search) || p.location.includes(search);
     return matchesFilter && matchesSearch;
   });
 
-  const handleCreateProject = (e: React.FormEvent) => {
+  const handleCreateProject = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !location) return;
 
-    const newProject: PropertyProject = {
-      id: `prop-${Date.now()}`,
-      name,
-      location,
-      apartmentCount: Number(apartmentCount),
-      description,
-      status: PropertyStatus.Active,
-      totalBudget: Number(totalBudget),
-      totalSalesTarget: Number(totalSalesTarget),
-      createdAt: new Date().toISOString().split('T')[0],
-      updatedAt: new Date().toISOString().split('T')[0],
-      createdBy: 'admin',
-      workspaceId: 'main-ws',
-      archived: false,
-    };
+    try {
+      const res = await fetch('/api/accounting/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_project',
+          payload: {
+            name,
+            location,
+            apartmentCount: Number(apartmentCount),
+            description,
+            status: PropertyStatus.Active,
+            totalBudget: Number(totalBudget),
+            totalSalesTarget: Number(totalSalesTarget),
+          },
+        }),
+      });
 
-    setProjects([newProject, ...projects]);
-    setShowAddModal(false);
-    setName('');
-    setLocation('');
-    setDescription('');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'فشل إنشاء المشروع');
+      }
+
+      setShowAddModal(false);
+      setName('');
+      setLocation('');
+      setDescription('');
+      await loadProjects();
+    } catch (err: any) {
+      alert(err.message);
+    }
   };
 
   return (

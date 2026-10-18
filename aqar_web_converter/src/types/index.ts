@@ -3,8 +3,137 @@
 export enum UserRole {
   Owner = 'owner',
   Admin = 'admin',
+  Accountant = 'accountant',
   Partner = 'partner',
+  Viewer = 'viewer',
 }
+
+export type AccountRole = 'admin' | 'accountant' | 'partner' | 'viewer';
+
+export interface AuthUserSession {
+  uid: string;
+  email: string;
+  fullName: string;
+  role: AccountRole;
+  partnerId?: string; // If role === 'partner', links to partners/{partnerId}
+  workspaceId: string;
+  createdAt?: string;
+}
+
+export enum PartnerLedgerEntryType {
+  Contribution = 'contribution',
+  Settlement = 'settlement',
+  Obligation = 'obligation',
+  Adjustment = 'adjustment',
+}
+
+export const PartnerLedgerEntryTypeLabels: Record<PartnerLedgerEntryType, string> = {
+  [PartnerLedgerEntryType.Contribution]: 'إيداع رأس مال ومساهمة',
+  [PartnerLedgerEntryType.Settlement]: 'تسوية وتصفية مالية',
+  [PartnerLedgerEntryType.Obligation]: 'التزام مالي مستحق',
+  [PartnerLedgerEntryType.Adjustment]: 'تسوية قيد محاسبي',
+};
+
+export interface PartnerLedgerEntry {
+  id: string;
+  partnerId: string;
+  propertyId: string;
+  entryType: PartnerLedgerEntryType;
+  amount: number;
+  authorizedBy: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+  archived?: boolean;
+}
+
+export interface MaterialExpenseEntry {
+  id: string;
+  propertyId: string;
+  materialCategory: MaterialCategory;
+  itemName: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+  supplierName: string;
+  amountPaid: number;
+  amountRemaining: number;
+  date: string;
+  dueDate?: string;
+  initialPaidByPartnerId?: string;
+  initialPaidAmount?: number;
+  notes?: string;
+  archived?: boolean;
+  createdAt?: string;
+}
+
+export interface SupplierPaymentRecord {
+  id: string;
+  propertyId: string;
+  supplierName: string;
+  amount: number;
+  date: string;
+  paidByPartnerId: string;
+  paymentMethod?: PaymentMethod;
+  notes?: string;
+  archived?: boolean;
+  createdAt?: string;
+}
+
+export interface PaymentRecord {
+  id: string;
+  propertyId: string;
+  unitId: string;
+  installmentId?: string;
+  amount: number;
+  customerName: string;
+  payerName?: string;
+  receivedAt: string;
+  paymentMethod: PaymentMethod;
+  paymentSource: 'downPayment' | 'installment' | 'cashCollection' | 'other';
+  notes?: string;
+  receiptNumber?: string;
+  createdBy: string;
+}
+
+export interface PriceHistoryRecord {
+  id: string;
+  propertyId: string;
+  unitId?: string; // Optional if price change was at property level
+  entityType: 'property' | 'unit';
+  propertyName: string;
+  unitNumber?: string;
+  previousPrice: number;
+  newPrice: number;
+  absoluteChange: number;
+  percentageChange: number;
+  reason?: string;
+  changedBy: string;
+  changedByName: string;
+  timestamp: string;
+}
+
+export interface ActivityLogEntry {
+  id: string;
+  actorId: string;
+  actorName: string;
+  action: string;
+  entityType: 'property' | 'unit' | 'expense' | 'payment' | 'partner' | 'installment' | 'price' | 'auth';
+  entityId: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface PartnerLedgerSummaryRow {
+  partner: Partner;
+  totalPaid: number;
+  totalOwed: number;
+  balance: number; // positive = company owes partner, negative = partner owes company
+  expectedShare: number;
+  lastUpdated: string;
+  notes: string;
+}
+
 
 export enum PropertyStatus {
   Planning = 'planning',

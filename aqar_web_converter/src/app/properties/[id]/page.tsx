@@ -49,35 +49,71 @@ function PropertyDetailContent() {
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
 
+  const [allExpenses, setAllExpenses] = useState(initialExpenses);
+  const [allInstallments, setAllInstallments] = useState(initialInstallments);
+
+  const loadUnitData = async () => {
+    try {
+      const res = await fetch('/api/accounting/data');
+      if (res.ok) {
+        const json = await res.json();
+        const pUnits = (json.data.units || []).filter((u: UnitSale) => u.propertyId === project.id);
+        setUnits(pUnits);
+        setAllExpenses(json.data.expenses || []);
+        setAllInstallments(json.data.installments || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  React.useEffect(() => {
+    loadUnitData();
+  }, [project.id]);
+
   const summary = PropertyFinancialSummary.calculate(
     project,
     units,
-    initialExpenses,
-    initialInstallments
+    allExpenses,
+    allInstallments
   );
 
-  const handleAddUnit = (e: React.FormEvent) => {
+  const handleAddUnit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const newUnit: UnitSale = {
-      id: `unit-${Date.now()}`,
-      propertyId: project.id,
-      unitNumber,
-      unitType,
-      floor: Number(floor),
-      areaSqm: Number(areaSqm),
-      salePrice: Number(salePrice),
-      downPayment: Number(downPayment),
-      customerName,
-      customerPhone,
-      status: customerName ? UnitStatus.Sold : UnitStatus.Available,
-      contractDate: customerName ? new Date().toISOString().split('T')[0] : '',
-    };
+    try {
+      const res = await fetch('/api/accounting/data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_unit',
+          payload: {
+            propertyId: project.id,
+            unitNumber,
+            unitType,
+            floor: Number(floor),
+            areaSqm: Number(areaSqm),
+            salePrice: Number(salePrice),
+            downPayment: Number(downPayment),
+            customerName,
+            customerPhone,
+            status: customerName ? UnitStatus.Sold : UnitStatus.Available,
+          },
+        }),
+      });
 
-    setUnits([newUnit, ...units]);
-    setShowAddUnitModal(false);
-    setUnitNumber('');
-    setCustomerName('');
-    setCustomerPhone('');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'فشل إضافة الوحدة');
+      }
+
+      setShowAddUnitModal(false);
+      setUnitNumber('');
+      setCustomerName('');
+      setCustomerPhone('');
+      await loadUnitData();
+    } catch (err: any) {
+      alert(err.message);
+    }
   };
 
   return (

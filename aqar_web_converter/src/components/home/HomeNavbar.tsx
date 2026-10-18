@@ -99,6 +99,16 @@ export function HomeNavbar() {
               <span>عن المنظومة</span>
             </Link>
             <Link
+              href="/accounting/login"
+              onClick={() => setMobileMenuOpen(false)}
+              className="p-3 rounded-xl bg-[#242424] text-white transition flex items-center justify-between font-bold"
+            >
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-[#A89F91]" />
+                <span>دخول بوابة المحاسبة والشركاء</span>
+              </div>
+            </Link>
+            <Link
               href="#contact"
               onClick={() => setMobileMenuOpen(false)}
               className="p-3 rounded-xl hover:bg-[#EBE8E1] transition flex items-center justify-between"

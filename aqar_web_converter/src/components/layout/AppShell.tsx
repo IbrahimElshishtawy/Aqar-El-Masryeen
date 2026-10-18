@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Building2,
   LayoutDashboard,
@@ -17,8 +17,12 @@ import {
   ShieldCheck,
   Globe,
   Lock,
-  ChevronLeft
+  ChevronLeft,
+  TrendingUp,
+  LogOut,
+  UserCheck,
 } from 'lucide-react';
+import { AuthUserSession } from '@/types';
 
 interface AppShellProps {
   title: string;
@@ -29,17 +33,58 @@ interface AppShellProps {
 
 export function AppShell({ title, subtitle, children, actions }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<AuthUserSession | null>(null);
+
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (data?.authenticated && data?.user) {
+          setCurrentUser(data.user);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/accounting/login');
+      router.refresh();
+    } catch (e) {
+      router.push('/accounting/login');
+    }
+  };
 
   const navigation = [
     { name: 'لوحة المؤشرات العامة', href: '/dashboard', icon: LayoutDashboard },
     { name: 'المشروعات والوحدات', href: '/properties', icon: Building2 },
+    { name: 'رصد وتحديث أسعار العقارات', href: '/price-monitoring', icon: TrendingUp, badge: 'رصد الأسعار' },
     { name: 'برنامج الأقساط والتحصيل', href: '/installments', icon: Calendar },
     { name: 'دفتر المصروفات والتشوينات', href: '/expenses', icon: Receipt },
     { name: 'تسويات وحصص الشركاء', href: '/partners', icon: Users },
     { name: 'التقارير المحاسبية والمالية', href: '/reports', icon: BarChart3 },
     { name: 'استوديو التحويل (Flutter)', href: '/converter', icon: ArrowRightLeft, badge: 'أداة التحويل' },
   ];
+
+  const getRoleBadge = (role?: string) => {
+    switch (role) {
+      case 'admin':
+        return { label: 'مدير المنظومة (Admin)', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' };
+      case 'accountant':
+        return { label: 'رئيس حسابات (Accountant)', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' };
+      case 'partner':
+        return { label: 'شريك استثماري (Partner)', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
+      case 'viewer':
+        return { label: 'مراقب عام (Viewer)', color: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
+      default:
+        return { label: 'مستخدم معتمد', color: 'bg-[#A89F91]/20 text-[#A89F91] border-[#A89F91]/30' };
+    }
+  };
+
+  const roleInfo = getRoleBadge(currentUser?.role);
 
   return (
     <div className="min-h-screen bg-[#F4F4F2] text-[#242424] flex flex-col md:flex-row font-sans selection:bg-[#A89F91] selection:text-white" dir="rtl">
@@ -54,13 +99,13 @@ export function AppShell({ title, subtitle, children, actions }: AppShellProps) 
             <h2 className="font-editorial text-lg font-bold tracking-tight text-white">عقار المصريين</h2>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-[#A89F91]" />
-              <p className="text-[10px] text-[#A89F91] font-bold tracking-wider uppercase">بوابة إدارة الأدمن والمحاسبة</p>
+              <p className="text-[10px] text-[#A89F91] font-bold tracking-wider uppercase">بوابة الإدارة والمحاسبة</p>
             </div>
           </div>
         </div>
 
         {/* Quick Link to Public Home Page */}
-        <div className="my-4">
+        <div className="my-3">
           <Link
             href="/"
             className="w-full p-2.5 rounded-2xl bg-[#1A1A1A] hover:bg-[#111111] border border-[#333333] flex items-center justify-between transition group text-xs font-semibold text-[#A89F91] hover:text-white"
@@ -73,20 +118,24 @@ export function AppShell({ title, subtitle, children, actions }: AppShellProps) 
           </Link>
         </div>
 
-        {/* Workspace Tag */}
-        <div className="mb-4 p-3 rounded-2xl bg-[#1E1E1E] border border-[#333333] flex items-center justify-between">
+        {/* Active Role Tag */}
+        <div className="mb-3 p-3 rounded-2xl bg-[#1E1E1E] border border-[#333333] flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
             <div className="text-right">
-              <p className="text-xs font-bold text-white">نظام المحاسبة المركزي</p>
-              <p className="text-[10px] text-[#777777]">صلاحيات الإدارة الكاملة (Admin)</p>
+              <p className="text-xs font-bold text-white truncate max-w-[150px]">
+                {currentUser?.fullName || 'جلسة محاسبية نشطة'}
+              </p>
+              <span className={`inline-block text-[9px] px-1.5 py-0.5 rounded-full border mt-0.5 font-bold ${roleInfo.color}`}>
+                {roleInfo.label}
+              </span>
             </div>
           </div>
           <ShieldCheck className="w-4 h-4 text-[#A89F91]" />
         </div>
 
         {/* Nav Links */}
-        <nav className="flex-1 space-y-1.5 my-2">
+        <nav className="flex-1 space-y-1 my-1">
           {navigation.map(item => {
             const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
             const Icon = item.icon;
@@ -118,18 +167,24 @@ export function AppShell({ title, subtitle, children, actions }: AppShellProps) 
           })}
         </nav>
 
-        {/* User Card */}
-        <div className="pt-4 border-t border-[#333333] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[#A89F91]/20 text-[#A89F91] flex items-center justify-center font-bold text-xs border border-[#A89F91]/30">
-              أدمن
+        {/* User Card with Logout */}
+        <div className="pt-3 border-t border-[#333333] flex items-center justify-between">
+          <div className="flex items-center gap-2.5 truncate">
+            <div className="w-8 h-8 rounded-xl bg-[#A89F91]/20 text-[#A89F91] flex items-center justify-center font-bold text-xs border border-[#A89F91]/30 shrink-0">
+              <UserCheck className="w-4 h-4" />
             </div>
-            <div>
-              <p className="text-xs font-bold text-white">إدارة الأدمن والحسابات</p>
-              <p className="text-[10px] text-[#777777]">admin@elmasryeen.com</p>
+            <div className="truncate text-right">
+              <p className="text-[11px] font-bold text-white truncate">{currentUser?.email || 'admin@elmasryeen.com'}</p>
+              <p className="text-[9px] text-[#777777]">تسجيل خروج آمن</p>
             </div>
           </div>
-          <Lock className="w-3.5 h-3.5 text-[#777777]" />
+          <button
+            onClick={handleLogout}
+            title="تسجيل الخروج"
+            className="p-2 rounded-xl bg-[#1A1A1A] hover:bg-rose-950 text-rose-300 border border-[#333333] hover:border-rose-800 transition"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
         </div>
       </aside>
 
@@ -159,23 +214,36 @@ export function AppShell({ title, subtitle, children, actions }: AppShellProps) 
               className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#EBE8E1] hover:bg-[#E2DFD8] border border-[#E2DFD8] text-[#242424] text-xs font-bold transition"
             >
               <Globe className="w-3.5 h-3.5 text-[#777777]" />
-              <span>زيارة الموقع العام</span>
+              <span>الموقع العام</span>
             </Link>
 
-            <Link
-              href="/dashboard"
-              className="p-2.5 rounded-xl border border-[#E2DFD8] bg-[#F4F4F2] text-[#777777] hover:text-[#242424] hover:bg-[#EBE8E1] transition relative"
-              title="التنبيهات"
+            <button
+              onClick={handleLogout}
+              className="p-2.5 rounded-xl border border-[#E2DFD8] bg-[#F4F4F2] text-rose-600 hover:bg-rose-50 transition"
+              title="تسجيل الخروج"
             >
-              <Bell className="w-4 h-4" />
-              <span className="w-2 h-2 rounded-full bg-[#A89F91] absolute top-2 right-2 ring-2 ring-white" />
-            </Link>
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </header>
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
           <div className="md:hidden bg-[#242424] text-[#F4F4F2] border-b border-[#333333] p-4 space-y-2">
+            <div className="p-3 rounded-xl bg-[#1E1E1E] border border-[#333333] flex items-center justify-between text-xs mb-2">
+              <div>
+                <span className="font-bold text-white block">{currentUser?.fullName}</span>
+                <span className="text-[10px] text-[#A89F91]">{roleInfo.label}</span>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="px-2.5 py-1.5 bg-rose-950 text-rose-200 rounded-lg text-xs font-bold flex items-center gap-1"
+              >
+                <LogOut className="w-3 h-3" />
+                <span>خروج</span>
+              </button>
+            </div>
+
             <Link
               href="/"
               onClick={() => setMobileMenuOpen(false)}
@@ -220,4 +288,3 @@ export function AppShell({ title, subtitle, children, actions }: AppShellProps) 
 }
 
 export default AppShell;
-

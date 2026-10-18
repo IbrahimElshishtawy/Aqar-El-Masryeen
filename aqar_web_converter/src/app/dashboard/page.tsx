@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   TrendingUp,
@@ -11,25 +11,54 @@ import {
   Users,
   ArrowUpRight,
   Plus,
+  Scale,
+  History,
+  ShieldCheck,
+  CheckCircle2,
+  AlertTriangle,
+  ArrowDownLeft,
+  ChevronLeft,
 } from 'lucide-react';
 import AppShell from '@/components/layout/AppShell';
 import MetricCard from '@/components/ui/MetricCard';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { initialProjects, initialUnits, initialInstallments, initialExpenses } from '@/services/store';
+import { CompanyReconciliation } from '@/lib/accounting/engine';
+import { PropertyProject, Installment, ExpenseRecord, PartnerLedgerSummaryRow } from '@/types';
 
 export default function DashboardPage() {
-  const [projects] = useState(initialProjects);
-  const [installments] = useState(initialInstallments);
-  const [expenses] = useState(initialExpenses);
+  const [loading, setLoading] = useState(true);
+  const [reconciliation, setReconciliation] = useState<CompanyReconciliation | null>(null);
+  const [projects, setProjects] = useState<PropertyProject[]>([]);
+  const [installments, setInstallments] = useState<Installment[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
+  const [userRole, setUserRole] = useState<string>('admin');
 
-  // Calculations
-  const totalSales = 72000000 + 55000000 + 29000000;
-  const totalCollected = initialUnits
-    .filter(u => u.status === 'sold')
-    .reduce((acc, u) => acc + u.downPayment, 0) +
-    installments.filter(i => i.status === 'paid').reduce((acc, i) => acc + i.paidAmount, 0);
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/accounting/data');
+        if (res.ok) {
+          const json = await res.json();
+          setReconciliation(json.data.reconciliation);
+          setProjects(json.data.projects || []);
+          setInstallments(json.data.installments || []);
+          setExpenses(json.data.expenses || []);
+          setUserRole(json.user?.role || 'admin');
+        }
+      } catch (err) {
+        console.error('Failed to load accounting data', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
 
-  const totalExpenseAmount = expenses.reduce((acc, e) => acc + e.amount, 0);
+  const totalSales = reconciliation?.totalSalesValue || 0;
+  const totalCollected = reconciliation?.totalCollected || 0;
+  const totalExpenseExposure = reconciliation?.totalExpenseExposure || 0;
+  const netProfit = reconciliation?.netCompanyProfit || 0;
   const overdueCount = installments.filter(i => i.status === 'overdue').length;
 
   return (
@@ -38,12 +67,21 @@ export default function DashboardPage() {
       subtitle="ملخص مالي وإداري شامل لكافة المشروعات، التحصيلات، دفاتر المصروفات، وأقساط العملاء"
       actions={
         <div className="flex items-center gap-2">
+          {userRole === 'admin' && (
+            <Link
+              href="/properties"
+              className="px-4 py-2.5 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition active:scale-95"
+            >
+              <Plus className="w-4 h-4 text-[#A89F91]" />
+              <span>مشروع جديد</span>
+            </Link>
+          )}
           <Link
-            href="/properties"
-            className="px-4 py-2.5 rounded-xl bg-[#242424] hover:bg-[#1A1A1A] text-white font-bold text-xs flex items-center gap-2 shadow-sm transition active:scale-95"
+            href="/price-monitoring"
+            className="px-3.5 py-2.5 rounded-xl bg-[#F4F4F2] hover:bg-[#EBE8E1] border border-[#E2DFD8] text-xs font-bold text-[#242424] transition flex items-center gap-1.5"
           >
-            <Plus className="w-4 h-4 text-[#A89F91]" />
-            <span>مشروع جديد</span>
+            <TrendingUp className="w-4 h-4 text-[#A89F91]" />
+            <span>رصد الأسعار</span>
           </Link>
         </div>
       }
@@ -52,32 +90,32 @@ export default function DashboardPage() {
         {/* KPI Metric Cards Row */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <MetricCard
-            label="إجمالي القيمة البيعية للمشروعات"
-            value={`${(totalSales / 1000000).toFixed(1)} مليون ج.م`}
+            label="إجمالي القيمة التعاقدية للمبيعات"
+            value={`${(totalSales / 1000000).toFixed(2)}M ج.م`}
             icon={TrendingUp}
-            trend="↑ +18% نمو المبيعات"
-            subtext="موزعة على 3 مشروعات نشطة"
+            trend="عقود ومبيعات فعلية"
+            subtext="موزعة على المشروعات المسجلة"
           />
 
           <MetricCard
-            label="إجمالي التحصيلات النقدية"
-            value={`${(totalCollected / 1000000).toFixed(2)} مليون ج.م`}
+            label="إجمالي التحصيلات النقدية المحققة"
+            value={`${(totalCollected / 1000000).toFixed(2)}M ج.م`}
             icon={DollarSign}
-            subtext="مقدمات تعاقد وأقساط مسددة"
+            subtext={`متبقي مستحقات: ${((reconciliation?.totalOutstandingReceivables || 0) / 1000000).toFixed(2)}M ج.م`}
           />
 
           <MetricCard
-            label="الأقساط المتأخرة والمستحقة"
-            value={`${overdueCount} أقساط`}
-            icon={Calendar}
-            subtext="تحتاج إلى متابعة تحصيل عاجلة"
-          />
-
-          <MetricCard
-            label="إجمالي المصروفات المنفذة"
-            value={`${(totalExpenseAmount / 1000000).toFixed(2)} مليون ج.م`}
+            label="إجمالي التكاليف والمصروفات"
+            value={`${(totalExpenseExposure / 1000000).toFixed(2)}M ج.م`}
             icon={Receipt}
-            subtext="إنشاءات وتشوينات ومواد بناء"
+            subtext={`مصروفات: ${((reconciliation?.totalGeneralExpenses || 0) / 1000000).toFixed(2)}M + تشوينات`}
+          />
+
+          <MetricCard
+            label="صافي الأرباح التقديرية للشركة"
+            value={`${(netProfit / 1000000).toFixed(2)}M ج.م`}
+            icon={Scale}
+            subtext={netProfit >= 0 ? 'فائض أرباح تشغيلي' : 'عجز مرحلي قيد التسوية'}
           />
         </section>
 
@@ -97,7 +135,7 @@ export default function DashboardPage() {
               <div>
                 <Building2 className="w-5 h-5 text-[#242424] mb-2 group-hover:scale-110 transition" />
                 <span className="text-xs font-bold text-[#242424] block">المشروعات</span>
-                <span className="text-[10px] text-[#777777]">3 مشاريع قيد العمل</span>
+                <span className="text-[10px] text-[#777777]">{projects.length} مشاريع مسجلة</span>
               </div>
               <ArrowUpRight className="w-4 h-4 text-[#777777] group-hover:text-[#242424] transition" />
             </Link>
@@ -109,7 +147,7 @@ export default function DashboardPage() {
               <div>
                 <Calendar className="w-5 h-5 text-[#242424] mb-2 group-hover:scale-110 transition" />
                 <span className="text-xs font-bold text-[#242424] block">جدول الأقساط</span>
-                <span className="text-[10px] text-[#777777]">توليد ومتابعة التحصيل</span>
+                <span className="text-[10px] text-[#777777]">{overdueCount} أقساط متأخرة</span>
               </div>
               <ArrowUpRight className="w-4 h-4 text-[#777777] group-hover:text-[#242424] transition" />
             </Link>
@@ -121,7 +159,7 @@ export default function DashboardPage() {
               <div>
                 <Receipt className="w-5 h-5 text-[#242424] mb-2 group-hover:scale-110 transition" />
                 <span className="text-xs font-bold text-[#242424] block">دفتر المصروفات</span>
-                <span className="text-[10px] text-[#777777]">حديد، أسمنت، مقاولين</span>
+                <span className="text-[10px] text-[#777777]">إنشاءات ومواد بناء</span>
               </div>
               <ArrowUpRight className="w-4 h-4 text-[#777777] group-hover:text-[#242424] transition" />
             </Link>
@@ -133,12 +171,87 @@ export default function DashboardPage() {
               <div>
                 <Users className="w-5 h-5 text-[#242424] mb-2 group-hover:scale-110 transition" />
                 <span className="text-xs font-bold text-[#242424] block">تسويات الشركاء</span>
-                <span className="text-[10px] text-[#777777]">حصص ونسب رأس المال</span>
+                <span className="text-[10px] text-[#777777]">توزيع الحصص والأرصدة</span>
               </div>
               <ArrowUpRight className="w-4 h-4 text-[#777777] group-hover:text-[#242424] transition" />
             </Link>
           </div>
         </section>
+
+        {/* Live Partner Balances & Reconciliation Summary */}
+        {reconciliation?.partnerLedgerRows && reconciliation.partnerLedgerRows.length > 0 && (
+          <section className="rounded-3xl bg-[#FFFFFF] border border-[#E2DFD8] p-6 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-editorial text-base font-bold text-[#242424] flex items-center gap-2">
+                  <Scale className="w-5 h-5 text-[#A89F91]" />
+                  <span>أرصدة الشركاء والتسوية المالية اللحظية (Partner Balances)</span>
+                </h3>
+                <p className="text-xs text-[#777777] mt-0.5">
+                  محتسبة وفق نسبة المشاركة الفعلية وإجمالي المصروفات والتشوينات المسددة
+                </p>
+              </div>
+              <Link
+                href="/partners"
+                className="text-xs font-bold text-[#242424] hover:text-[#777777] transition flex items-center gap-1"
+              >
+                <span>كشف الحساب الكامل</span>
+                <ChevronLeft className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {reconciliation.partnerLedgerRows.map((row: PartnerLedgerSummaryRow) => {
+                const isCompanyOwing = row.balance > 0;
+                return (
+                  <div
+                    key={row.partner.id}
+                    className="p-4 rounded-2xl bg-[#F4F4F2] border border-[#E2DFD8] space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-bold text-[#242424] block">{row.partner.name}</span>
+                        <span className="text-[11px] text-[#777777]">
+                          نسبة الشراكة: {Math.round(row.partner.shareRatio * 100)}%
+                        </span>
+                      </div>
+                      <span
+                        className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                          isCompanyOwing
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {isCompanyOwing ? 'مستحق له طرف الشركة' : 'مطلوب سداده للشركة'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#E2DFD8] text-center text-xs">
+                      <div>
+                        <span className="text-[10px] text-[#777777] block">المسدد فعلياً</span>
+                        <span className="font-bold text-[#242424]">
+                          {(row.totalPaid / 1000).toLocaleString()} ألف
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[#777777] block">الحصة المستهدفة</span>
+                        <span className="font-bold text-[#242424]">
+                          {(row.expectedShare / 1000).toLocaleString()} ألف
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-[#777777] block">صافي الرصيد</span>
+                        <span className={`font-bold ${isCompanyOwing ? 'text-emerald-700' : 'text-amber-700'}`}>
+                          {Math.abs(row.balance / 1000).toLocaleString()} ألف ج.م
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {/* 2-Column Section: Active Projects & Overdue Installments */}
         <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
