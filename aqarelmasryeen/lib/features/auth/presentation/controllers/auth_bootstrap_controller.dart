@@ -32,7 +32,7 @@ final authBootstrapControllerProvider = FutureProvider<AuthBootstrapDecision>((
     final lockState = ref.read(sessionLockControllerProvider);
 
     if (session == null) {
-      return _decisionFromLocalState(
+      return await _decisionFromLocalState(
         storage: storage,
         cachedProfile: await localDataSource.readLastKnownProfile(),
         lockState: lockState,
