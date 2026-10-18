@@ -43,10 +43,9 @@ final secureStorageProvider = Provider<SecureStorageService>(
     const FlutterSecureStorage(
       aOptions: AndroidOptions(
         resetOnError: true,
-        migrateOnAlgorithmChange: true,
-        keyCipherAlgorithm: KeyCipherAlgorithm.RSA_ECB_PKCS1Padding,
-        storageCipherAlgorithm: StorageCipherAlgorithm.AES_CBC_PKCS7Padding,
-        sharedPreferencesName: 'AqarElMasryeenSecureStorageV2',
+        keyCipherAlgorithm: KeyCipherAlgorithm.RSA_ECB_OAEPwithSHA_256andMGF1Padding,
+        storageCipherAlgorithm: StorageCipherAlgorithm.AES_GCM_NoPadding,
+        storageNamespace: 'AqarElMasryeenSecureStorageV2',
         preferencesKeyPrefix: 'aqarelmasryeen_v2',
       ),
       iOptions: IOSOptions(
